@@ -1,0 +1,211 @@
+{
+  "id": "m01_l06",
+  "module_id": "m01",
+  "title": "Pandas — Filtering and Selecting Data",
+  "order": 6,
+  "duration_min": 25,
+  "difficulty": "beginner",
+  "concept_tags": ["pandas_filtering", "boolean_indexing", "data_segmentation"],
+  "learning_objectives": [
+    "Apply boolean indexing to filter a DataFrame by single and multiple conditions",
+    "Use .loc[] and conditional expressions to segment financial data by risk criteria",
+    "Combine multiple conditions with & (and) and | (or) operators in pandas",
+    "Compute segment-specific risk metrics to inform a policy decision about loan approval terms"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "SoFi's underwriting team uses pandas filtering every time they review a product segment — isolating the 'medical expense loans under $10K with FICO 600-650' bucket from the rest of the portfolio takes one line of code and instantly reveals whether that segment's default rate justifies special pricing.",
+      "explanation": "Filtering in pandas means selecting a subset of rows that meet specific conditions. It is the most common operation in financial data analysis — virtually every business question starts with 'show me only the loans/transactions/customers where X is true.' The mechanism is called boolean indexing: you create a boolean Series (a column of True/False values) that is True for rows matching your condition, then pass that Series as an index to the DataFrame to extract only the matching rows.\n\nSingle condition filtering is straightforward: `df[df['credit_score'] >= 660]` creates a boolean Series that is True wherever credit_score >= 660, then filters the DataFrame to only those rows. The key syntax is the double `df[df[...]]` — the outer brackets are the subscript operator selecting rows, the inner `df[...]` computes the boolean mask. Multi-condition filtering uses `&` (both true) and `|` (either true) operators, but Python's operator precedence requires each condition to be wrapped in parentheses: `df[(df['credit_score'] >= 660) & (df['loan_amount'] <= 25000)]`.\n\nIn the lending context, filtering is the tool for answering policy questions: 'What is the default rate for debt-consolidation loans between $10K and $25K from applicants with FICO 620-660?' You cannot answer that from aggregate statistics — you have to filter to exactly that population and compute the metric in context. SoFi's pricing team does this constantly because each loan purpose/FICO/amount combination may carry a meaningfully different risk profile, and charging a single APR for all combinations means either over-pricing (losing good customers to competitors) or under-pricing (accumulating losses on bad-risk loans).",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\n\ndf = pd.read_csv('loan_applications.csv')\n\n# --- SINGLE CONDITION FILTERING ---\n# Get all applicants with FICO >= 660\nhigh_fico = df[df['credit_score'] >= 660]\nprint(f\"FICO >= 660: {len(high_fico):,} applicants ({len(high_fico)/len(df):.1%} of total)\")\nprint(f\"Default rate: {high_fico['defaulted'].mean():.1%}\\n\")\n\n# --- MULTI-CONDITION FILTERING (AND) ---\n# SoFi policy: identify the high-risk debt-consolidation segment\nhigh_risk_segment = df[\n    (df['loan_purpose'] == 'debt_consolidation') &\n    (df['credit_score'] < 660) &\n    (df['debt_to_income'] > 0.40)\n]\nprint(f\"High-risk debt consolidation segment: {len(high_risk_segment):,} applicants\")\nprint(f\"Default rate in this segment: {high_risk_segment['defaulted'].mean():.1%}\")\nprint(f\"Average loan amount: ${high_risk_segment['loan_amount'].mean():,.0f}\\n\")\n\n# --- MULTI-CONDITION FILTERING (OR) ---\n# Flag applications that trigger EITHER high DTI OR very low credit score\nrisk_flag = df[\n    (df['debt_to_income'] > 0.50) |\n    (df['credit_score'] < 580)\n]\nprint(f\"Applications with any major risk flag: {len(risk_flag):,} ({len(risk_flag)/len(df):.1%})\")\nprint(f\"Default rate among flagged: {risk_flag['defaulted'].mean():.1%}\\n\")\n\n# --- SELECT SPECIFIC COLUMNS AFTER FILTERING ---\n# Look at the exact fields relevant to a pricing decision\npricing_view = df[\n    (df['loan_purpose'] == 'medical') &\n    (df['loan_amount'] <= 10000)\n][['credit_score', 'loan_amount', 'debt_to_income', 'defaulted']]\n\nprint(f\"Medical loans under $10K: {len(pricing_view):,} applications\")\nprint(pricing_view.describe().round(2))",
+        "output": "FICO >= 660: 28,497 applicants (59.0% of total)\nDefault rate: 1.4%\n\nHigh-risk debt consolidation segment: 4,218 applicants\nDefault rate in this segment: 5.8%\nAverage loan amount: $16,742\n\nApplications with any major risk flag: 3,104 (6.4%)\nDefault rate among flagged: 7.2%\n\nMedical loans under $10K: 3,891 applications\n       credit_score  loan_amount  debt_to_income  defaulted\ncount       3891.0       3891.0          3891.0     3891.0\nmean         654.2       6124.8             0.36      0.032\nstd           61.8       2418.2             0.12      0.175\nmin          540.0       1000.0             0.05      0.000\n25%          612.0       4000.0             0.27      0.000\n50%          653.0       6000.0             0.35      0.000\n75%          698.0       8000.0             0.44      0.000\nmax          820.0      10000.0             0.89      1.000"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "SoFi",
+      "role": "Credit Policy Analyst at SoFi",
+      "scenario": "SoFi is reviewing its personal loan product for 2026. The current policy approves all loans with FICO >= 640 at standard terms (9.99% APR, no additional conditions). The risk team has noticed that certain loan purposes have significantly higher default rates than others, and the uniform 9.99% APR is probably under-pricing risk for the high-default-rate purposes while over-pricing it for lower-risk purposes. You've been asked to identify which loan purposes should face stricter approval terms — specifically, which purposes should require either a higher FICO minimum (680 instead of 640) or a higher down payment requirement. The CEO wants a specific recommendation with data to back it up before the Q2 product review.",
+      "constraints": [
+        "SoFi cannot raise APR on existing loans — the policy change applies only to new originations",
+        "The risk team will only approve stricter terms for loan purposes with default rates above 3.5% in the historical data",
+        "At least one loan purpose must remain at standard terms to maintain product breadth — SoFi cannot restrict every purpose",
+        "Any purpose-specific restriction must be applied uniformly to all applicants in that purpose — no individual exceptions allowed"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Chief Risk Officer",
+          "pressure": "I want a table showing default rate by loan purpose AND by credit score band within each purpose. The high-level numbers aren't enough — I need to see where the risk actually lives before I'll approve stricter terms"
+        },
+        {
+          "stakeholder": "VP of Product",
+          "pressure": "Travel and vacation loans are a big differentiator for SoFi's brand. If we restrict those, we're signaling to customers that we don't believe in them. Be careful about putting travel in the restricted bucket without strong data"
+        },
+        {
+          "stakeholder": "Head of Credit Modeling",
+          "pressure": "Purpose alone is a weak predictor. The interaction between purpose and credit score is what matters — a 720 FICO debt consolidation loan is very different from a 590 FICO debt consolidation loan. Make sure your analysis reflects that"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "loan_applications",
+      "intro": "We need to filter the loan portfolio to analyze default rates by purpose, then drill into the interaction between purpose and credit score band. This multi-dimensional view is what will reveal whether the policy change should be purpose-wide or purpose-plus-credit-score specific.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Filter the dataset to compute default rate by loan purpose — identify which purposes exceed the 3.5% threshold",
+          "code": "import pandas as pd\n\ndf = pd.read_csv('loan_applications.csv')\n\n# Compute default rate by loan purpose\npurpose_stats = df.groupby('loan_purpose').agg(\n    count=('applicant_id', 'count'),\n    default_rate=('defaulted', 'mean'),\n    avg_credit_score=('credit_score', 'mean'),\n    avg_loan_amount=('loan_amount', 'mean')\n).reset_index().sort_values('default_rate', ascending=False)\n\npurpose_stats['default_rate_pct'] = purpose_stats['default_rate'].map('{:.1%}'.format)\npurpose_stats['exceeds_35_pct'] = purpose_stats['default_rate'] > 0.035\n\nprint(purpose_stats[['loan_purpose', 'count', 'default_rate_pct', 'avg_credit_score',\n                       'avg_loan_amount', 'exceeds_35_pct']].to_string(index=False))",
+          "output": "   loan_purpose  count default_rate_pct  avg_credit_score  avg_loan_amount exceeds_35_pct\ndebt_consolidation  12104            4.8%            648.20         18,420.0           True\n          medical   6812            4.1%            651.80          7,840.0           True\n           travel   4231            2.2%            674.50         11,250.0          False\n            auto   8441            1.8%            683.40         16,820.0          False\nhome_improvement  14823            1.4%            692.10         17,640.0          False\n         business   1901            3.2%            664.30         22,100.0          False",
+          "business_implication": "Two purposes exceed the 3.5% threshold: debt_consolidation at 4.8% and medical at 4.1%. These are also the purposes with the lowest average credit scores (648 and 651 respectively), suggesting the risk is concentrated in the lower-FICO applicants within these purposes. Travel and auto are well below threshold, and home_improvement is the safest segment overall."
+        },
+        {
+          "step": 2,
+          "instruction": "For the two high-risk purposes, filter and analyze the default rate by FICO band to find the specific sub-segment driving the elevated rates",
+          "code": "# Filter to only the two high-risk purposes and analyze by FICO band\nhigh_risk_purposes = ['debt_consolidation', 'medical']\n\nfor purpose in high_risk_purposes:\n    purpose_df = df[df['loan_purpose'] == purpose].copy()\n    purpose_df['fico_band'] = pd.cut(\n        purpose_df['credit_score'],\n        bins=[540, 620, 640, 660, 680, 820],\n        labels=['540-619', '620-639', '640-659', '660-679', '680+']\n    )\n    \n    band_stats = purpose_df.groupby('fico_band').agg(\n        count=('applicant_id', 'count'),\n        default_rate=('defaulted', 'mean')\n    ).reset_index()\n    \n    print(f\"\\n{purpose.upper()} — default rate by FICO band:\")\n    for _, row in band_stats.iterrows():\n        flag = '*** ABOVE 3.5% THRESHOLD ***' if row['default_rate'] > 0.035 else ''\n        print(f\"  {row['fico_band']}: {row['count']:,} loans | {row['default_rate']:.1%} default  {flag}\")",
+          "output": "DEBT_CONSOLIDATION — default rate by FICO band:\n  540-619: 1,842 loans | 9.2% default  *** ABOVE 3.5% THRESHOLD ***\n  620-639: 2,918 loans | 6.4% default  *** ABOVE 3.5% THRESHOLD ***\n  640-659: 3,101 loans | 4.1% default  *** ABOVE 3.5% THRESHOLD ***\n  660-679: 2,844 loans | 2.0% default\n  680+   : 1,399 loans | 0.8% default\n\nMEDICAL — default rate by FICO band:\n  540-619:   712 loans | 8.1% default  *** ABOVE 3.5% THRESHOLD ***\n  620-639: 1,204 loans | 5.3% default  *** ABOVE 3.5% THRESHOLD ***\n  640-659: 1,891 loans | 3.8% default  *** ABOVE 3.5% THRESHOLD ***\n  660-679: 1,822 loans | 2.1% default\n  680+   : 1,183 loans | 0.9% default",
+          "business_implication": "The risk is purpose-wide for the sub-660 FICO population. For both debt_consolidation and medical, every FICO band below 660 exceeds the 3.5% threshold. At 660 and above, both purposes fall well within tolerance. This validates the CRO's instinct: the interaction between purpose and credit score drives the risk — a 680 FICO debt consolidation loan is safe (0.8% default), while a 640 FICO debt consolidation loan is 5x riskier."
+        },
+        {
+          "step": 3,
+          "instruction": "Quantify the revenue and risk impact of requiring FICO 660+ for debt_consolidation and medical purposes",
+          "code": "# How many applicants would be affected by the stricter policy?\nfor purpose in ['debt_consolidation', 'medical']:\n    all_purpose = df[df['loan_purpose'] == purpose]\n    would_be_denied = df[\n        (df['loan_purpose'] == purpose) &\n        (df['credit_score'] < 660)\n    ]\n    would_be_approved = df[\n        (df['loan_purpose'] == purpose) &\n        (df['credit_score'] >= 660)\n    ]\n    \n    denial_rate = len(would_be_denied) / len(all_purpose)\n    new_default_rate = would_be_approved['defaulted'].mean()\n    original_default_rate = all_purpose['defaulted'].mean()\n    \n    print(f\"\\n{purpose.upper()}:\")\n    print(f\"  Current: {len(all_purpose):,} approved | {original_default_rate:.1%} default rate\")\n    print(f\"  Proposed: {len(would_be_approved):,} approved | {new_default_rate:.1%} default rate\")\n    print(f\"  Applicants newly restricted: {len(would_be_denied):,} ({denial_rate:.1%} of purpose volume)\")\n    improvement = original_default_rate - new_default_rate\n    print(f\"  Default rate improvement: -{improvement:.1%} percentage points\")",
+          "output": "DEBT_CONSOLIDATION:\n  Current: 12,104 approved | 4.8% default rate\n  Proposed: 4,243 approved | 1.4% default rate\n  Applicants newly restricted: 7,861 (65.0% of purpose volume)\n  Default rate improvement: -3.4% percentage points\n\nMEDICAL:\n  Current: 6,812 approved | 4.1% default rate\n  Proposed: 3,005 approved | 1.5% default rate\n  Applicants newly restricted: 3,807 (55.9% of purpose volume)\n  Default rate improvement: -2.6% percentage points",
+          "business_implication": "The proposed FICO 660 minimum for debt_consolidation and medical would cut approval volume by 65% and 56% respectively — a dramatic reduction. The default rate improvement is significant (3.4pp and 2.6pp), but the volume impact will concern the VP of Product. This creates the core policy tradeoff: how much volume are you willing to sacrifice to achieve the risk reduction?"
+        }
+      ]
+    },
+    {
+      "type": "decision_block",
+      "decision_type": "policy_choice",
+      "prompt": "Based on your purpose-level default rate analysis, which loan purposes should SoFi require stricter approval terms for (FICO 680+ minimum instead of 640)?",
+      "options": [
+        {
+          "id": "A",
+          "label": "Restrict only debt_consolidation (FICO 680+ required)",
+          "description": "Debt consolidation has the highest default rate (4.8%) and largest volume. Restricting it reduces portfolio default risk significantly. Medical (4.1%) stays at standard terms to preserve access to emergency funding. Travel, auto, and home_improvement remain at 640 standard.",
+          "risk_level": "medium"
+        },
+        {
+          "id": "B",
+          "label": "Restrict both debt_consolidation AND medical (FICO 680+ required for both)",
+          "description": "Both exceed the 3.5% threshold. Restricting both produces the maximum default rate reduction. Approval volume for both purposes drops by 60-65%, but the remaining approved loans have default rates under 1.5%.",
+          "risk_level": "low"
+        },
+        {
+          "id": "C",
+          "label": "Restrict debt_consolidation AND medical, but only for FICO < 660 (not 680)",
+          "description": "The FICO-band analysis shows the risk is concentrated below 660, not 680. Setting the restriction at 660 reduces the volume impact (40-45% reduction instead of 60-65%) while still pushing both purposes below the 3.5% threshold.",
+          "risk_level": "low"
+        }
+      ],
+      "outcome_function": "fraud_threshold_pl",
+      "optimal_option": "C",
+      "worst_option": "A",
+      "outcome_explanation": "Option C is optimal because it is the most precisely targeted restriction. The FICO-band analysis shows that at 660+, both debt_consolidation (2.0%) and medical (2.1%) fall below the 3.5% threshold — so restricting at 660, not 680, achieves the risk goal while denying fewer applicants. Option B sets the threshold at 680, which is unnecessarily strict — the 660-679 band has only 2.0-2.1% default rates, well within tolerance, meaning the extra restriction denies an additional 20% of purpose volume for no incremental risk benefit. Option A restricts only debt_consolidation, leaving medical above the 3.5% threshold — a half-measure that fails the CRO's requirement."
+    },
+    {
+      "type": "technical_exercise_block",
+      "language": "python",
+      "standard": {
+        "instructions": "Write a function called `segment_high_risk_applicants` that takes a DataFrame and returns a new DataFrame containing only high-risk applicants. An applicant is high-risk if they meet ANY of the following conditions: credit_score < 620, OR debt_to_income > 0.45, OR (loan_purpose == 'debt_consolidation' AND credit_score < 660), OR (loan_purpose == 'medical' AND credit_score < 660). The returned DataFrame should include only these columns: 'applicant_id', 'credit_score', 'loan_amount', 'loan_purpose', 'debt_to_income', and a new column 'risk_flag' that is a string describing which condition triggered the flag (use the first matching condition in the order listed above).",
+        "starter_code": "import pandas as pd\n\ndef segment_high_risk_applicants(df):\n    \"\"\"\n    Filter DataFrame to high-risk applicants and add a risk_flag column.\n    \n    An applicant is flagged if they meet any of these conditions:\n    1. credit_score < 620\n    2. debt_to_income > 0.45\n    3. debt_consolidation loan with credit_score < 660\n    4. medical loan with credit_score < 660\n    \n    Returns:\n        DataFrame with columns: applicant_id, credit_score, loan_amount,\n        loan_purpose, debt_to_income, risk_flag\n    \"\"\"\n    # Your code here\n    pass\n\n# Test\nimport pandas as pd\ntest_data = {\n    'applicant_id': ['A1', 'A2', 'A3', 'A4', 'A5'],\n    'credit_score': [600, 720, 650, 650, 710],\n    'loan_amount': [10000, 20000, 15000, 12000, 8000],\n    'loan_purpose': ['travel', 'auto', 'debt_consolidation', 'medical', 'home_improvement'],\n    'debt_to_income': [0.30, 0.50, 0.32, 0.38, 0.25]\n}\ntest_df = pd.DataFrame(test_data)\nresult = segment_high_risk_applicants(test_df)\nprint(result)",
+        "solution": "import pandas as pd\n\ndef segment_high_risk_applicants(df):\n    \"\"\"\n    Filter DataFrame to high-risk applicants and add a risk_flag column.\n    \"\"\"\n    df = df.copy()  # Don't modify the original\n    \n    # Assign risk flag based on first matching condition\n    def get_risk_flag(row):\n        if row['credit_score'] < 620:\n            return 'LOW_CREDIT_SCORE'\n        if row['debt_to_income'] > 0.45:\n            return 'HIGH_DTI'\n        if row['loan_purpose'] == 'debt_consolidation' and row['credit_score'] < 660:\n            return 'DEBT_CONSOL_SUB660'\n        if row['loan_purpose'] == 'medical' and row['credit_score'] < 660:\n            return 'MEDICAL_SUB660'\n        return None\n    \n    df['risk_flag'] = df.apply(get_risk_flag, axis=1)\n    \n    # Filter to only flagged rows\n    high_risk = df[df['risk_flag'].notnull()]\n    \n    # Return only the relevant columns\n    return high_risk[['applicant_id', 'credit_score', 'loan_amount',\n                       'loan_purpose', 'debt_to_income', 'risk_flag']]\n\n# Test\ntest_data = {\n    'applicant_id': ['A1', 'A2', 'A3', 'A4', 'A5'],\n    'credit_score': [600, 720, 650, 650, 710],\n    'loan_amount': [10000, 20000, 15000, 12000, 8000],\n    'loan_purpose': ['travel', 'auto', 'debt_consolidation', 'medical', 'home_improvement'],\n    'debt_to_income': [0.30, 0.50, 0.32, 0.38, 0.25]\n}\ntest_df = pd.DataFrame(test_data)\nresult = segment_high_risk_applicants(test_df)\nprint(result)",
+        "hint": "Write a helper function `get_risk_flag(row)` that returns a string for the first matching condition and None if no condition matches. Apply it with `df.apply(get_risk_flag, axis=1)`. Then filter with `df[df['risk_flag'].notnull()]` to get only the flagged rows. Don't forget `df.copy()` at the start to avoid modifying the original DataFrame.",
+        "expected_output": "  applicant_id  credit_score  loan_amount         loan_purpose  debt_to_income          risk_flag\n0           A1           600        10000               travel            0.30    LOW_CREDIT_SCORE\n1           A2           720        20000                 auto            0.50               HIGH_DTI\n2           A3           650        15000  debt_consolidation            0.32  DEBT_CONSOL_SUB660\n3           A4           650        12000              medical            0.38     MEDICAL_SUB660"
+      },
+      "challenge": {
+        "instructions": "Write a function `compute_segment_stats(df, filters_dict)` where `filters_dict` is a dictionary mapping segment names to filter specifications. Each filter specification is a dict with keys matching column names and values that are either a single value (exact match), a tuple of (min, max) for range, or a list of values (membership). The function should return a DataFrame with one row per segment containing: segment_name, count, approval_rate (if 'defaulted' column exists, use 1 - default_rate as approval_rate proxy), avg_loan_amount, avg_credit_score. Example: filters_dict = {'prime_travel': {'loan_purpose': 'travel', 'credit_score': (680, 820)}, 'subprime_debt_consol': {'loan_purpose': 'debt_consolidation', 'credit_score': (540, 659)}}",
+        "starter_code": "def compute_segment_stats(df, filters_dict):\n    # filters_dict example:\n    # {\n    #   'segment_name': {\n    #       'column_name': single_value,          # exact match\n    #       'column_name': (min_val, max_val),    # range\n    #       'column_name': [val1, val2],          # membership\n    #   }\n    # }\n    pass",
+        "solution": "def compute_segment_stats(df, filters_dict):\n    results = []\n    \n    for segment_name, filter_spec in filters_dict.items():\n        mask = pd.Series([True] * len(df), index=df.index)\n        \n        for col, condition in filter_spec.items():\n            if isinstance(condition, tuple) and len(condition) == 2:\n                # Range filter: (min, max)\n                mask = mask & (df[col] >= condition[0]) & (df[col] <= condition[1])\n            elif isinstance(condition, list):\n                # Membership filter: [val1, val2, ...]\n                mask = mask & df[col].isin(condition)\n            else:\n                # Exact match\n                mask = mask & (df[col] == condition)\n        \n        segment_df = df[mask]\n        count = len(segment_df)\n        avg_loan = segment_df['loan_amount'].mean() if count > 0 else 0\n        avg_score = segment_df['credit_score'].mean() if count > 0 else 0\n        \n        approval_rate = None\n        if 'defaulted' in segment_df.columns and count > 0:\n            approval_rate = 1 - segment_df['defaulted'].mean()\n        \n        results.append({\n            'segment_name': segment_name,\n            'count': count,\n            'approval_rate': round(approval_rate, 4) if approval_rate is not None else None,\n            'avg_loan_amount': round(avg_loan, 2),\n            'avg_credit_score': round(avg_score, 1)\n        })\n    \n    return pd.DataFrame(results)",
+        "hint": "Start with a boolean mask of all True values: `mask = pd.Series([True] * len(df), index=df.index)`. For each filter condition, update the mask with `&`. Use `isinstance(condition, tuple)` to distinguish range from exact match, and `isinstance(condition, list)` for membership with `.isin()`. Combine and filter with `df[mask]`."
+      }
+    },
+    {
+      "type": "quiz_block",
+      "questions": [
+        {
+          "id": "m01_l06_q1",
+          "concept_tags": ["pandas_filtering", "boolean_indexing"],
+          "type": "multiple_choice",
+          "question": "You write `high_risk = df[df['credit_score'] < 640 and df['loan_amount'] > 20000]` to filter high-risk applications. What error does this raise, and what is the correct syntax?",
+          "options": [
+            "A) No error — Python's `and` operator works correctly with pandas boolean Series",
+            "B) ValueError: The truth value of a Series is ambiguous — use `&` instead of `and` and wrap each condition in parentheses: `df[(df['credit_score'] < 640) & (df['loan_amount'] > 20000)]`",
+            "C) TypeError: `and` is not supported for DataFrame objects — use `df.filter()` method instead",
+            "D) SyntaxError: comparison operators cannot be chained in pandas — use `df.query()` exclusively"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: Python's `and` keyword tries to evaluate the entire Series as a single boolean value, which is ambiguous (should a Series of [True, False, True] be True or False?). Pandas raises ValueError: The truth value of a Series is ambiguous to prevent this. The correct syntax uses the bitwise `&` operator which operates element-wise on Series and requires parentheses around each condition because `&` has higher operator precedence than `<` and `>`. A is wrong: `and` does NOT work with pandas Series — this is one of the most common beginner pandas errors. C is wrong: there is no `df.filter()` for row filtering; `filter()` in pandas selects columns, not rows. D is wrong: comparison operators work fine in pandas; `df.query()` is an alternative syntax but not the only valid approach."
+        },
+        {
+          "id": "m01_l06_q2",
+          "concept_tags": ["data_segmentation", "pandas_filtering"],
+          "type": "multiple_choice",
+          "question": "SoFi's analysis shows debt_consolidation loans with FICO 640-659 have a 4.1% default rate, while the same FICO band in the home_improvement category has a 1.8% default rate. What does this tell you about how to set a uniform FICO threshold across all loan purposes?",
+          "options": [
+            "A) A uniform threshold of 660 is appropriate since it clears both segments below the risk tolerance",
+            "B) A uniform threshold oversimplifies the risk — purpose-specific thresholds (e.g., 660 for debt_consolidation, 640 for home_improvement) are more accurate because the same FICO score represents different default risk depending on loan purpose",
+            "C) The difference is within statistical noise — a 4.1% vs 1.8% difference on a large sample could be random variation and should not drive policy",
+            "D) The higher default rate in debt_consolidation is driven solely by lower income, not loan purpose — adding an income filter would eliminate the need for a purpose-specific threshold"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: the data reveals that loan purpose is an independent risk predictor — a 640-659 FICO applicant taking a debt consolidation loan is 2.3x more likely to default than the same FICO applicant taking a home improvement loan. A uniform threshold fails in one of two ways: set it high enough to control debt consolidation risk (660+) and you're unnecessarily restricting home improvement applicants who have much lower default rates at 640-659; set it low enough to approve home improvement applicants (640) and you're under-pricing risk for debt consolidation. Purpose-specific thresholds are the precise solution. A is wrong: while a 660 uniform threshold does clear both segments, it is unnecessarily restrictive for home improvement where 640-659 applicants have a 1.8% default rate (well within tolerance). C is wrong: at 12,000+ debt consolidation applications in the dataset, a 2.3x difference in default rate is highly statistically significant and is not noise. D is wrong: while income is correlated with default risk, the analysis controls for FICO score and still shows purpose-specific differences — purpose adds predictive information beyond income."
+        },
+        {
+          "id": "m01_l06_q3",
+          "concept_tags": ["pandas_filtering"],
+          "type": "short_answer",
+          "question": "Explain what `df[df['loan_purpose'].isin(['debt_consolidation', 'medical'])]` does and when you would prefer it over writing two separate OR conditions with `|`.",
+          "accepted_answers": [
+            ".isin() filters rows where the column value matches any value in the provided list — it returns True for rows where loan_purpose is either 'debt_consolidation' or 'medical'. Prefer it over | when checking membership in 3 or more values, because isin(['a','b','c','d']) is much cleaner than four OR conditions chained with |.",
+            "isin() checks if each value in the column is a member of the provided list, returning True for matches. Use it instead of multiple | conditions when you have 3+ values to check — the isin approach scales cleanly as you add more values to the list, while chaining | gets unwieldy.",
+            ".isin(['debt_consolidation', 'medical']) creates a boolean mask that is True wherever loan_purpose equals either of those values. It is equivalent to (df['loan_purpose'] == 'debt_consolidation') | (df['loan_purpose'] == 'medical') but is cleaner and easier to extend with more categories."
+          ],
+          "explanation": "A complete answer explains three things: what isin() returns (a boolean Series that is True where the column value matches any item in the list), what it is equivalent to (multiple OR conditions), and when to prefer it (3+ values, or when the list of values is dynamic/comes from a variable). In financial analysis, you frequently need to filter to a subset of categories — all high-risk merchant categories, all restricted loan purposes, all flagged customer tiers — and isin() is the clean way to express membership filters."
+        },
+        {
+          "id": "m01_l06_q4",
+          "concept_tags": ["data_segmentation", "pandas_filtering"],
+          "type": "what_would_you_do",
+          "question": "The VP of Product pushes back on restricting medical loans: 'People take medical loans because of emergencies — adding a higher FICO requirement feels punitive to people in crisis. Can we find a different way to manage the risk without restricting medical borrowers?' How would you respond analytically, and what filter would you write to test an alternative approach?",
+          "sample_answer": "I would acknowledge the VP's concern and test whether the medical loan risk is driven by FICO score alone or whether loan amount is also a meaningful predictor. Specifically, I'd filter to medical loans and look at default rates segmented by both FICO band and loan amount: `df[(df['loan_purpose'] == 'medical')].groupby(['fico_band', pd.cut(df['loan_amount'], bins=[0, 5000, 10000, 50000])])['defaulted'].mean()`. If the high default rates are concentrated in large medical loans (over $15K) from low-FICO borrowers, we could propose a loan amount cap rather than a FICO restriction — for example, approve medical loans up to $10K at the standard 640 threshold, but require 660+ for amounts above $10K. This addresses the VP's concern while still managing the risk, because the $10K cap keeps the product accessible for most emergency medical expenses while restricting the higher-exposure large loans.",
+          "key_concepts": ["test alternative risk proxies beyond FICO (loan amount, DTI) before restricting a category", "multi-dimensional filtering to find where risk is actually concentrated", "propose loan-amount-based restriction as a less punitive alternative to FICO restriction", "data should drive the policy — write the filter first, then decide based on what it shows"]
+        }
+      ]
+    },
+    {
+      "type": "solution_debrief_block",
+      "optimal_decision": "Restrict both debt_consolidation and medical to FICO 660+ (Option C)",
+      "decision_rationale": "Option C sets the FICO threshold at 660 for both high-risk purposes — the exact point where both fall below the 3.5% default threshold. Debt consolidation at 660+ has a 2.0% default rate; medical at 660+ has a 2.1% default rate. Setting the threshold at 680 (Option B) would be unnecessarily strict: the 660-679 band for both purposes has only 2.0-2.1% default rates, meaning Option B restricts an additional cohort of applicants who are already within tolerance. The volume impact of a 660 cutoff is meaningful (40-45% of each purpose volume denied) but is precisely targeted at the applicants who actually drive the excess default rate.",
+      "pl_comparison": [
+        {
+          "label": "Option A: Restrict only debt_consolidation at 660",
+          "approval_rate": "62% approval in debt_consolidation; medical unchanged",
+          "default_rate": "Debt consol: 2.0% | Medical: 4.1% (still above threshold)",
+          "monthly_profit": "Partial improvement — medical still in violation of 3.5% CRO threshold",
+          "verdict": "Incomplete solution. The CRO explicitly required all purposes above 3.5% to be restricted. Medical remains at 4.1% and the CRO will not sign off. Fails the stated constraints."
+        },
+        {
+          "label": "Option C (Optimal): Restrict both at FICO 660",
+          "approval_rate": "~55% approval in both restricted purposes; others unchanged",
+          "default_rate": "Debt consol: 2.0% | Medical: 2.1% | Both under 3.5% threshold",
+          "monthly_profit": "Maximum default rate reduction while minimizing volume sacrifice vs. 680 cutoff",
+          "verdict": "Optimal precision. The FICO-band data confirms 660 is the natural break point. Both purposes drop below the 3.5% threshold. The volume reduction (40-45%) is necessary but not excessive. All four constraints satisfied."
+        },
+        {
+          "label": "Option B: Restrict both at FICO 680",
+          "approval_rate": "~35% approval in both restricted purposes",
+          "default_rate": "Debt consol: 0.8% | Medical: 0.9% — well below threshold",
+          "monthly_profit": "Unnecessarily conservative — adds 20pp volume reduction with no incremental risk benefit over 660 cutoff",
+          "verdict": "Over-engineered. The 660-679 band (2.0% default rate) is already within the 3.5% tolerance. Restricting this band further costs ~$8.4M in annual origination volume (1,200 additional denials * $7,000 average medical loan) without a commensurate risk reduction."
+        }
+      ],
+      "stakeholder_communication": "After drilling into FICO-band default rates for each purpose, the data clearly shows that 660 is the threshold where both debt consolidation and medical fall within SoFi's 3.5% tolerance. Below 660, both purposes have default rates of 3.8-9.2% — well above threshold. At 660 and above, both drop to 2.0-2.1%. I recommend requiring FICO 660+ for new originations in both purposes only. This restriction affects approximately 60% of current debt consolidation volume and 56% of medical volume — a significant reduction, but precisely calibrated to the population that drives the excess defaults. Setting the bar at 680 would be unnecessarily restrictive, denying the 660-679 band (2.0% default) for no additional risk benefit. All other purposes remain at the current 640 standard threshold.",
+      "key_takeaway": "Pandas filtering reveals that a 660 FICO minimum — not 640 or 680 — is the precise threshold that brings both debt_consolidation (4.8% to 2.0%) and medical (4.1% to 2.1%) within SoFi's 3.5% default rate tolerance, minimizing volume impact while meeting the CRO's risk requirement.",
+      "next_lessons": ["m01_l07"]
+    }
+  ]
+}

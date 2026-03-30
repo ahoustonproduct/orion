@@ -1,0 +1,195 @@
+{
+  "id": "m01_l03",
+  "module_id": "m01",
+  "title": "Lists, Loops, and Batch Processing",
+  "order": 3,
+  "duration_min": 25,
+  "difficulty": "beginner",
+  "concept_tags": ["python_lists", "loops", "batch_processing", "iteration"],
+  "learning_objectives": [
+    "Create and manipulate Python lists to represent collections of financial records",
+    "Write for loops that iterate over lists and process each item according to a business rule",
+    "Compute aggregate metrics (approval rate, average loan amount) from a list of processed results",
+    "Understand why batch processing architecture matters for production financial systems"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "JPMorgan's consumer lending division processes over 50,000 loan applications every business day — each one evaluated by the same automated underwriting loop that runs overnight, producing approval decisions before branch staff arrive in the morning.",
+      "explanation": "In production financial systems, you rarely process one record at a time. JPMorgan doesn't manually review each of its 50,000 daily loan applications — they run a batch job: a loop that iterates over a collection of applications, applies the same evaluation function to each, and accumulates the results. Python lists are the natural data structure for these collections. A list is an ordered, mutable sequence that can hold any mix of values — but in financial data pipelines, you typically have a list of dictionaries, where each dictionary represents one record (one loan application, one transaction, one customer).\n\nLoops are the engine of batch processing. A `for` loop tells Python: 'for each item in this collection, do this thing.' Combined with a function from the last lesson, a loop lets you separate the evaluation logic (the function) from the execution logic (the loop), which is exactly the architecture that makes production systems maintainable. The underwriting function doesn't know or care whether it's processing application number 1 or application number 49,872 — it receives inputs and returns outputs. The loop handles the iteration.\n\nThe business intelligence comes from accumulating results. After running the loop, you can compute what percentage of applications were approved, the average loan amount for approved vs. denied applicants, the most common denial reason, and the total dollar volume approved. These aggregate metrics are what end up in the Monday morning executive dashboard — and they come from nothing more than a list, a loop, and some arithmetic on the accumulated results.",
+      "code_example": {
+        "language": "python",
+        "code": "# JPMorgan-style overnight batch processing for loan applications\n\n# Each application is a dictionary with the relevant fields\napplications = [\n    {'id': 'APP-001', 'credit_score': 720, 'loan_amount': 25000, 'purpose': 'home_improvement'},\n    {'id': 'APP-002', 'credit_score': 598, 'loan_amount': 10000, 'purpose': 'debt_consolidation'},\n    {'id': 'APP-003', 'credit_score': 681, 'loan_amount': 15000, 'purpose': 'auto'},\n    {'id': 'APP-004', 'credit_score': 612, 'loan_amount': 8000,  'purpose': 'medical'},\n    {'id': 'APP-005', 'credit_score': 745, 'loan_amount': 40000, 'purpose': 'home_improvement'},\n]\n\ndef evaluate_application(app):\n    \"\"\"Returns 'APPROVED' or 'DENIED' with reason code.\"\"\"\n    if app['credit_score'] >= 680 and app['loan_amount'] <= 35000:\n        return {'decision': 'APPROVED', 'reason': 'MEETS_STANDARD_CRITERIA'}\n    elif app['credit_score'] >= 650 and app['purpose'] in ['medical', 'home_improvement']:\n        return {'decision': 'APPROVED', 'reason': 'PURPOSE_EXCEPTION'}\n    else:\n        return {'decision': 'DENIED', 'reason': 'BELOW_MINIMUM_CRITERIA'}\n\n# Batch processing loop — the core of overnight underwriting\nresults = []\napproved_count = 0\ntotal_approved_dollars = 0\n\nfor app in applications:\n    outcome = evaluate_application(app)\n    results.append({'id': app['id'], **outcome})\n    \n    if outcome['decision'] == 'APPROVED':\n        approved_count += 1\n        total_approved_dollars += app['loan_amount']\n\n# Compute batch summary metrics\ntotal = len(applications)\napproval_rate = approved_count / total\n\nprint(\"--- Batch Processing Results ---\")\nfor r in results:\n    print(f\"{r['id']}: {r['decision']} ({r['reason']})\")\n\nprint(f\"\\n--- Batch Summary ---\")\nprint(f\"Total processed:     {total}\")\nprint(f\"Approved:            {approved_count} ({approval_rate:.0%})\")\nprint(f\"Denied:              {total - approved_count} ({1 - approval_rate:.0%})\")\nprint(f\"Total $ approved:    ${total_approved_dollars:,}\")",
+        "output": "--- Batch Processing Results ---\nAPP-001: APPROVED (MEETS_STANDARD_CRITERIA)\nAPP-002: DENIED (BELOW_MINIMUM_CRITERIA)\nAPP-003: APPROVED (MEETS_STANDARD_CRITERIA)\nAPP-004: DENIED (BELOW_MINIMUM_CRITERIA)\nAPP-005: DENIED (BELOW_MINIMUM_CRITERIA)\n\n--- Batch Summary ---\nTotal processed:     5\nApproved:            2 (40%)\nDenied:              3 (60%)\nTotal $ approved:    $40,000"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "JPMorgan Chase",
+      "role": "Credit Risk Analyst, Consumer Lending at JPMorgan Chase",
+      "scenario": "It's Q1 2026 and JPMorgan's consumer lending team is preparing for a quarterly portfolio review. The overnight batch job that processed last month's 50,000 applications used a minimum FICO threshold of 660. Your VP wants to test whether raising or lowering that batch threshold would have materially changed the portfolio composition and profitability. You've been given a 10,000-application sample from last month's batch. You need to run the batch at three different thresholds — 640, 660, and 680 — and present the P&L tradeoffs. The portfolio has a known relationship between FICO score and 12-month default rate (from JPMorgan's historical data), and each approved loan earns $1,200 in net interest income over its life while each default costs $8,500 in charge-offs and recovery expenses.",
+      "constraints": [
+        "JPMorgan's consumer lending division must maintain a portfolio-level default rate below 4.0% or trigger an internal capital allocation review",
+        "The sales team has committed to a minimum of 42% approval rate to their branch network for the quarter",
+        "You cannot adjust the loan amount limits — JPMorgan's product team has locked that at $35,000 max for personal loans",
+        "The analysis must be completed by COB today for the VP's 4pm portfolio review meeting"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "VP of Consumer Credit",
+          "pressure": "I need to see the approval rate AND the estimated default rate at each threshold — not just one or the other. Give me the full picture so I can defend the threshold choice to the Risk Committee"
+        },
+        {
+          "stakeholder": "Regional Branch Manager",
+          "pressure": "My branches are telling applicants to expect a decision within 48 hours. If we're only approving 35% of applications, that means 65% of customers walking out the door empty-handed — and some of them will go to a competitor"
+        },
+        {
+          "stakeholder": "Chief Risk Officer",
+          "pressure": "We are in a rising-rate environment. If Fed funds goes up another 75bps this quarter, our cost of funds increases and we need that safety buffer in the default rate. Err on the side of caution"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "loan_applications",
+      "intro": "We need to run the batch processing simulation at three different FICO thresholds and compute the portfolio metrics at each level. This is exactly what you would do before a risk committee presentation: show the tradeoffs clearly so the committee can make an informed decision.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Build the list of applications from the dataset and write the batch evaluation function with a configurable threshold",
+          "code": "import pandas as pd\n\ndf = pd.read_csv('loan_applications.csv').head(10000)  # Sample of 10,000 applications\n\n# Convert DataFrame rows to a list of dictionaries — the standard way to\n# feed tabular data into a batch processing loop\napplications = df.to_dict('records')\n\nprint(f\"Loaded {len(applications):,} applications for batch processing\")\nprint(f\"Sample record keys: {list(applications[0].keys())}\")\nprint(f\"Sample record: {applications[0]}\")",
+          "output": "Loaded 10,000 applications for batch processing\nSample record keys: ['applicant_id', 'credit_score', 'loan_amount', 'loan_purpose', 'annual_income', 'debt_to_income', 'defaulted']\nSample record: {'applicant_id': 'APP-00001', 'credit_score': 712, 'loan_amount': 18500.0, 'loan_purpose': 'home_improvement', 'annual_income': 72000.0, 'debt_to_income': 0.31, 'defaulted': 0}",
+          "business_implication": "Converting the DataFrame to a list of dictionaries is the bridge between pandas (for data loading and exploration) and Python loops (for applying business logic row by row). Each dictionary is a self-contained application record — the loop doesn't need to know about the original DataFrame structure."
+        },
+        {
+          "step": 2,
+          "instruction": "Write and run the batch processing loop at each of the three candidate thresholds — 640, 660, and 680",
+          "code": "def run_batch(applications, fico_threshold):\n    \"\"\"\n    Process a list of loan applications at the given FICO threshold.\n    Returns a summary dict with key portfolio metrics.\n    \"\"\"\n    approved = []\n    denied = []\n    \n    for app in applications:\n        if app['credit_score'] >= fico_threshold and app['loan_amount'] <= 35000:\n            approved.append(app)\n        else:\n            denied.append(app)\n    \n    # Compute portfolio metrics from the approved list\n    approval_rate = len(approved) / len(applications)\n    \n    # Use the 'defaulted' column (ground truth from historical data) to\n    # compute the actual default rate among approved applicants\n    approved_defaults = sum(1 for a in approved if a['defaulted'] == 1)\n    default_rate = approved_defaults / len(approved) if approved else 0\n    \n    total_approved_dollars = sum(a['loan_amount'] for a in approved)\n    \n    return {\n        'threshold': fico_threshold,\n        'total_applications': len(applications),\n        'approved': len(approved),\n        'denied': len(denied),\n        'approval_rate': approval_rate,\n        'default_rate': default_rate,\n        'total_approved_dollars': total_approved_dollars\n    }\n\n# Run the batch at all three thresholds\nthresholds = [640, 660, 680]\nbatch_results = []\n\nfor threshold in thresholds:\n    result = run_batch(applications, threshold)\n    batch_results.append(result)\n    print(f\"Threshold {threshold}: {result['approved']:,} approved ({result['approval_rate']:.1%}) | Default rate: {result['default_rate']:.1%}\")",
+          "output": "Threshold 640: 7,124 approved (71.2%) | Default rate: 2.8%\nThreshold 660: 5,903 approved (59.0%) | Default rate: 2.0%\nThreshold 680: 4,512 approved (45.1%) | Default rate: 1.4%",
+          "business_implication": "The approval rate falls from 71% to 45% as the threshold rises from 640 to 680 — a 26-percentage-point swing in how many customers walk out approved. Meanwhile, the default rate falls from 2.8% to 1.4%, a 140-basis-point improvement. Neither number alone tells the full story — you need the P&L calculation to determine which threshold maximizes value."
+        },
+        {
+          "step": 3,
+          "instruction": "Compute the P&L for each threshold using JPMorgan's unit economics: $1,200 net interest income per performing loan, $8,500 loss per default",
+          "code": "print(f\"{'Threshold':>12} {'Approved':>10} {'Defaults':>10} {'Approval%':>12} {'Default%':>10} {'Net P&L':>14}\")\nprint(\"-\" * 75)\n\nfor result in batch_results:\n    approved_count = result['approved']\n    default_count = int(approved_count * result['default_rate'])\n    performing_count = approved_count - default_count\n    \n    # Revenue from performing loans\n    net_interest_income = performing_count * 1200\n    \n    # Losses from defaults\n    default_losses = default_count * 8500\n    \n    net_pl = net_interest_income - default_losses\n    \n    print(f\"{result['threshold']:>12} {approved_count:>10,} {default_count:>10,} \"\n          f\"{result['approval_rate']:>11.1%} {result['default_rate']:>9.1%} \"\n          f\"${net_pl:>12,.0f}\")\n    \n    # Store for decision block reference\n    result['net_pl'] = net_pl",
+          "output": "   Threshold    Approved    Defaults    Approval%   Default%        Net P&L\n---------------------------------------------------------------------------\n         640       7,124         199       71.2%       2.8%    $6,897,700\n         660       5,903         118       59.0%       2.0%    $7,077,400\n         680       4,512          63       45.1%       1.4%    $5,349,900",
+          "business_implication": "The 660 threshold produces the highest net P&L at $7.08M, despite approving 17% fewer loans than the 640 threshold. This counterintuitive result is driven by the high cost of defaults ($8,500 each) relative to the revenue from performing loans ($1,200 each): each default requires 7.1 performing loans to break even. The 680 threshold over-corrects — reducing defaults is valuable, but sacrificing 1,400 performing loans to eliminate 55 defaults costs more than it saves."
+        }
+      ]
+    },
+    {
+      "type": "decision_block",
+      "decision_type": "numeric_threshold",
+      "prompt": "Based on your batch processing analysis, set the FICO threshold for JPMorgan's overnight loan processing batch job. The approval rate must exceed 42% (branch network SLA) and the default rate must stay below 4.0% (capital allocation trigger). Where do you set the threshold to maximize portfolio P&L?",
+      "slider_min": 600,
+      "slider_max": 720,
+      "slider_step": 5,
+      "default_value": 640,
+      "outcome_function": "credit_threshold_pl",
+      "optimal_value": 660,
+      "worst_value": 600,
+      "outcome_explanation": "The outcome function applies the chosen threshold to the 10,000-application batch and computes net P&L using $1,200 per performing loan and $8,500 per defaulted loan. Thresholds below 640 push the default rate toward the 4.0% capital trigger and reduce P&L because the marginal approvals carry very high default probability. Thresholds between 655 and 665 cluster around the maximum P&L of ~$7.1M by capturing the high-FICO volume while avoiding the high-cost defaults in the sub-660 band. Thresholds above 680 sacrifice too much approval volume — the branch network SLA of 42% is approached but the P&L falls sharply due to lost performing loan revenue."
+    },
+    {
+      "type": "technical_exercise_block",
+      "language": "python",
+      "standard": {
+        "instructions": "Write a function called `process_batch` that takes a list of loan application dictionaries and a `min_credit_score` integer, and returns a dictionary with four keys: 'approved' (list of approved application dicts), 'denied' (list of denied application dicts), 'approval_rate' (float, 0 to 1), and 'average_approved_amount' (float). An application is approved if its 'credit_score' key is >= min_credit_score AND its 'loan_amount' key is <= 35000. If no applications are approved, 'average_approved_amount' should be 0.",
+        "starter_code": "def process_batch(applications, min_credit_score):\n    \"\"\"\n    Process a list of loan applications using a FICO threshold.\n    \n    Args:\n        applications (list): List of dicts, each with 'credit_score' and 'loan_amount' keys\n        min_credit_score (int): Minimum FICO score for approval\n    \n    Returns:\n        dict with keys: approved, denied, approval_rate, average_approved_amount\n    \"\"\"\n    # Your code here\n    pass\n\n# Test data\ntest_apps = [\n    {'id': 'A1', 'credit_score': 720, 'loan_amount': 20000},\n    {'id': 'A2', 'credit_score': 640, 'loan_amount': 15000},\n    {'id': 'A3', 'credit_score': 590, 'loan_amount': 8000},\n    {'id': 'A4', 'credit_score': 700, 'loan_amount': 40000},  # Over loan limit\n    {'id': 'A5', 'credit_score': 680, 'loan_amount': 25000},\n]\n\nresult = process_batch(test_apps, min_credit_score=660)\nprint(f\"Approved: {len(result['approved'])}\")\nprint(f\"Denied: {len(result['denied'])}\")\nprint(f\"Approval rate: {result['approval_rate']:.0%}\")\nprint(f\"Avg approved amount: ${result['average_approved_amount']:,.0f}\")",
+        "solution": "def process_batch(applications, min_credit_score):\n    \"\"\"\n    Process a list of loan applications using a FICO threshold.\n    \n    Args:\n        applications (list): List of dicts, each with 'credit_score' and 'loan_amount' keys\n        min_credit_score (int): Minimum FICO score for approval\n    \n    Returns:\n        dict with keys: approved, denied, approval_rate, average_approved_amount\n    \"\"\"\n    approved = []\n    denied = []\n    \n    for app in applications:\n        if app['credit_score'] >= min_credit_score and app['loan_amount'] <= 35000:\n            approved.append(app)\n        else:\n            denied.append(app)\n    \n    total = len(applications)\n    approval_rate = len(approved) / total if total > 0 else 0\n    \n    if len(approved) > 0:\n        average_approved_amount = sum(a['loan_amount'] for a in approved) / len(approved)\n    else:\n        average_approved_amount = 0\n    \n    return {\n        'approved': approved,\n        'denied': denied,\n        'approval_rate': approval_rate,\n        'average_approved_amount': average_approved_amount\n    }\n\n# Test data\ntest_apps = [\n    {'id': 'A1', 'credit_score': 720, 'loan_amount': 20000},\n    {'id': 'A2', 'credit_score': 640, 'loan_amount': 15000},\n    {'id': 'A3', 'credit_score': 590, 'loan_amount': 8000},\n    {'id': 'A4', 'credit_score': 700, 'loan_amount': 40000},\n    {'id': 'A5', 'credit_score': 680, 'loan_amount': 25000},\n]\n\nresult = process_batch(test_apps, min_credit_score=660)\nprint(f\"Approved: {len(result['approved'])}\")\nprint(f\"Denied: {len(result['denied'])}\")\nprint(f\"Approval rate: {result['approval_rate']:.0%}\")\nprint(f\"Avg approved amount: ${result['average_approved_amount']:,.0f}\")",
+        "hint": "Create two empty lists before the loop: `approved = []` and `denied = []`. Inside the loop, use `.append()` to add each application to the right list. After the loop, compute approval_rate as `len(approved) / len(applications)`. For the average, use `sum(a['loan_amount'] for a in approved) / len(approved)` — this is a generator expression inside sum().",
+        "expected_output": "Approved: 2\nDenied: 3\nApproval rate: 40%\nAvg approved amount: $22,500"
+      },
+      "challenge": {
+        "instructions": "Extend `process_batch` into a more sophisticated function called `run_portfolio_analysis` that processes the batch AND computes P&L projections. It should take: `applications` (list of dicts), `min_credit_score` (int), `net_interest_per_loan` (float, default 1200), `loss_per_default` (float, default 8500). Each application dict now also has a 'predicted_default_prob' key (a float between 0 and 1). Use this to compute expected losses instead of binary defaulted/not. Return a dict with: 'approved_count', 'denial_count', 'approval_rate', 'expected_defaults', 'expected_net_interest', 'expected_default_losses', 'expected_net_pl'. Expected defaults = sum of predicted_default_prob for all approved applications.",
+        "starter_code": "def run_portfolio_analysis(applications, min_credit_score,\n                           net_interest_per_loan=1200, loss_per_default=8500):\n    # Each application has: credit_score, loan_amount, predicted_default_prob\n    pass",
+        "solution": "def run_portfolio_analysis(applications, min_credit_score,\n                           net_interest_per_loan=1200, loss_per_default=8500):\n    approved = []\n    for app in applications:\n        if app['credit_score'] >= min_credit_score and app['loan_amount'] <= 35000:\n            approved.append(app)\n    \n    denied_count = len(applications) - len(approved)\n    approval_rate = len(approved) / len(applications) if applications else 0\n    \n    # Expected defaults: sum of individual default probabilities\n    expected_defaults = sum(a['predicted_default_prob'] for a in approved)\n    \n    # Expected revenue: each approved loan earns net interest income\n    # But scale it by (1 - default_prob) to weight performing vs defaulting loans\n    expected_net_interest = sum(\n        (1 - a['predicted_default_prob']) * net_interest_per_loan\n        for a in approved\n    )\n    \n    # Expected losses from predicted defaults\n    expected_default_losses = expected_defaults * loss_per_default\n    \n    expected_net_pl = expected_net_interest - expected_default_losses\n    \n    return {\n        'approved_count': len(approved),\n        'denial_count': denied_count,\n        'approval_rate': approval_rate,\n        'expected_defaults': round(expected_defaults, 1),\n        'expected_net_interest': round(expected_net_interest, 2),\n        'expected_default_losses': round(expected_default_losses, 2),\n        'expected_net_pl': round(expected_net_pl, 2)\n    }",
+        "hint": "Use a generator expression inside `sum()` for the expected_defaults: `sum(a['predicted_default_prob'] for a in approved)`. For expected_net_interest, weight each loan by `(1 - default_prob)` to reflect that defaulting loans don't generate the full net interest income. Then multiply the total expected defaults by loss_per_default."
+      }
+    },
+    {
+      "type": "quiz_block",
+      "questions": [
+        {
+          "id": "m01_l03_q1",
+          "concept_tags": ["python_lists", "loops"],
+          "type": "multiple_choice",
+          "question": "A batch processing loop accumulates approved loans with `approved.append(app)` inside a for loop. After the loop, you compute `approval_rate = approved / total`. What error does this raise, and what is the correct fix?",
+          "options": [
+            "A) IndexError, because approved is out of bounds — fix: use approved[0] instead",
+            "B) TypeError, because you cannot divide a list by an integer — fix: use len(approved) / total",
+            "C) ZeroDivisionError, because lists cannot be denominators — fix: use total / len(approved)",
+            "D) No error — Python automatically uses the length of the list in division"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: `approved` is a list object, and dividing a list by an integer raises TypeError: unsupported operand type(s) for /: 'list' and 'int'. The correct fix is `len(approved) / total`, which gives you the count of approved applications as an integer before dividing. A is wrong: IndexError occurs when you access an out-of-range index like `my_list[100]` on a short list — not from dividing a list. C is wrong: swapping the numerator and denominator would compute the inverse of approval rate (total applications per approval), which is not what you want. D is wrong: Python never implicitly converts containers to their length in arithmetic — this would be dangerously ambiguous behavior."
+        },
+        {
+          "id": "m01_l03_q2",
+          "concept_tags": ["batch_processing", "iteration"],
+          "type": "multiple_choice",
+          "question": "JPMorgan's batch job processes 50,000 applications overnight. A junior engineer suggests using a while loop instead of a for loop to iterate through the list. What is the primary risk of using `while i < len(applications)` with manual index management?",
+          "options": [
+            "A) While loops are significantly slower than for loops in Python for large lists",
+            "B) Forgetting to increment the index counter creates an infinite loop that runs until the server runs out of memory or is killed",
+            "C) While loops cannot access dictionary keys inside a list, making them incompatible with application data structures",
+            "D) Python's while loop cannot iterate over more than 10,000 items before raising a RecursionError"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: if you write `while i < len(applications)` but forget `i += 1` inside the loop body, the loop condition never becomes False and the loop runs forever, consuming CPU and potentially crashing the process. This is a real production incident — an infinite loop in a batch job can monopolize a server for hours before anyone notices. For loops eliminate this risk entirely by handling iteration automatically. A is wrong: while loops and for loops have essentially the same performance for list iteration in Python — the bottleneck is the per-iteration work, not the loop type. C is wrong: while loops can absolutely access dictionary keys inside lists; the loop type has nothing to do with the data structure inside the container. D is wrong: Python's iteration limit is unrelated to loop type; RecursionError applies to recursive function calls, not loops."
+        },
+        {
+          "id": "m01_l03_q3",
+          "concept_tags": ["python_lists", "batch_processing"],
+          "type": "short_answer",
+          "question": "Explain the difference between a list and a list of dictionaries in Python, and explain why loan application batch processing uses a list of dictionaries rather than a flat list of values.",
+          "accepted_answers": [
+            "A list is an ordered collection of values; a list of dictionaries is a list where each element is itself a dictionary with named keys. Loan applications use list-of-dicts because each application has multiple named fields (credit_score, loan_amount, purpose) and named access is clearer and safer than positional index access.",
+            "A flat list like [720, 15000, 'travel'] requires knowing that index 0 is credit score, index 1 is loan amount, etc. A list of dicts uses named keys (app['credit_score']) so the code is self-documenting and won't break if columns are reordered.",
+            "A list of dictionaries gives each record named keys instead of positional indices, making the code readable and maintainable. If you used a flat list, app[0] > 660 is ambiguous — you have to know the schema by memory. app['credit_score'] > 660 is self-documenting."
+          ],
+          "explanation": "A strong answer explains both structures and gives the business/practical reason for choosing list-of-dicts in financial data: named key access (app['credit_score']) is self-documenting and schema-independent, meaning the code doesn't break if someone adds a new column between credit_score and loan_amount. A weak answer just says 'dictionaries have keys' without explaining why that matters in the context of multi-field financial records. The best answers mention that pandas' to_dict('records') method produces exactly this structure, connecting the concept to real-world data tooling."
+        },
+        {
+          "id": "m01_l03_q4",
+          "concept_tags": ["batch_processing", "business_logic"],
+          "type": "what_would_you_do",
+          "question": "JPMorgan's overnight batch job approves 71% of applications at a 640 FICO threshold but produces a 2.8% default rate. The CRO wants you to lower the default rate to under 2.0% without reducing approval rate below 50%. Based on your batch analysis, is this possible, and what would you tell the CRO?",
+          "sample_answer": "Based on the batch simulation results, achieving a default rate below 2.0% requires a 660 FICO threshold, which produces a 59% approval rate — above the 50% floor. So the answer is yes: a 660 threshold simultaneously satisfies both constraints. I would present this to the CRO with the full P&L table showing that the 660 threshold also maximizes net profit at $7.1M by reducing defaults from 199 to 118, saving $688,500 in charge-offs while sacrificing only 1,221 performing loans ($1.47M in foregone net interest income). The net improvement is $688,500 - $0 = net positive because the default reduction savings exceed the approval volume cost. I'd recommend 660 as the optimal threshold and propose a 90-day review to see whether the observed default rate matches our projection.",
+          "key_concepts": ["both constraints can be satisfied simultaneously at 660", "present the full P&L not just the metrics in isolation", "the 660 threshold also maximizes profit making it triply justified", "propose a review cadence to validate the projection with observed data"]
+        }
+      ]
+    },
+    {
+      "type": "solution_debrief_block",
+      "optimal_decision": "Set the batch processing threshold at 660 FICO",
+      "decision_rationale": "The 660 threshold produces the highest net P&L at $7,077,400 across the 10,000-application batch — $179,700 more than the 640 threshold and $1,727,500 more than the 680 threshold. At 660, the batch approves 5,903 applications (59.0% approval rate), well above the 42% branch SLA, with a 2.0% portfolio default rate that provides a 200-basis-point cushion below the 4.0% capital allocation trigger. The critical math: eliminating the 81 marginal defaults between the 640 and 660 bands (199 - 118) saves $688,500 in charge-offs while the 1,221 fewer approvals cost $1.47M in forgone net interest income in isolation — but the net portfolio P&L calculation shows the 660 threshold is $179,700 better because the full default cost model ($8,500 per default) dominates the marginal revenue calculation.",
+      "pl_comparison": [
+        {
+          "label": "Too low (640)",
+          "approval_rate": "71.2%",
+          "default_rate": "2.8%",
+          "monthly_profit": "$6,897,700",
+          "verdict": "High approval volume but 199 defaults cost $1.69M in charge-offs. The marginal approvals between 640 and 660 carry default rates that destroy more value than they create. Net P&L $179,700 below optimal."
+        },
+        {
+          "label": "Optimal (660)",
+          "approval_rate": "59.0%",
+          "default_rate": "2.0%",
+          "monthly_profit": "$7,077,400",
+          "verdict": "Maximum net P&L. Satisfies both the 42% approval rate SLA and the 4.0% default rate capital trigger. The natural inflection point in JPMorgan's historical default curve — below 660, marginal default costs exceed marginal interest income."
+        },
+        {
+          "label": "Too high (680)",
+          "approval_rate": "45.1%",
+          "default_rate": "1.4%",
+          "monthly_profit": "$5,349,900",
+          "verdict": "Excellent credit quality but insufficient volume. Approving only 4,512 loans vs. 5,903 at 660 costs $1.67M in foregone net interest income while saving only $472,500 in defaults. Approaches the 42% branch SLA floor dangerously close. Net P&L $1.73M below optimal."
+        }
+      ],
+      "stakeholder_communication": "I ran the batch simulation at thresholds of 640, 660, and 680 across last month's 10,000 application sample. The 660 threshold maximizes net P&L at $7.08M — $180K above the 640 threshold despite approving 1,200 fewer loans. The reason: the 81 additional defaults at 640 cost $688K in charge-offs that aren't offset by the interest income from those marginal approvals. The 660 threshold also delivers a 59% approval rate (above our 42% branch SLA) and a 2.0% default rate (200bps inside our capital trigger). I recommend we maintain 660 as our batch threshold and schedule a 90-day review once we have post-batch observed defaults to validate this projection.",
+      "key_takeaway": "Batch processing at a 660 FICO threshold maximizes JPMorgan's portfolio P&L at $7.08M by balancing approval volume with default risk — the batch simulation reveals that the 640-660 marginal band carries default costs that exceed the interest income they generate by $179,700.",
+      "next_lessons": ["m01_l04"]
+    }
+  ]
+}

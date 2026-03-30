@@ -1,0 +1,25 @@
+{
+  "id": "m09_l01",
+  "module_id": "m09",
+  "lesson_number": 1,
+  "title": "Asset Classes: Equities, Fixed Income & Derivatives",
+  "duration_min": 25,
+  "status": "coming_soon",
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "As of 2024, global financial markets total approximately $250 trillion in assets: roughly $110 trillion in equities, $130 trillion in fixed income (bonds), and notional derivatives exposure measured in the hundreds of trillions. Every allocation decision — whether you're managing a $10 billion pension fund, structuring a leveraged buyout, or building a quantitative hedge fund — begins with understanding the fundamental characteristics of each asset class: their risk-return profiles, liquidity, and how they behave relative to each other across market cycles.",
+      "explanation": "An asset class is a group of securities with similar characteristics, behaviors, and market dynamics. The three foundational classes are equities, fixed income, and derivatives — and every sophisticated portfolio strategy is built from combinations of these building blocks.\n\nEquities (stocks) represent ownership stakes in companies. Equity holders are residual claimants — they receive whatever is left after all other obligations are paid. This creates asymmetric upside (unlimited potential return if the company grows) and full downside (you can lose your entire investment if the company fails). Equity valuation relies on estimating future cash flows to equity holders, which is inherently uncertain — hence equities' higher volatility compared to bonds. Key metrics: P/E ratio, EV/EBITDA, price-to-book, and dividend yield.\n\nFixed income (bonds) are loans from investors to borrowers (corporations, governments). The borrower commits to pay periodic interest (coupons) and return principal at maturity. Bond holders are senior to equity holders in the capital structure — in bankruptcy, they get paid first. This makes bonds lower risk but also lower return. Bond price and yield move inversely: when market interest rates rise, existing bond prices fall. Duration measures a bond's price sensitivity to interest rate changes — a crucial risk metric for any fixed income portfolio.\n\nDerivatives are contracts whose value derives from an underlying asset. Options give the buyer the right (but not the obligation) to buy or sell an asset at a specified price. Futures obligate both parties to transact at a future date at a locked-in price. These instruments serve two primary functions: hedging (a company locking in an oil price to protect against commodity risk) and speculation (a hedge fund taking a leveraged view on interest rate direction). Understanding derivatives is essential in PE and VC because convertible notes, warrants, and option pools are all derivative instruments.",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\nimport pandas as pd\n\n# Compare risk-return characteristics across asset classes\n# Using approximate historical annualized figures\nasset_classes = pd.DataFrame({\n    'Asset Class': ['US Large Cap Equity', 'Int\\'l Developed Equity',\n                    'Investment Grade Bonds', 'High Yield Bonds',\n                    'US Treasuries', 'Real Estate (REITs)'],\n    'Ann_Return': [0.104, 0.075, 0.048, 0.072, 0.033, 0.091],\n    'Ann_Volatility': [0.155, 0.178, 0.067, 0.122, 0.042, 0.168],\n    'Max_Drawdown':   [-0.51, -0.57, -0.15, -0.33, -0.06, -0.68]\n})\n\n# Sharpe ratio: reward per unit of risk (risk-free rate ~4.5%)\nrisk_free = 0.045\nasset_classes['Sharpe'] = ((asset_classes['Ann_Return'] - risk_free)\n                            / asset_classes['Ann_Volatility']).round(2)\n\n# Display ranked by Sharpe ratio\nasset_classes_sorted = asset_classes.sort_values('Sharpe', ascending=False)\n\nprint('Asset Class Characteristics (Historical Approximations):')\nprint('-' * 75)\nfor _, row in asset_classes_sorted.iterrows():\n    print(f\"{row['Asset Class']:28s} | Return: {row['Ann_Return']:.1%} \"\n          f\"| Vol: {row['Ann_Volatility']:.1%} | Sharpe: {row['Sharpe']:.2f} \"\n          f\"| Max DD: {row['Max_Drawdown']:.0%}\")",
+        "output": "Asset Class Characteristics (Historical Approximations):\n---------------------------------------------------------------------------\nUS Large Cap Equity          | Return: 10.4% | Vol: 15.5% | Sharpe: 0.38 | Max DD: -51%\nHigh Yield Bonds             | Return:  7.2% | Vol: 12.2% | Sharpe: 0.22 | Max DD: -33%\nReal Estate (REITs)          | Return:  9.1% | Vol: 16.8% | Sharpe: 0.27 | Max DD: -68%\nInt'l Developed Equity       | Return:  7.5% | Vol: 17.8% | Sharpe: 0.17 | Max DD: -57%\nInvestment Grade Bonds       | Return:  4.8% | Vol:  6.7% | Sharpe: 0.05 | Max DD: -15%\nUS Treasuries                | Return:  3.3% | Vol:  4.2% | Sharpe: -2.86 | Max DD: -6%"
+      }
+    },
+    {
+      "type": "stub_notice",
+      "message": "Full lesson in development — check back soon",
+      "available_date": "Summer 2026"
+    }
+  ]
+}

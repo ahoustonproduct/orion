@@ -1,0 +1,272 @@
+[
+  {
+    "term": "DataFrame",
+    "definition": "The core pandas data structure — a 2-dimensional labeled table with rows and columns, similar to a spreadsheet or SQL table. The primary object used in Python data analysis.",
+    "module_id": "m01",
+    "category": "python"
+  },
+  {
+    "term": "pandas",
+    "definition": "A Python library for data manipulation and analysis. Provides DataFrames, Series, and a rich API for loading, cleaning, transforming, and aggregating structured data.",
+    "module_id": "m01",
+    "category": "python"
+  },
+  {
+    "term": "GroupBy",
+    "definition": "A pandas operation that splits data into groups based on a column value, applies an aggregation (sum, mean, count), and combines the results — equivalent to SQL's GROUP BY clause.",
+    "module_id": "m01",
+    "category": "python"
+  },
+  {
+    "term": "Window Function",
+    "definition": "A SQL function that performs calculations across a set of rows related to the current row without collapsing them into a single output row. Used for running totals, rankings, and lag/lead comparisons.",
+    "module_id": "m02",
+    "category": "sql"
+  },
+  {
+    "term": "JOIN",
+    "definition": "A SQL operation that combines rows from two or more tables based on a related column. Types include INNER, LEFT, RIGHT, and FULL OUTER joins — essential for combining transaction, user, and product data.",
+    "module_id": "m02",
+    "category": "sql"
+  },
+  {
+    "term": "Cohort Analysis",
+    "definition": "A technique that groups users by a shared characteristic or time of first action (signup month, first purchase date) and tracks their behavior over time. Reveals retention patterns and LTV by acquisition channel.",
+    "module_id": "m02",
+    "category": "sql"
+  },
+  {
+    "term": "A/B Test",
+    "definition": "A controlled experiment that randomly assigns users to a control group (A) and a treatment group (B) to measure the causal impact of a product change. The gold standard for product decision-making.",
+    "module_id": "m04",
+    "category": "statistics"
+  },
+  {
+    "term": "p-value",
+    "definition": "The probability of observing results at least as extreme as those measured, assuming the null hypothesis is true. A p-value below 0.05 is conventionally considered statistically significant.",
+    "module_id": "m04",
+    "category": "statistics"
+  },
+  {
+    "term": "Statistical Significance",
+    "definition": "A result is statistically significant when it is unlikely to have occurred by chance alone. Determined by comparing the p-value to a pre-set significance level (alpha), typically 0.05.",
+    "module_id": "m04",
+    "category": "statistics"
+  },
+  {
+    "term": "Variance",
+    "definition": "A measure of how spread out a set of numbers are from their mean. Calculated as the average of squared deviations from the mean. High variance means more unpredictable outcomes.",
+    "module_id": "m04",
+    "category": "statistics"
+  },
+  {
+    "term": "Standard Deviation",
+    "definition": "The square root of variance — the most common measure of data spread. Expressed in the same units as the original data, making it more interpretable than variance for business metrics.",
+    "module_id": "m04",
+    "category": "statistics"
+  },
+  {
+    "term": "Logistic Regression",
+    "definition": "A classification algorithm that models the probability of a binary outcome (e.g., default vs. no default) using a sigmoid function. Widely used in credit scoring and fraud detection.",
+    "module_id": "m05",
+    "category": "ml"
+  },
+  {
+    "term": "Feature Engineering",
+    "definition": "The process of transforming raw data into informative input variables (features) for a machine learning model. Good features — like debt-to-income ratio or transaction velocity — often matter more than model choice.",
+    "module_id": "m05",
+    "category": "ml"
+  },
+  {
+    "term": "Confusion Matrix",
+    "definition": "A table that summarizes a classification model's performance by showing counts of true positives, true negatives, false positives, and false negatives. The foundation of credit and fraud model evaluation.",
+    "module_id": "m05",
+    "category": "ml"
+  },
+  {
+    "term": "Precision",
+    "definition": "Of all the cases a model predicted as positive (e.g., fraud), what fraction were actually positive? High precision means few false alarms. Precision = TP / (TP + FP).",
+    "module_id": "m05",
+    "category": "ml"
+  },
+  {
+    "term": "Recall",
+    "definition": "Of all actual positive cases (e.g., true fraud), what fraction did the model catch? High recall means few misses. Recall = TP / (TP + FN). In fraud detection, recall is often prioritized over precision.",
+    "module_id": "m05",
+    "category": "ml"
+  },
+  {
+    "term": "GBM (Gradient Boosting Machine)",
+    "definition": "An ensemble ML algorithm that builds trees sequentially, with each tree correcting the errors of the previous one. XGBoost and LightGBM are popular variants, widely used in credit scoring and fraud detection.",
+    "module_id": "m05",
+    "category": "ml"
+  },
+  {
+    "term": "LTV (Lifetime Value)",
+    "definition": "The total net revenue a business expects to earn from a customer over the entire relationship. A core unit economics metric. LTV > CAC is the fundamental condition for a sustainable business.",
+    "module_id": "m07",
+    "category": "fintech"
+  },
+  {
+    "term": "CAC (Customer Acquisition Cost)",
+    "definition": "The total cost to acquire one new customer, including marketing spend, sales salaries, and promotions divided by the number of customers acquired. Compared against LTV to assess business health.",
+    "module_id": "m07",
+    "category": "fintech"
+  },
+  {
+    "term": "Unit Economics",
+    "definition": "The per-customer revenue and cost dynamics of a business. Answers: does each incremental customer make money? Key metrics include LTV, CAC, contribution margin, and payback period.",
+    "module_id": "m07",
+    "category": "fintech"
+  },
+  {
+    "term": "Contribution Margin",
+    "definition": "Revenue minus variable costs at the product or customer level. Contribution margin must be positive before fixed costs are covered. A key signal of whether scaling a product makes financial sense.",
+    "module_id": "m07",
+    "category": "fintech"
+  },
+  {
+    "term": "Payback Period",
+    "definition": "The time it takes to recover the cost of acquiring a customer from the gross profit they generate. A payback period under 12 months is generally healthy for consumer FinTech businesses.",
+    "module_id": "m07",
+    "category": "fintech"
+  },
+  {
+    "term": "NPV (Net Present Value)",
+    "definition": "The value today of a series of future cash flows, discounted at a required rate of return. A positive NPV means the investment creates value. The foundational tool of corporate finance.",
+    "module_id": "m08",
+    "category": "fintech"
+  },
+  {
+    "term": "IRR (Internal Rate of Return)",
+    "definition": "The discount rate at which an investment's NPV equals zero — effectively the annualized return on investment. Compared against the cost of capital to evaluate whether a project is worth pursuing.",
+    "module_id": "m08",
+    "category": "fintech"
+  },
+  {
+    "term": "GMV (Gross Merchandise Value)",
+    "definition": "The total dollar value of transactions processed through a platform in a given period. For FinTech companies, GMV represents the volume of economic activity facilitated — not the revenue earned.",
+    "module_id": "m15",
+    "category": "fintech"
+  },
+  {
+    "term": "Take Rate",
+    "definition": "The percentage of GMV that a FinTech platform retains as revenue. If GMV is $100M and take rate is 2%, revenue is $2M. Compression of take rate over time is common as competition increases.",
+    "module_id": "m15",
+    "category": "fintech"
+  },
+  {
+    "term": "NPS (Net Promoter Score)",
+    "definition": "A customer loyalty metric calculated as the percentage of promoters (score 9–10) minus the percentage of detractors (score 0–6) on a 0–10 recommendation scale. A leading indicator of retention and growth.",
+    "module_id": "m15",
+    "category": "fintech"
+  },
+  {
+    "term": "Churn Rate",
+    "definition": "The percentage of customers who stop using a product within a given time period. High churn destroys LTV and signals poor product-market fit. Monthly and annual churn rates are standard metrics.",
+    "module_id": "m07",
+    "category": "fintech"
+  },
+  {
+    "term": "Funnel Analysis",
+    "definition": "A method for measuring how users progress through a sequence of steps toward a goal (e.g., sign up → add payment → first purchase). Drop-off rates at each step reveal where the product loses users.",
+    "module_id": "m15",
+    "category": "fintech"
+  },
+  {
+    "term": "Conversion Rate",
+    "definition": "The percentage of users who complete a desired action out of all who started. At the funnel level, it can mean completing checkout; at the business level, it means converting a trial to a paid subscription.",
+    "module_id": "m15",
+    "category": "fintech"
+  },
+  {
+    "term": "Credit Score",
+    "definition": "A numerical representation of a borrower's creditworthiness, typically ranging from 300 to 850. Higher scores signal lower default risk. FICO scores are the industry standard in US consumer lending.",
+    "module_id": "m12",
+    "category": "credit"
+  },
+  {
+    "term": "FICO",
+    "definition": "The credit scoring model developed by Fair Isaac Corporation. FICO scores (300–850) are computed from payment history, amounts owed, credit history length, credit mix, and new credit inquiries.",
+    "module_id": "m12",
+    "category": "credit"
+  },
+  {
+    "term": "DTI Ratio (Debt-to-Income)",
+    "definition": "Total monthly debt payments divided by gross monthly income. A DTI above 43% typically disqualifies borrowers from qualified mortgages. Consumer lenders often use 36–45% as an approval threshold.",
+    "module_id": "m12",
+    "category": "credit"
+  },
+  {
+    "term": "Default Rate",
+    "definition": "The percentage of outstanding loans where the borrower has failed to make required payments, typically 90+ days past due. A primary measure of credit portfolio health and underwriting quality.",
+    "module_id": "m12",
+    "category": "credit"
+  },
+  {
+    "term": "Approval Rate",
+    "definition": "The percentage of loan or credit applications that a lender approves. Higher approval rates increase volume but typically raise default rates. Setting the right threshold balances growth and risk.",
+    "module_id": "m12",
+    "category": "credit"
+  },
+  {
+    "term": "Charge-Off",
+    "definition": "When a lender declares a delinquent loan unlikely to be collected and removes it from its books as a loss. Charge-offs are the realized cost of defaults and are reported net of recoveries.",
+    "module_id": "m12",
+    "category": "credit"
+  },
+  {
+    "term": "Underwriting",
+    "definition": "The process of evaluating the risk of providing a loan or insurance policy to an applicant. In lending, underwriting determines who gets approved, at what rate, and for how much.",
+    "module_id": "m12",
+    "category": "credit"
+  },
+  {
+    "term": "APR (Annual Percentage Rate)",
+    "definition": "The annualized cost of borrowing, including interest and fees, expressed as a percentage. APR is the legally required disclosure rate in the US under the Truth in Lending Act (TILA).",
+    "module_id": "m12",
+    "category": "credit"
+  },
+  {
+    "term": "Risk-Adjusted Return",
+    "definition": "Investment return scaled by the risk taken to achieve it. In lending, it accounts for expected credit losses — a high-yield loan to a risky borrower may have a lower risk-adjusted return than a lower-rate prime loan.",
+    "module_id": "m12",
+    "category": "credit"
+  },
+  {
+    "term": "ECOA (Equal Credit Opportunity Act)",
+    "definition": "A US federal law that prohibits creditors from discriminating against applicants based on race, color, religion, national origin, sex, marital status, or age. Violations can result in disparate impact claims.",
+    "module_id": "m12",
+    "category": "credit"
+  },
+  {
+    "term": "Disparate Impact",
+    "definition": "When a lending policy that appears neutral on its face disproportionately harms a protected class. Regulators use statistical tests (e.g., the 4/5ths rule) to identify and challenge disparate impact.",
+    "module_id": "m12",
+    "category": "credit"
+  },
+  {
+    "term": "Interchange",
+    "definition": "The fee a merchant's bank (acquirer) pays to the cardholder's bank (issuer) on every card transaction. Typically 1.5–2.5% of transaction value. Interchange is the primary revenue source for card issuers.",
+    "module_id": "m11",
+    "category": "payments"
+  },
+  {
+    "term": "BNPL (Buy Now Pay Later)",
+    "definition": "A short-term consumer financing product that allows customers to split a purchase into installments, often interest-free. Companies like Affirm, Klarna, and Afterpay popularized the model.",
+    "module_id": "m11",
+    "category": "payments"
+  },
+  {
+    "term": "KYC (Know Your Customer)",
+    "definition": "A regulatory requirement for financial institutions to verify the identity of customers before onboarding. Involves collecting ID documents, checking sanctions lists, and assessing financial risk.",
+    "module_id": "m11",
+    "category": "payments"
+  },
+  {
+    "term": "AML (Anti-Money Laundering)",
+    "definition": "A set of laws, regulations, and procedures designed to prevent criminals from disguising illegally obtained funds as legitimate income. FinTechs must build AML programs to maintain banking partnerships and licenses.",
+    "module_id": "m11",
+    "category": "payments"
+  }
+]

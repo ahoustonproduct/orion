@@ -1,0 +1,25 @@
+{
+  "id": "m14_l01",
+  "module_id": "m14",
+  "lesson_number": 1,
+  "title": "Sourcing & Screening: Deal Flow & First Meetings",
+  "duration_min": 25,
+  "status": "coming_soon",
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Andreessen Horowitz reviews roughly 3,000 startup pitches per year and invests in approximately 15–20 of them — an acceptance rate below 0.7%. The partners who make the best investment decisions are not the ones who have the sharpest intuition about which idea sounds exciting; they're the ones who have built systematic frameworks for evaluating founders, markets, and competitive dynamics quickly enough to move at the pace deal flow demands. Every top VC firm has developed a repeatable screening process that allows them to say a fast, respectful no to 99% of pitches while spending quality time with the 1% that deserve it.",
+      "explanation": "Deal flow is the lifeblood of a venture firm — the quality and quantity of investment opportunities that come through the door. Top-tier VC firms receive deals through inbound channels (founders who seek them out because of reputation) and outbound sourcing (partners proactively identifying and engaging startups before they raise). The quality of inbound deal flow is a function of reputation: the best founders want the most prestigious, helpful investors, which creates a self-reinforcing cycle where the best firms see the best deals.\n\nScreening is the process of rapidly evaluating whether a deal deserves deeper diligence. Most firms use a structured first-pass framework that evaluates: (1) Market — is this a large enough opportunity? Most top VCs want to invest in markets that could support a $1 billion+ company; (2) Team — do these founders have the unique insight, domain expertise, and personal qualities to execute? Team is weighted heavily at the seed stage because so little else is known; (3) Traction — is there evidence the product works? Even a small amount of authentic user engagement (not paid acquisition) is powerful signal; (4) Differentiation — why can't an incumbent or a better-funded startup just copy this? The defensibility question is critical for assessing whether a startup can sustain margins.\n\nThe first meeting with a founder is not an interrogation — it's a structured conversation designed to assess these four dimensions quickly while building a relationship. Top VCs are known for asking unusual questions that reveal founder quality: 'What do you know about this market that no one else does?' (tests insight), 'What's the single most important thing that has to be true for this to work?' (tests intellectual honesty), 'Who are your first three enterprise customers and how did you get them?' (tests sales reality versus narrative).",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\nimport numpy as np\n\n# Simple deal screening scorecard — a structured first-pass evaluation tool\n# Each dimension scored 1-5; weights reflect typical early-stage VC priorities\n\nscorecard_weights = {\n    'Market Size & Growth':     0.25,\n    'Founder Quality':          0.30,\n    'Product/Traction':         0.20,\n    'Competitive Differentiation': 0.15,\n    'Deal Terms & Valuation':   0.10\n}\n\n# Score three inbound deals from this week's pipeline\ndeals = [\n    {'Name': 'AlphaCredit AI', 'Market Size & Growth': 4, 'Founder Quality': 5,\n     'Product/Traction': 3, 'Competitive Differentiation': 4, 'Deal Terms & Valuation': 3},\n    {'Name': 'BlockSettle',    'Market Size & Growth': 3, 'Founder Quality': 3,\n     'Product/Traction': 2, 'Competitive Differentiation': 3, 'Deal Terms & Valuation': 4},\n    {'Name': 'PayrollOS',      'Market Size & Growth': 5, 'Founder Quality': 4,\n     'Product/Traction': 5, 'Competitive Differentiation': 3, 'Deal Terms & Valuation': 2},\n]\n\nresults = []\nfor deal in deals:\n    score = sum(deal[k] * w for k, w in scorecard_weights.items())\n    recommendation = 'PROCEED TO DILIGENCE' if score >= 3.5 else 'PASS'\n    results.append({'Company': deal['Name'],\n                    'Weighted Score': round(score, 2),\n                    'Recommendation': recommendation})\n\ndf = pd.DataFrame(results).sort_values('Weighted Score', ascending=False)\nprint(df.to_string(index=False))\nprint('\\nThreshold: >=3.5 proceeds to formal diligence process')",
+        "output": "      Company  Weighted Score          Recommendation\n   PayrollOS            3.85  PROCEED TO DILIGENCE\nAlphaCredit AI            3.80  PROCEED TO DILIGENCE\n   BlockSettle            2.95                  PASS\n\nThreshold: >=3.5 proceeds to formal diligence process"
+      }
+    },
+    {
+      "type": "stub_notice",
+      "message": "Full lesson in development — check back soon",
+      "available_date": "Summer 2026"
+    }
+  ]
+}

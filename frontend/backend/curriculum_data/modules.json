@@ -1,0 +1,409 @@
+[
+  {
+    "id": "m01",
+    "order": 1,
+    "title": "Introduction to Python & Data Science",
+    "level": 1,
+    "level_label": "Analytics Foundations",
+    "status": "full",
+    "lesson_count": 8,
+    "description": "Build Python fluency from scratch using real financial datasets — variables, functions, pandas DataFrames, and data cleaning workflows applied to FinTech business problems.",
+    "concept_map": ["variables_and_types", "functions", "conditionals_and_logic", "loops_and_iteration", "pandas_dataframes", "data_cleaning", "groupby_aggregation", "numpy_arrays"],
+    "lesson_titles": [
+      "Python Basics: Variables, Types & Your First Script",
+      "Control Flow: Conditionals, Loops & Business Logic",
+      "Functions: Writing Reusable Financial Calculations",
+      "Pandas Part I: Series, DataFrames & Indexing",
+      "Pandas Part II: Filtering, Sorting & Slicing Data",
+      "Data Cleaning: Handling Missing Values & Outliers",
+      "GroupBy & Aggregation: Summarizing Financial Data",
+      "Putting It Together: End-to-End EDA on a Loan Dataset"
+    ]
+  },
+  {
+    "id": "m02",
+    "order": 2,
+    "title": "Database Design & SQL",
+    "level": 1,
+    "level_label": "Analytics Foundations",
+    "status": "full",
+    "lesson_count": 6,
+    "description": "Design relational schemas for financial data and write SQL queries — from basic SELECT statements to window functions — to answer real business questions.",
+    "concept_map": ["relational_models", "primary_foreign_keys", "joins", "aggregations_and_groupby", "subqueries", "window_functions"],
+    "lesson_titles": [
+      "Relational Data Models & FinTech Schemas",
+      "SELECT Statements: Filtering & Sorting Financial Records",
+      "JOINs: Combining Transactions, Users & Accounts",
+      "Aggregations: GROUP BY, HAVING & Summary Statistics",
+      "Subqueries & CTEs: Writing Readable Complex Queries",
+      "Window Functions: Running Totals, Ranks & Rolling Averages"
+    ]
+  },
+  {
+    "id": "m03",
+    "order": 3,
+    "title": "Data Visualization for Business Insights",
+    "level": 1,
+    "level_label": "Analytics Foundations",
+    "status": "full",
+    "lesson_count": 6,
+    "description": "Turn data into decisions using matplotlib, seaborn, and Plotly — from exploratory charts to polished executive dashboards that communicate financial insight clearly.",
+    "concept_map": ["chart_selection", "matplotlib_basics", "seaborn_statistical_plots", "plotly_interactive", "dashboard_design", "storytelling_with_data"],
+    "lesson_titles": [
+      "Communicating with Data: Charts That Drive Decisions",
+      "Matplotlib Foundations: Lines, Bars & Scatter Plots",
+      "Seaborn: Statistical Visualizations for Financial Distributions",
+      "Interactive Charts with Plotly: Drill-Downs & Hover Data",
+      "Dashboard Design: Layout, Color & Annotation Principles",
+      "Capstone: Building a Portfolio Performance Dashboard"
+    ]
+  },
+  {
+    "id": "m04",
+    "order": 4,
+    "title": "Machine Learning for Business Outcomes",
+    "level": 2,
+    "level_label": "Machine Learning & Analytics",
+    "status": "full",
+    "lesson_count": 8,
+    "description": "Apply supervised and unsupervised machine learning to real finance and business problems — credit default, churn prediction, and customer segmentation — with scikit-learn.",
+    "concept_map": ["train_test_split", "linear_regression", "logistic_regression", "decision_trees", "random_forests", "model_evaluation_metrics", "feature_engineering", "cross_validation"],
+    "lesson_titles": [
+      "Supervised Learning: Predicting Credit Default",
+      "Linear Regression: Modeling Continuous Financial Outcomes",
+      "Logistic Regression: Classification & Probability Scores",
+      "Decision Trees & Random Forests: Ensemble Methods",
+      "Feature Engineering: Creating Predictive Variables from Raw Data",
+      "Model Evaluation: AUC, Precision, Recall & Business Cost",
+      "Cross-Validation & Hyperparameter Tuning",
+      "Unsupervised Learning: Clustering for Customer Segmentation"
+    ]
+  },
+  {
+    "id": "m05",
+    "order": 5,
+    "title": "Text Mining & Natural Language Processing",
+    "level": 2,
+    "level_label": "Machine Learning & Analytics",
+    "status": "full",
+    "lesson_count": 5,
+    "description": "Extract signal from unstructured financial text — earnings call transcripts, news articles, and SEC filings — using NLP techniques including sentiment analysis and topic modeling.",
+    "concept_map": ["tokenization", "tfidf_vectorization", "sentiment_analysis", "named_entity_recognition", "topic_modeling", "transformer_basics"],
+    "lesson_titles": [
+      "Extracting Signal from Financial News",
+      "Text Preprocessing: Tokenization, Stopwords & Stemming",
+      "TF-IDF & Bag of Words: Vectorizing Financial Documents",
+      "Sentiment Analysis: Reading the Market's Mood",
+      "Topic Modeling & Named Entity Recognition for Earnings Calls"
+    ]
+  },
+  {
+    "id": "m06",
+    "order": 6,
+    "title": "Prescriptive Analytics & Optimization",
+    "level": 2,
+    "level_label": "Machine Learning & Analytics",
+    "status": "full",
+    "lesson_count": 5,
+    "description": "Go beyond prediction to prescription — use linear programming and optimization techniques to allocate capital, minimize risk, and make data-driven portfolio decisions.",
+    "concept_map": ["linear_programming", "objective_functions", "constraints", "scipy_optimize", "portfolio_optimization", "mean_variance_optimization"],
+    "lesson_titles": [
+      "Optimization: Allocating Capital Across Investments",
+      "Linear Programming: Formulating Business Constraints",
+      "Solving Optimization Problems with scipy",
+      "Mean-Variance Portfolio Optimization",
+      "Scenario Analysis & Sensitivity in Optimization Models"
+    ]
+  },
+  {
+    "id": "m07",
+    "order": 7,
+    "title": "A/B Testing in Business & Social Science",
+    "level": 2,
+    "level_label": "Machine Learning & Analytics",
+    "status": "full",
+    "lesson_count": 5,
+    "description": "Design, run, and interpret experiments that drive product and business decisions — from conversion rate optimization to policy evaluation using causal inference methods.",
+    "concept_map": ["hypothesis_testing", "statistical_significance", "power_analysis", "t_tests", "chi_square_tests", "causal_inference"],
+    "lesson_titles": [
+      "Designing Experiments: Conversion Rate Optimization",
+      "Hypothesis Testing: Null Hypotheses & p-Values",
+      "Power Analysis: Sample Size & Detecting Real Effects",
+      "Chi-Square & t-Tests: Choosing the Right Test",
+      "Causal Inference: Beyond Correlation in Business Decisions"
+    ]
+  },
+  {
+    "id": "m08",
+    "order": 8,
+    "title": "Big Data & Cloud Computing",
+    "level": 2,
+    "level_label": "Machine Learning & Analytics",
+    "status": "coming_soon",
+    "lesson_count": 5,
+    "description": "Scale your analytics beyond a single machine — understand distributed computing frameworks, cloud data warehouses, and when big data infrastructure is and isn't the right tool.",
+    "concept_map": ["distributed_computing", "spark_basics", "cloud_warehouses", "etl_pipelines", "data_lakes"],
+    "lesson_titles": [
+      "Scale: When pandas Isn't Enough",
+      "Apache Spark: Distributed DataFrames for Large Datasets",
+      "Cloud Data Warehouses: Snowflake, BigQuery & Redshift",
+      "ETL Pipelines: Moving and Transforming Financial Data",
+      "Data Lakes & Modern Data Architecture"
+    ]
+  },
+  {
+    "id": "m09",
+    "order": 9,
+    "title": "Financial Markets & Instruments",
+    "level": 3,
+    "level_label": "Finance Foundations",
+    "status": "full",
+    "lesson_count": 6,
+    "description": "Build fluency across asset classes — equities, fixed income, derivatives, and alternatives — and understand how market microstructure shapes pricing and liquidity.",
+    "concept_map": ["equities", "fixed_income", "derivatives", "options_pricing", "market_microstructure", "portfolio_risk_metrics"],
+    "lesson_titles": [
+      "Asset Classes: Equities, Fixed Income & Derivatives",
+      "Equity Valuation: P/E, DCF & Comparable Companies",
+      "Fixed Income: Bond Pricing, Duration & Yield Curves",
+      "Options & Futures: Pricing, Payoffs & Hedging",
+      "Market Microstructure: Order Books, Liquidity & Spreads",
+      "Risk Metrics: Beta, VaR & Sharpe Ratio in Python"
+    ]
+  },
+  {
+    "id": "m10",
+    "order": 10,
+    "title": "Corporate Finance & Capital Structure",
+    "level": 3,
+    "level_label": "Finance Foundations",
+    "status": "full",
+    "lesson_count": 5,
+    "description": "Understand how firms make capital allocation decisions — NPV, IRR, WACC, and optimal capital structure — and apply financial modeling techniques to real corporate scenarios.",
+    "concept_map": ["npv_and_irr", "wacc", "capital_structure", "dcf_modeling", "financial_statement_analysis"],
+    "lesson_titles": [
+      "Capital Structure: Debt, Equity & the Optimal Mix",
+      "NPV & IRR: Evaluating Investment Decisions",
+      "WACC: Cost of Capital Across the Capital Stack",
+      "DCF Modeling: Building a Three-Statement Forecast",
+      "Financial Statement Analysis: Reading the Numbers That Matter"
+    ]
+  },
+  {
+    "id": "m11",
+    "order": 11,
+    "title": "Mergers & Acquisitions",
+    "level": 3,
+    "level_label": "Finance Foundations",
+    "status": "coming_soon",
+    "lesson_count": 5,
+    "description": "Understand how M&A deals are structured, valued, and executed — from deal origination and due diligence through synergy analysis and post-merger integration.",
+    "concept_map": ["deal_structures", "acquisition_valuation", "synergy_analysis", "due_diligence", "accretion_dilution"],
+    "lesson_titles": [
+      "Deal Structure: Asset vs. Stock Acquisitions",
+      "Valuation in M&A: Precedent Transactions & Control Premiums",
+      "Synergy Analysis: Revenue, Cost & Financial Synergies",
+      "Due Diligence: Legal, Financial & Operational Review",
+      "Accretion/Dilution Analysis & Post-Merger Integration"
+    ]
+  },
+  {
+    "id": "m12",
+    "order": 12,
+    "title": "Data Analysis, Forecasting & Risk",
+    "level": 3,
+    "level_label": "Finance Foundations",
+    "status": "full",
+    "lesson_count": 6,
+    "description": "Apply data science to credit risk, default modeling, and lending decisions — from scoring models and threshold optimization to fair lending compliance and policy design.",
+    "concept_map": ["credit_scoring", "threshold_optimization", "expected_value", "policy_design", "fair_lending", "default_modeling"],
+    "lesson_titles": [
+      "Credit Risk Fundamentals: What Drives Default",
+      "Building a Credit Scorecard: Features & Logistic Regression",
+      "Threshold Optimization: Balancing Approval Rate & Default Risk",
+      "Expected Value Framework: Pricing Risk into Lending Decisions",
+      "Fair Lending & Disparate Impact: Compliance Analytics",
+      "Stress Testing: Portfolio Risk Under Adverse Scenarios"
+    ]
+  },
+  {
+    "id": "m13",
+    "order": 13,
+    "title": "Venture Capital — Methods",
+    "level": 4,
+    "level_label": "Private Equity & Venture Capital",
+    "status": "full",
+    "lesson_count": 6,
+    "description": "Master the analytical foundations of venture investing — fund economics, term sheet mechanics, valuation methods, and the power law math that drives VC portfolio construction.",
+    "concept_map": ["fund_structure", "term_sheets", "pre_post_money_valuation", "dilution_modeling", "power_law_returns", "cap_table_mechanics"],
+    "lesson_titles": [
+      "The VC Model: Fund Structure, LPs & Return Mechanics",
+      "Term Sheets: Valuation, Equity & Protective Provisions",
+      "Due Diligence: Market Sizing, Team Assessment & Financials",
+      "Portfolio Theory: Power Law Returns & Fund Construction",
+      "Post-Investment: Board Seats, Milestones & Follow-On",
+      "Exit Strategies: IPO, M&A & Secondary Sales"
+    ]
+  },
+  {
+    "id": "m14",
+    "order": 14,
+    "title": "Venture Capital — Practice",
+    "level": 4,
+    "level_label": "Private Equity & Venture Capital",
+    "status": "full",
+    "lesson_count": 6,
+    "description": "Apply VC methods to real deal practice — sourcing pipeline management, pitch deck evaluation, founder meetings, portfolio monitoring, and building a data-driven investment thesis.",
+    "concept_map": ["deal_sourcing", "pitch_evaluation", "founder_diligence", "portfolio_monitoring", "investment_memos", "fund_reporting"],
+    "lesson_titles": [
+      "Sourcing & Screening: Deal Flow & First Meetings",
+      "Evaluating Pitches: Framework for Assessing Startup Potential",
+      "Founder Diligence: Reference Checks & Team Assessment",
+      "Writing Investment Memos: Structure, Thesis & Risk Factors",
+      "Portfolio Monitoring: KPIs, Board Meetings & Reserves",
+      "Fund Reporting: LP Updates, TVPI, DPI & RVPI"
+    ]
+  },
+  {
+    "id": "m15",
+    "order": 15,
+    "title": "Private Equity — Methods",
+    "level": 4,
+    "level_label": "Private Equity & Venture Capital",
+    "status": "full",
+    "lesson_count": 6,
+    "description": "Build the technical foundation of private equity — LBO mechanics, returns attribution, debt structuring, and financial modeling techniques used in buyout analysis.",
+    "concept_map": ["lbo_structure", "returns_attribution", "debt_tranches", "ebitda_multiples", "irr_moic", "value_creation_levers"],
+    "lesson_titles": [
+      "Leveraged Buyouts: Structure, Returns & Value Creation",
+      "LBO Modeling: Building a Buyout Model from Scratch",
+      "Debt Structuring: Senior, Mezzanine & Equity Tranches",
+      "Returns Attribution: Multiple Expansion, Leverage & EBITDA Growth",
+      "Operating Improvements: Margin Expansion & Revenue Initiatives",
+      "Exit Analysis: Timing, Multiples & IRR Sensitivity"
+    ]
+  },
+  {
+    "id": "m16",
+    "order": 16,
+    "title": "Private Equity — Practice",
+    "level": 4,
+    "level_label": "Private Equity & Venture Capital",
+    "status": "full",
+    "lesson_count": 6,
+    "description": "Apply PE methods through the full deal lifecycle — sourcing, financial modeling, management presentations, 100-day plans, and preparing portfolio companies for exit.",
+    "concept_map": ["deal_origination", "management_presentations", "financial_due_diligence", "hundred_day_plans", "portfolio_operations", "exit_preparation"],
+    "lesson_titles": [
+      "Due Diligence: Financial Modeling & Red Flags",
+      "Management Presentations: What PE Firms Look For",
+      "Operational Due Diligence: Business Quality Assessment",
+      "100-Day Plans: Value Creation from Day One",
+      "Portfolio Operations: Working with Management Teams",
+      "Preparing for Exit: Clean-Up, Positioning & the Sale Process"
+    ]
+  },
+  {
+    "id": "m17",
+    "order": 17,
+    "title": "Deep Learning for Business Prediction",
+    "level": 5,
+    "level_label": "Advanced & Electives",
+    "status": "full",
+    "lesson_count": 6,
+    "description": "Understand and apply neural networks and deep learning to high-value financial prediction problems — from time series forecasting to fraud detection at scale.",
+    "concept_map": ["neural_network_architecture", "backpropagation", "recurrent_networks", "lstm_time_series", "tensorflow_keras", "model_deployment"],
+    "lesson_titles": [
+      "Neural Networks: From Perceptrons to Business Prediction",
+      "Building Your First Neural Network with Keras",
+      "Recurrent Networks & LSTMs: Modeling Sequential Financial Data",
+      "Time Series Forecasting: Stock Prices & Revenue Projection",
+      "Fraud Detection at Scale: Deep Learning for Anomaly Detection",
+      "Deploying Models: From Jupyter Notebook to Production API"
+    ]
+  },
+  {
+    "id": "m18",
+    "order": 18,
+    "title": "Blockchain & Cryptocurrency Analytics",
+    "level": 5,
+    "level_label": "Advanced & Electives",
+    "status": "coming_soon",
+    "lesson_count": 5,
+    "description": "Analyze blockchain data, understand DeFi protocols, and apply quantitative methods to cryptocurrency markets — bridging distributed ledger technology with financial analytics.",
+    "concept_map": ["distributed_ledgers", "smart_contracts", "defi_protocols", "on_chain_analytics", "crypto_market_structure"],
+    "lesson_titles": [
+      "Distributed Ledgers: How Blockchain Works in Finance",
+      "Smart Contracts: Programmable Finance & DeFi Protocols",
+      "On-Chain Analytics: Querying Blockchain Data with Python",
+      "Crypto Market Structure: Exchanges, Liquidity & Volatility",
+      "Tokenization: Real-World Assets on the Blockchain"
+    ]
+  },
+  {
+    "id": "m19",
+    "order": 19,
+    "title": "Introduction to Cybersecurity",
+    "level": 5,
+    "level_label": "Advanced & Electives",
+    "status": "coming_soon",
+    "lesson_count": 4,
+    "description": "Understand the cybersecurity threat landscape facing financial institutions — attack vectors, regulatory frameworks, and how analytics is used to detect and respond to breaches.",
+    "concept_map": ["threat_landscape", "authentication_and_identity", "regulatory_frameworks", "security_analytics"],
+    "lesson_titles": [
+      "Threat Landscape: FinTech Attack Vectors & Defenses",
+      "Identity & Authentication: Fraud Prevention Systems",
+      "Regulatory Frameworks: SOC 2, GDPR & Financial Compliance",
+      "Security Analytics: Detecting Anomalies & Insider Threats"
+    ]
+  },
+  {
+    "id": "m20",
+    "order": 20,
+    "title": "Investment Praxis",
+    "level": 5,
+    "level_label": "Advanced & Electives",
+    "status": "coming_soon",
+    "lesson_count": 4,
+    "description": "Bridge investment theory and live markets — portfolio construction, factor exposure analysis, performance attribution, and executing a data-driven investment process.",
+    "concept_map": ["portfolio_construction", "factor_investing", "performance_attribution", "risk_budgeting"],
+    "lesson_titles": [
+      "Portfolio Construction: Theory Meets Practice",
+      "Factor Investing: Value, Momentum & Quality Premia",
+      "Performance Attribution: What Drove Returns?",
+      "Risk Budgeting: Sizing Positions by Risk Contribution"
+    ]
+  },
+  {
+    "id": "m21",
+    "order": 21,
+    "title": "International Finance",
+    "level": 5,
+    "level_label": "Advanced & Electives",
+    "status": "coming_soon",
+    "lesson_count": 4,
+    "description": "Navigate currency risk, cross-border capital flows, and international capital markets — essential for finance roles with global portfolio or operational exposure.",
+    "concept_map": ["fx_risk", "currency_hedging", "international_capital_flows", "emerging_markets"],
+    "lesson_titles": [
+      "FX Risk: Currency Exposure in Global Portfolios",
+      "Hedging Currency Risk: Forwards, Options & Natural Hedges",
+      "International Capital Markets: Cross-Border Investing",
+      "Emerging Markets: Risk Premium, Contagion & Opportunity"
+    ]
+  },
+  {
+    "id": "m22",
+    "order": 22,
+    "title": "Wealth Management Practice",
+    "level": 5,
+    "level_label": "Advanced & Electives",
+    "status": "coming_soon",
+    "lesson_count": 4,
+    "description": "Apply quantitative and behavioral finance tools to high-net-worth client advisory — financial planning, asset allocation, tax-aware investing, and practice management.",
+    "concept_map": ["financial_planning", "risk_tolerance_assessment", "asset_allocation", "tax_aware_investing"],
+    "lesson_titles": [
+      "Client Goals: Risk Tolerance & Financial Planning",
+      "Asset Allocation: Building Model Portfolios for Client Profiles",
+      "Tax-Aware Investing: Loss Harvesting & Asset Location",
+      "Practice Management: Technology & Analytics in Wealth Advising"
+    ]
+  }
+]

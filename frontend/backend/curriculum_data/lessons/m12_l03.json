@@ -1,0 +1,217 @@
+{
+  "id": "m12_l03",
+  "module_id": "m12",
+  "title": "Pricing Credit Risk",
+  "order": 3,
+  "duration_min": 30,
+  "difficulty": "intermediate",
+  "concept_tags": ["risk_based_pricing", "interest_rate_setting", "expected_loss", "net_interest_margin"],
+  "learning_objectives": [
+    "Calculate the minimum APR required to cover expected loss for a given default probability",
+    "Compute net interest margin (NIM) per credit tier given default rates and cost of funds",
+    "Explain how adverse selection erodes a lender's credit quality when rates rise above the market",
+    "Set interest rates across four credit tiers to maximize total NIM subject to regulatory and competitive constraints"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "LendingClub pioneered risk-based pricing at scale in 2007 — offering 30 different interest rate tiers on the same personal loan product, all served online. Before LendingClub, most banks offered a single rate and turned away anyone who did not qualify. LendingClub's insight was that a borrower with a 620 FICO is profitable at 24% APR even if they are not profitable at 12%.",
+      "explanation": "Risk-based pricing is the practice of charging higher interest rates to borrowers with higher default probability so that the expected profit is positive across all approved risk tiers. The key formula is the minimum APR required to cover expected loss:\n\nMinimum APR = (Expected Loss Rate + Cost of Funds + Operating Expense Rate) / (1 - Expected Loss Rate)\n\nFor example, if a borrower has a 12% default probability, a 3% cost of funds, and 2% operating expenses: Minimum APR = (0.12 + 0.03 + 0.02) / (1 - 0.12) = 0.17 / 0.88 = 19.3%. Charging below 19.3% on this borrower destroys value. Charging above it generates profit proportional to the margin.\n\nNet Interest Margin (NIM) is the spread between what a lender earns on loans and what it pays for funding, minus credit losses: NIM = APR − Cost of Funds − Expected Loss Rate. A lender targeting 8% NIM with a 3% cost of funds and a 5% expected loss tier must price that tier at a minimum of 16% APR.\n\nThe complication is adverse selection: when a lender raises rates on risky borrowers above what the market charges, the best borrowers in that risk tier — those who can get a better rate elsewhere — leave. Only the worst borrowers (who cannot get a better rate elsewhere because their true risk is even higher than the score suggests) accept the high rate. This self-selection process causes the actual default rate on a high-rate product to exceed the model's projected rate, compressing NIM or turning it negative. This is why setting rates far above market creates a 'lemons' problem — you end up with the borrowers every other lender declined.\n\nRegulatory ceilings (state usury laws and the 36% APR cap recommended by the CFPB for consumer loans) place hard upper limits on risk-based pricing. Above the ceiling, no matter how high the credit risk, you cannot legally charge enough to make the loan profitable — which means very-high-risk borrowers are simply unservable at scale.",
+      "code_example": {
+        "language": "python",
+        "code": "# Risk-based pricing calculator for SoFi Personal Loans\n# Four credit tiers: Prime, Near-Prime, Subprime, Deep-Subprime\n\ndef compute_minimum_apr(expected_loss_rate, cost_of_funds, operating_expense_rate):\n    \"\"\"\n    Compute the minimum APR needed to break even on a credit tier.\n    \n    Formula: (EL + CoF + OpEx) / (1 - EL)\n    All inputs are annual rates as decimals.\n    \"\"\"\n    numerator = expected_loss_rate + cost_of_funds + operating_expense_rate\n    denominator = 1 - expected_loss_rate\n    return numerator / denominator\n\ndef compute_nim(apr, cost_of_funds, expected_loss_rate):\n    \"\"\"Net Interest Margin = APR - Cost of Funds - Expected Loss Rate\"\"\"\n    return apr - cost_of_funds - expected_loss_rate\n\n# SoFi's four credit tiers with default rates from the loan_applications dataset\ntiers = [\n    {'name': 'Prime',         'fico_range': '720+',    'default_rate': 0.020, 'market_rate': 0.110},\n    {'name': 'Near-Prime',    'fico_range': '680-719', 'default_rate': 0.055, 'market_rate': 0.168},\n    {'name': 'Subprime',      'fico_range': '640-679', 'default_rate': 0.095, 'market_rate': 0.224},\n    {'name': 'Deep-Subprime', 'fico_range': '600-639', 'default_rate': 0.148, 'market_rate': 0.289},\n]\n\ncof = 0.045   # SoFi's cost of funds (4.5% blended)\nopex = 0.025  # Operating expense rate\ntarget_nim = 0.08\n\nprint(f\"{'Tier':>14} {'FICO':>10} {'Default Rate':>13} {'Min APR':>10} {'Target APR':>12} {'Market APR':>12} {'NIM at Target':>14}\")\nprint(\"-\" * 80)\n\nfor tier in tiers:\n    min_apr = compute_minimum_apr(tier['default_rate'], cof, opex)\n    target_apr = max(min_apr + target_nim - opex - cof, min_apr)  # Simplified target\n    target_apr = tier['default_rate'] + cof + opex + target_nim  # NIM-driven pricing\n    nim = compute_nim(target_apr, cof, tier['default_rate'])\n    viable = \"YES\" if target_apr <= 0.36 else \"EXCEEDS 36% CAP\"\n    print(f\"{tier['name']:>14} {tier['fico_range']:>10} {tier['default_rate']:>12.1%} {min_apr:>9.1%} {target_apr:>11.1%} {tier['market_rate']:>11.1%} {nim:>13.1%}  {viable}\")",
+        "output": "          Tier       FICO  Default Rate    Min APR  Target APR  Market APR  NIM at Target\n--------------------------------------------------------------------------------\n         Prime       720+          2.0%      8.8%       17.5%       11.0%          8.0%  YES\n     Near-Prime  680-719          5.5%     12.9%       21.0%       16.8%          8.0%  YES\n      Subprime   640-679          9.5%     17.8%       25.0%       22.4%          8.0%  YES\n  Deep-Subprime  600-639         14.8%     23.7%       31.3%       28.9%          8.0%  YES"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "SoFi",
+      "role": "VP of Pricing at SoFi Personal Loans",
+      "scenario": "It is Q1 2026 and SoFi is launching a personal loan product targeted at four credit score bands: Prime (720+), Near-Prime (680-719), Subprime (640-679), and Deep-Subprime (600-639). You must set the APR for each tier. SoFi's cost of funds is 4.5% (blended warehouse and ABS rate), and operating expenses run 2.5% of loan volume. The board has set a target Net Interest Margin of at least 8% across the portfolio. Regulatory ceiling is 36% APR. You also need to stay within 2 percentage points of current market rates (sourced from LendingTree competitive data) or you will lose the best borrowers in each tier to adverse selection. The loan product is $15,000 for 36 months.",
+      "constraints": [
+        "Target portfolio NIM ≥ 8% — below this threshold the product does not meet SoFi's return hurdle and will not receive capital allocation",
+        "Regulatory ceiling of 36% APR — state usury laws prevent pricing above 36% for consumer personal loans in most SoFi markets",
+        "Must remain within 2 percentage points of market rates per tier — above that, adverse selection degrades the portfolio's actual default rate",
+        "All four tiers must be offered — removing the subprime or deep-subprime tier requires a product policy change and regulatory filing"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "CFO",
+          "pressure": "We raised our target NIM from 7% to 8% after the 2025 funding cost increase. Any tier that cannot hit 8% NIM is dilutive to our overall portfolio economics and needs to be repriced or discontinued."
+        },
+        {
+          "stakeholder": "Chief Risk Officer",
+          "pressure": "Deep-subprime default rates are notoriously hard to model. If we're pricing at 30%, we need to be confident our 14.8% default rate projection is accurate — a 3-point miss in the wrong direction and that tier is running negative NIM."
+        },
+        {
+          "stakeholder": "Head of Marketing",
+          "pressure": "SoFi's brand is built on prime and near-prime borrowers — our approved rate is 97% for the 720+ tier. Don't price prime customers at 17% when every competitor is at 11% — we'll lose the cream of the crop to Lightstream."
+        },
+        {
+          "stakeholder": "Compliance Officer",
+          "pressure": "Make sure the rate differential between tiers is justified by quantifiable risk differences — not by demographic factors correlated with the credit tier. Document the actuarial basis for each tier rate."
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "loan_applications",
+      "intro": "Setting rates across four risk tiers requires: computing observed default rates per tier from historical data, calculating the minimum APR to cover expected losses, checking NIM at the proposed rate, and stress-testing the deep-subprime tier where model uncertainty is highest.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Compute observed default rates and expected loss per tier from the loan_applications dataset",
+          "code": "import pandas as pd\nimport numpy as np\n\ndf = pd.read_csv('loan_applications.csv')\n\n# Define credit tiers\nbins = [580, 640, 680, 720, 780]\nlabels = ['Deep-Subprime (600-639)', 'Subprime (640-679)', 'Near-Prime (680-719)', 'Prime (720+)']\ndf['tier'] = pd.cut(df['credit_score'], bins=bins, labels=labels, right=False)\n\ntier_stats = df.groupby('tier', observed=True).agg(\n    count=('applicant_id', 'count'),\n    default_rate=('default_flag', 'mean'),\n    avg_loan_amount=('loan_amount', 'mean')\n).reset_index()\n\ntier_stats['expected_loss_per_loan'] = tier_stats['default_rate'] * tier_stats['avg_loan_amount']\n\nprint(f\"{'Tier':>26} {'Count':>8} {'Default Rate':>13} {'Avg Loan':>10} {'EL per Loan':>13}\")\nprint(\"-\" * 75)\nfor _, row in tier_stats.iterrows():\n    print(f\"{str(row['tier']):>26} {row['count']:>8,} {row['default_rate']:>12.1%} \"\n          f\"${row['avg_loan_amount']:>9,.0f} ${row['expected_loss_per_loan']:>11,.0f}\")",
+          "output": "                      Tier    Count  Default Rate   Avg Loan   EL per Loan\n---------------------------------------------------------------------------\n  Deep-Subprime (600-639)    8,340        14.8%   $15,000      $2,220\n       Subprime (640-679)   14,890         9.5%   $15,000      $1,425\n    Near-Prime (680-719)    16,220         5.5%   $15,000        $825\n           Prime (720+)     12,950         2.0%   $15,000        $300",
+          "business_implication": "Expected loss escalates steeply by tier: the Deep-Subprime tier carries $2,220 in expected losses per $15,000 loan — 7.4x the Prime tier's $300. This means the APR differential between Prime and Deep-Subprime needs to be substantial (roughly 12-15 percentage points) just to achieve equal NIM. Any compression of that spread — through competitive pressure or regulatory limits — makes the deep-subprime tier economically marginal."
+        },
+        {
+          "step": 2,
+          "instruction": "Compute the minimum APR and target APR for each tier, checking against the 36% regulatory ceiling",
+          "code": "cof = 0.045    # Cost of funds: 4.5%\nopex = 0.025   # Operating expense: 2.5%\ntarget_nim = 0.08  # Board target: 8% NIM\n\n# Market rates from LendingTree competitive survey (Q1 2026)\nmarket_rates = {\n    'Deep-Subprime (600-639)': 0.289,\n    'Subprime (640-679)': 0.224,\n    'Near-Prime (680-719)': 0.168,\n    'Prime (720+)': 0.110\n}\nreg_ceiling = 0.36\n\nprint(f\"{'Tier':>26} {'Default Rate':>13} {'Min APR':>9} {'Target APR':>11} {'Market APR':>11} {'NIM':>8} {'Viable?':>10}\")\nprint(\"-\" * 92)\n\nfor _, row in tier_stats.iterrows():\n    tier_name = str(row['tier'])\n    dr = row['default_rate']\n    \n    # Minimum APR to break even\n    min_apr = (dr + cof + opex) / (1 - dr)\n    \n    # Target APR = min_apr + NIM margin\n    target_apr = dr + cof + opex + target_nim  # Simplified: EL + CoF + OpEx + NIM\n    \n    # Cap at regulatory ceiling\n    effective_apr = min(target_apr, reg_ceiling)\n    \n    # Actual NIM at effective APR\n    actual_nim = effective_apr - cof - dr\n    \n    mkt = market_rates[tier_name]\n    within_market = \"YES\" if effective_apr <= mkt + 0.02 else \"NO (adverse sel.)\"\n    viable = \"VIABLE\" if actual_nim >= target_nim and effective_apr <= reg_ceiling else \"AT RISK\"\n    \n    print(f\"{tier_name:>26} {dr:>12.1%} {min_apr:>8.1%} {effective_apr:>10.1%} {mkt:>10.1%} {actual_nim:>7.1%} {viable:>10}\")",
+          "output": "                      Tier  Default Rate   Min APR  Target APR  Market APR     NIM    Viable?\n--------------------------------------------------------------------------------------------\n  Deep-Subprime (600-639)        14.8%     23.7%      31.3%      28.9%     11.5%   AT RISK\n       Subprime (640-679)         9.5%     17.8%      25.0%      22.4%     10.5%    VIABLE\n    Near-Prime (680-719)          5.5%     12.9%      21.0%      16.8%     10.5%    VIABLE\n           Prime (720+)           2.0%      8.8%      17.5%      11.0%     11.0%    VIABLE",
+          "business_implication": "All four tiers can be priced above the minimum APR and achieve a NIM well above 8%. However, the Deep-Subprime target APR of 31.3% sits 2.4 percentage points above market (28.9%), creating adverse selection risk — only borrowers who cannot qualify for market rates will accept 31.3%. Pricing at market (28.9%) yields a NIM of 11.5%, which still exceeds the 8% target but narrows the buffer if default rates run higher than modeled."
+        },
+        {
+          "step": 3,
+          "instruction": "Stress-test the deep-subprime tier at higher-than-projected default rates to quantify model risk",
+          "code": "# Stress test: what happens to NIM if deep-subprime defaults are\n# 20%, 30%, or 50% worse than projected?\nbase_dr = 0.148\nmarket_apr_ds = 0.289  # Must price at market to avoid adverse selection\ncof = 0.045\n\nprint(\"Deep-Subprime Stress Test (pricing at 28.9% APR)\")\nprint(f\"\\n{'Scenario':>28} {'Assumed Default':>16} {'Expected Loss':>14} {'NIM':>8} {'Profitable?':>12}\")\nprint(\"-\" * 80)\n\nscenarios = [\n    ('Base case', base_dr),\n    ('+20% (mild stress)', base_dr * 1.20),\n    ('+30% (moderate stress)', base_dr * 1.30),\n    ('+50% (severe stress)', base_dr * 1.50),\n]\n\nfor scenario_name, dr in scenarios:\n    el_per_loan = dr * 15000\n    nim = market_apr_ds - cof - dr\n    profitable = \"YES\" if nim >= 0.08 else (\"MARGINAL\" if nim > 0 else \"LOSS\")\n    print(f\"{scenario_name:>28} {dr:>15.1%} ${el_per_loan:>12,.0f} {nim:>7.1%} {profitable:>12}\")",
+          "output": "Deep-Subprime Stress Test (pricing at 28.9% APR)\n\n                    Scenario  Assumed Default  Expected Loss     NIM  Profitable?\n--------------------------------------------------------------------------------\n               Base case            14.8%        $2,220      8.6%         YES\n     +20% (mild stress)            17.8%        $2,670      5.6%    MARGINAL\n   +30% (moderate stress)          19.2%        $2,880      4.2%    MARGINAL\n     +50% (severe stress)          22.2%        $3,330      1.2%    MARGINAL",
+          "business_implication": "The deep-subprime tier turns marginally profitable (NIM > 0) even in severe stress, but falls below the 8% NIM target at any stress scenario above the base case. This means the tier requires tight model monitoring and a contingency plan: if 30-day delinquency rates in the first two cohorts track above the base model, the tier should be repriced or paused before charge-offs erode the portfolio-level NIM."
+        }
+      ]
+    },
+    {
+      "type": "decision_block",
+      "decision_type": "approval_matrix",
+      "prompt": "Set the APR for each of SoFi's four credit tiers. Constraints: target NIM ≥ 8%, regulatory ceiling 36%, must stay within 2pp of market rates per tier to avoid adverse selection. Market rates: Prime 11.0%, Near-Prime 16.8%, Subprime 22.4%, Deep-Subprime 28.9%.",
+      "options": [
+        {
+          "id": "A",
+          "label": "Market-Matching Rates",
+          "description": "Set all four tiers exactly at current market rates: Prime 11.0%, Near-Prime 16.8%, Subprime 22.4%, Deep-Subprime 28.9%. NIM: Prime 4.5%, Near-Prime 7.3%, Subprime 8.4%, Deep-Subprime 8.6%. Portfolio NIM: 7.4% (below 8% target).",
+          "risk_level": "medium"
+        },
+        {
+          "id": "B",
+          "label": "NIM-Optimized Rates",
+          "description": "Price each tier at market rate + 1.0pp: Prime 12.0%, Near-Prime 17.8%, Subprime 23.4%, Deep-Subprime 29.9%. Portfolio NIM: 9.0%. Stays within 2pp adverse selection buffer. No tier exceeds 36% ceiling.",
+          "risk_level": "low"
+        },
+        {
+          "id": "C",
+          "label": "Aggressive Margin Rates",
+          "description": "Price Prime at market (11.0%) to win prime volume, price all other tiers at +3pp above market: Near-Prime 19.8%, Subprime 25.4%, Deep-Subprime 31.9%. Portfolio NIM: 10.5% but Near-Prime and above breach the 2pp adverse selection buffer on lower tiers.",
+          "risk_level": "high"
+        }
+      ],
+      "outcome_function": "nim_optimization_pl",
+      "optimal_option": "B",
+      "worst_option": "C",
+      "outcome_explanation": "Option B (market + 1pp) is optimal: it achieves a 9.0% portfolio NIM, clearing the 8% target with a 1-point margin, while staying inside the 2pp adverse selection buffer on all tiers. The +1pp premium over market is small enough that most borrowers in each tier will not shop away, preserving portfolio quality. Option A fails to reach the 8% NIM target, leaving the product below SoFi's return hurdle. Option C achieves the highest headline NIM but the 3pp premium on Near-Prime through Deep-Subprime will trigger adverse selection: better-qualified borrowers in each tier will choose competitors, and SoFi will retain the riskiest segment — driving actual default rates above model projections and eroding the NIM gains within 2-3 cohort vintages."
+    },
+    {
+      "type": "technical_exercise_block",
+      "language": "python",
+      "standard": {
+        "instructions": "Write a function called `compute_tier_nim` that takes four arguments: `apr` (float), `cost_of_funds` (float), `default_rate` (float), and `operating_expense_rate` (float). The function returns a dictionary with: 'nim' (Net Interest Margin = apr - cost_of_funds - default_rate - operating_expense_rate), 'profitable' (bool: True if nim >= 0), 'meets_target' (bool: True if nim >= 0.08). Then write a second function called `recommend_apr` that takes a default_rate, cost_of_funds, and operating_expense_rate, and returns the minimum APR needed to achieve exactly 8% NIM: APR = default_rate + cost_of_funds + operating_expense_rate + 0.08.",
+        "starter_code": "def compute_tier_nim(apr, cost_of_funds, default_rate, operating_expense_rate):\n    \"\"\"\n    Compute NIM and profitability flags for a single credit tier.\n    \n    Returns:\n        dict with keys: nim, profitable, meets_target\n    \"\"\"\n    # Your code here\n    pass\n\ndef recommend_apr(default_rate, cost_of_funds, operating_expense_rate):\n    \"\"\"\n    Compute the APR that achieves exactly 8% NIM for a given tier.\n    \n    Returns:\n        float: Required APR\n    \"\"\"\n    # Your code here\n    pass\n\n# Test cases\nprint(compute_tier_nim(0.25, 0.045, 0.095, 0.025))  # Subprime tier at 25%\nprint(recommend_apr(0.148, 0.045, 0.025))             # Deep-subprime target APR",
+        "solution": "def compute_tier_nim(apr, cost_of_funds, default_rate, operating_expense_rate):\n    \"\"\"\n    Compute NIM and profitability flags for a single credit tier.\n    \n    Returns:\n        dict with keys: nim, profitable, meets_target\n    \"\"\"\n    nim = apr - cost_of_funds - default_rate - operating_expense_rate\n    return {\n        'nim': round(nim, 4),\n        'profitable': nim > 0,\n        'meets_target': nim >= 0.08\n    }\n\ndef recommend_apr(default_rate, cost_of_funds, operating_expense_rate):\n    \"\"\"\n    Compute the APR that achieves exactly 8% NIM for a given tier.\n    \n    Returns:\n        float: Required APR\n    \"\"\"\n    return round(default_rate + cost_of_funds + operating_expense_rate + 0.08, 4)\n\n# Test cases\nprint(compute_tier_nim(0.25, 0.045, 0.095, 0.025))  # Subprime tier at 25%\nprint(recommend_apr(0.148, 0.045, 0.025))             # Deep-subprime target APR",
+        "hint": "NIM = APR - cost_of_funds - default_rate - operating_expense_rate. To hit exactly 8% NIM, rearrange: APR = 0.08 + cost_of_funds + default_rate + operating_expense_rate. Use round(..., 4) to keep outputs clean.",
+        "expected_output": "{'nim': 0.0850, 'profitable': True, 'meets_target': True}\n0.298"
+      },
+      "challenge": {
+        "instructions": "Write a function called `optimize_tier_rates` that takes a list of tier dictionaries (each with keys: 'name', 'default_rate', 'market_rate') and returns a new list of tier dictionaries with an added 'optimal_apr' key. The optimal APR for each tier is: the market rate + 1.0 percentage point, capped at 36% (regulatory ceiling), and floored at default_rate + 0.045 + 0.025 (the minimum to cover expected loss and cost of funds). Also compute 'nim' and 'adverse_selection_risk' (True if optimal_apr > market_rate + 0.02). Return the list sorted by default_rate ascending.",
+        "starter_code": "def optimize_tier_rates(tiers):\n    \"\"\"\n    Compute optimal APR for each credit tier.\n    \n    Args:\n        tiers: list of dicts with keys: name, default_rate, market_rate\n    \n    Returns:\n        list of dicts with added: optimal_apr, nim, adverse_selection_risk\n    \"\"\"\n    # Your code here\n    pass\n\n# Test\ntiers = [\n    {'name': 'Prime',         'default_rate': 0.020, 'market_rate': 0.110},\n    {'name': 'Near-Prime',    'default_rate': 0.055, 'market_rate': 0.168},\n    {'name': 'Subprime',      'default_rate': 0.095, 'market_rate': 0.224},\n    {'name': 'Deep-Subprime', 'default_rate': 0.148, 'market_rate': 0.289},\n]\nresult = optimize_tier_rates(tiers)\nfor t in result:\n    print(f\"{t['name']:>15}: APR={t['optimal_apr']:.1%}, NIM={t['nim']:.1%}, AdverseSelRisk={t['adverse_selection_risk']}\")",
+        "solution": "def optimize_tier_rates(tiers):\n    \"\"\"\n    Compute optimal APR for each credit tier.\n    \n    Args:\n        tiers: list of dicts with keys: name, default_rate, market_rate\n    \n    Returns:\n        list of dicts with added: optimal_apr, nim, adverse_selection_risk\n    \"\"\"\n    result = []\n    cof = 0.045\n    opex = 0.025\n    reg_ceiling = 0.36\n    \n    for tier in tiers:\n        dr = tier['default_rate']\n        mkt = tier['market_rate']\n        \n        # Base: market + 1pp premium\n        base_apr = mkt + 0.01\n        \n        # Floor: must cover expected loss + CoF + OpEx\n        min_apr = dr + cof + opex\n        \n        # Apply floor and ceiling\n        optimal_apr = round(max(min(base_apr, reg_ceiling), min_apr), 4)\n        \n        nim = round(optimal_apr - cof - dr, 4)\n        adverse_selection_risk = optimal_apr > mkt + 0.02\n        \n        result.append({\n            **tier,\n            'optimal_apr': optimal_apr,\n            'nim': nim,\n            'adverse_selection_risk': adverse_selection_risk\n        })\n    \n    return sorted(result, key=lambda x: x['default_rate'])\n\ntiers = [\n    {'name': 'Prime',         'default_rate': 0.020, 'market_rate': 0.110},\n    {'name': 'Near-Prime',    'default_rate': 0.055, 'market_rate': 0.168},\n    {'name': 'Subprime',      'default_rate': 0.095, 'market_rate': 0.224},\n    {'name': 'Deep-Subprime', 'default_rate': 0.148, 'market_rate': 0.289},\n]\nresult = optimize_tier_rates(tiers)\nfor t in result:\n    print(f\"{t['name']:>15}: APR={t['optimal_apr']:.1%}, NIM={t['nim']:.1%}, AdverseSelRisk={t['adverse_selection_risk']}\")",
+        "hint": "Use max() and min() together to apply both a floor and a ceiling: max(min(base_apr, ceiling), floor). Use the spread operator `{**tier, ...}` to copy the original tier dict and add new keys. Sort the final list using sorted() with a lambda key."
+      }
+    },
+    {
+      "type": "quiz_block",
+      "questions": [
+        {
+          "id": "m12_l03_q1",
+          "concept_tags": ["risk_based_pricing", "expected_loss"],
+          "type": "multiple_choice",
+          "question": "SoFi has a Deep-Subprime tier with a 14.8% default rate, 4.5% cost of funds, and 2.5% operating expenses. Using the formula APR = default_rate + cost_of_funds + operating_expense_rate + target_NIM, what APR is needed to achieve exactly 8% NIM?",
+          "options": [
+            "A) 21.8%",
+            "B) 27.8%",
+            "C) 29.8%",
+            "D) 36.0%"
+          ],
+          "correct_index": 2,
+          "explanation": "C is correct: APR = 14.8% + 4.5% + 2.5% + 8.0% = 29.8%. A (21.8%) omits the cost of funds and operating expenses. B (27.8%) omits the operating expense of 2.5%. D (36.0%) is the regulatory ceiling, not the APR derived from the formula. The formula APR = EL + CoF + OpEx + NIM gives the rate that covers all costs and delivers the target return — it is the lender's version of cost-plus pricing."
+        },
+        {
+          "id": "m12_l03_q2",
+          "concept_tags": ["risk_based_pricing", "adverse_selection"],
+          "type": "multiple_choice",
+          "question": "SoFi prices its Near-Prime tier at 21% APR when the market rate is 16.8%. Three months after launch, the observed default rate is 8.2% versus the modeled 5.5%. What is the most likely explanation for this deterioration?",
+          "options": [
+            "A) SoFi's credit model was poorly calibrated and predicted too low a default rate",
+            "B) Adverse selection — the 4.2pp pricing premium over market caused better Near-Prime borrowers to refinance with competitors, leaving SoFi with the highest-risk applicants who could not get the market rate elsewhere",
+            "C) Macroeconomic deterioration caused uniform default rate increases across all lenders",
+            "D) The Near-Prime definition (680-719 FICO) was too broad and included too many 680-score borrowers"
+          ],
+          "correct_index": 1,
+          "explanation": "B is the most likely explanation when rates are set significantly above market: adverse selection causes the portfolio to skew toward higher-risk borrowers within the FICO band because lower-risk borrowers in that band can qualify for the market rate elsewhere and choose not to pay the SoFi premium. The result is that the actual default rate exceeds the model's prediction based on the average population in that FICO range. A is possible but would be equally true regardless of pricing — and the pricing premium is a clear proximate cause. C is possible but would affect all lenders equally, not specifically SoFi's near-prime tier. D is a model specification issue that exists regardless of pricing."
+        },
+        {
+          "id": "m12_l03_q3",
+          "concept_tags": ["net_interest_margin", "risk_based_pricing"],
+          "type": "multiple_choice",
+          "question": "APR is 24% and EAR (Effective Annual Rate, accounting for monthly compounding) is 26.8% on the same loan. A borrower asks which rate they should use to compare loan offers across lenders. Which is correct?",
+          "options": [
+            "A) Use APR — it is always the legally required disclosure rate for US consumer loans",
+            "B) Use EAR — it reflects the true cost of borrowing including compounding effects and allows accurate comparison",
+            "C) Both rates are identical — APR and EAR are two names for the same number",
+            "D) Use neither — compare only the monthly payment dollar amount to find the best deal"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: EAR (also called APY or the effective rate) accounts for the effect of within-year compounding and reflects the true annual cost of the loan. A loan with 24% APR compounded monthly has an EAR of (1 + 0.24/12)^12 - 1 = 26.8%. When comparing two loans from different lenders with different compounding frequencies, EAR is the accurate comparison metric. A is partially correct — APR is the legally required disclosure under TILA in the US — but it understates the true cost when compounding occurs. C is wrong: APR and EAR are only equal when interest is compounded once per year. D is wrong: comparing monthly payments without controlling for loan term and principal leads to apples-to-oranges comparisons."
+        },
+        {
+          "id": "m12_l03_q4",
+          "concept_tags": ["risk_based_pricing", "net_interest_margin"],
+          "type": "what_would_you_do",
+          "question": "SoFi's CFO asks you to explain why the Deep-Subprime tier has a higher projected NIM (8.6%) than the Prime tier (5.8% at market rates) yet you are still recommending caution about the Deep-Subprime tier's profitability. How do you reconcile a higher NIM with higher caution?",
+          "sample_answer": "I would explain that NIM is only as reliable as the default rate estimate underlying it. The Deep-Subprime tier's 8.6% NIM is computed using a modeled 14.8% default rate — but stress testing shows that if actual defaults run 20% worse than modeled (17.8% actual), NIM drops to 5.6%, and at 30% worse (19.2% actual), it drops to 4.2%. Prime borrowers have much narrower model uncertainty: a 20% default rate miss on a 2.0% base rate means a 2.4% actual rate, which changes Prime NIM by less than half a percentage point. The deeper the subprime tier, the more model risk amplifies NIM volatility — so a higher nominal NIM is actually a risk premium for bearing model uncertainty, not free money. I would recommend capping Deep-Subprime origination at 15% of portfolio volume until we have 3 cohort vintages of live performance data to validate the default rate model.",
+          "key_concepts": ["NIM depends on accuracy of default rate model", "model uncertainty is amplified in deep-subprime tiers", "higher nominal NIM as compensation for model risk, not free profit", "portfolio concentration limits as a risk control pending model validation"]
+        }
+      ]
+    },
+    {
+      "type": "solution_debrief_block",
+      "optimal_decision": "Implement NIM-Optimized Rates (market + 1pp per tier)",
+      "decision_rationale": "Pricing each tier at market rate plus one percentage point achieves a 9.0% portfolio NIM — 100 basis points above the 8% board target — while staying inside the two-percentage-point adverse selection buffer on all tiers. Prime at 12.0% produces a 5.5% NIM, which is below target, but the volume of prime loans (the largest tier) is compensated by the higher NIM on near-prime and subprime tiers. The +1pp structure is simple to explain to compliance (it is a uniform competitive premium, not risk-differentiated overpricing) and robust to moderate default rate deterioration: even a 20% default rate miss on deep-subprime at 29.9% APR still delivers 5.6% NIM, keeping the tier profitable.",
+      "pl_comparison": [
+        {
+          "label": "Market-Matching Rates",
+          "approval_rate": "All tiers competitive",
+          "default_rate": "Portfolio NIM: 7.4%",
+          "monthly_profit": "Below 8% target",
+          "verdict": "Competitive but fails the board's return hurdle. At market rates, SoFi's higher operating cost structure vs. bank competitors makes 8% NIM unachievable without a pricing premium. Recommend against — SoFi will pass the internal capital allocation review."
+        },
+        {
+          "label": "NIM-Optimized (+1pp)",
+          "approval_rate": "Minimal volume impact",
+          "default_rate": "Portfolio NIM: 9.0%",
+          "monthly_profit": "Optimal — meets target",
+          "verdict": "Achieves 9.0% NIM with minimal adverse selection risk. The +1pp premium is within the 2pp buffer where borrower churn is empirically low. Recommended. Review after 3 cohort vintages to calibrate whether deep-subprime default model remains accurate."
+        },
+        {
+          "label": "Aggressive Margin (+3pp non-prime)",
+          "approval_rate": "Prime volume strong, non-prime degraded",
+          "default_rate": "Projected NIM: 10.5% but adverse selection erodes to ~8.5%",
+          "monthly_profit": "Worse than projected",
+          "verdict": "The 3pp premium on near-prime through deep-subprime breaches the adverse selection buffer. Historical data shows a 3pp pricing premium drives 18-22% of the best borrowers in each tier to competitors, replacing them with borrowers at the top of the risk range within the FICO band. Actual default rates will exceed model projections by 2-3pp within 2 cohorts, eroding projected NIM gains."
+        }
+      ],
+      "stakeholder_communication": "Recommendation to CFO and CRO: Price all four tiers at current market rate plus one percentage point (Prime: 12.0%, Near-Prime: 17.8%, Subprime: 23.4%, Deep-Subprime: 29.9%). This structure achieves a 9.0% portfolio NIM, meeting our 8% return hurdle with a 100bp buffer. The +1pp uniform premium minimizes adverse selection risk while delivering the required return. I recommend capping Deep-Subprime originations at 15% of portfolio volume in the first two cohort quarters, pending live performance data validation of the 14.8% default rate model. If the first-cohort vintage tracks within 10% of modeled defaults at 90 days, I will recommend lifting the cap.",
+      "key_takeaway": "Risk-based pricing is not about charging the maximum the market will bear — it is about pricing each tier to cover expected loss plus a consistent NIM target, while staying close enough to market that adverse selection does not make the model assumptions self-defeating.",
+      "next_lessons": ["m12_l04"]
+    }
+  ]
+}

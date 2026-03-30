@@ -1,0 +1,25 @@
+{
+  "id": "m10_l01",
+  "module_id": "m10",
+  "lesson_number": 1,
+  "title": "Capital Structure: Debt, Equity & the Optimal Mix",
+  "duration_min": 25,
+  "status": "coming_soon",
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "When Apple issued $17 billion in corporate bonds in 2013 — despite having $145 billion in cash — it wasn't because they needed the money. It was because debt was cheaper than equity after taxes, and issuing bonds to buy back shares increased earnings per share without changing the underlying business. Apple's CFO understood that capital structure is not a passive accounting outcome; it is an active lever that sophisticated financial executives use to maximize firm value. Understanding this decision framework is fundamental to any corporate finance or investment role.",
+      "explanation": "Capital structure refers to how a company finances its assets — through debt (bonds, loans), equity (stock), or some mix of both. The central question of corporate finance is whether there is an optimal capital structure that maximizes firm value, and if so, what it looks like. The Modigliani-Miller theorem (MM, 1958) established the theoretical baseline: in a world with no taxes, no bankruptcy costs, and perfect information, capital structure is irrelevant. The value of the firm is determined entirely by the value of its assets, regardless of how those assets are financed. But we don't live in that frictionless world — and the departures from MM assumptions are exactly what make capital structure decisions important.\n\nThe first major friction is taxes. Interest payments on debt are tax-deductible; dividend payments to equity holders are not. This creates a 'tax shield' — each dollar of debt reduces the firm's tax bill, effectively subsidizing the cost of debt financing. Apple's 2013 bond issuance saved hundreds of millions of dollars in taxes annually relative to distributing that cash directly to shareholders. The second friction is bankruptcy risk. Too much debt creates financial distress costs — management distraction, supplier and customer flight, direct legal fees — that reduce firm value. The optimal capital structure balances the tax shield from debt against the probability-weighted cost of financial distress.\n\nIn practice, capital structure decisions are made by comparing the Weighted Average Cost of Capital (WACC) at different debt levels. WACC blends the after-tax cost of debt and the cost of equity, weighted by their proportions in the capital structure. The leverage level that minimizes WACC — and thus maximizes firm value when discounting future cash flows — is the optimal capital structure. In leveraged buyouts, PE firms deliberately load portfolio companies with debt to capture the tax shield and amplify equity returns, a strategy that only works if the company's cash flows are stable enough to service the debt.",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\nimport pandas as pd\n\n# WACC analysis at different debt/equity ratios\n# Company: $100M in total assets, EBIT = $18M, Tax rate = 25%\n\ntax_rate = 0.25\ncost_of_equity_unlevered = 0.10   # required return if all-equity\nrisk_free_rate = 0.045\n\n# As debt increases: cost of debt rises (more risk), cost of equity rises (more leverage risk)\ndef analyze_capital_structure(debt_pct):\n    equity_pct = 1 - debt_pct\n    # Cost of debt rises with leverage (credit risk)\n    if debt_pct < 0.3:  cost_of_debt = 0.055\n    elif debt_pct < 0.5: cost_of_debt = 0.070\n    elif debt_pct < 0.65: cost_of_debt = 0.090\n    else:               cost_of_debt = 0.125\n    # Cost of equity rises with leverage (Hamada equation approximation)\n    beta_levered = 1.0 * (1 + (1 - tax_rate) * (debt_pct / equity_pct))\n    cost_of_equity = risk_free_rate + beta_levered * 0.055  # ERP = 5.5%\n    # WACC\n    wacc = equity_pct * cost_of_equity + debt_pct * cost_of_debt * (1 - tax_rate)\n    return {'Debt %': f'{debt_pct:.0%}', 'Cost of Debt': f'{cost_of_debt:.1%}',\n            'Cost of Equity': f'{cost_of_equity:.1%}', 'WACC': round(wacc, 4)}\n\nresults = pd.DataFrame([analyze_capital_structure(d) for d in np.arange(0, 0.75, 0.10)])\noptimal = results.loc[results['WACC'].idxmin()]\nprint(results.to_string(index=False))\nprint(f\"\\nOptimal Capital Structure: {optimal['Debt %']} debt | WACC = {optimal['WACC']:.2%}\")",
+        "output": "Debt %  Cost of Debt  Cost of Equity    WACC\n    0%          5.5%           9.5%  0.0950\n   10%          5.5%           9.9%  0.0891\n   20%          5.5%          10.4%  0.0834\n   30%          7.0%          11.1%  0.0784\n   40%          7.0%          12.2%  0.0780\n   50%          9.0%          14.0%  0.0813\n   60%          9.0%          16.5%  0.0874\n   70%         12.5%          21.3%  0.0985\n\nOptimal Capital Structure: 40% debt | WACC = 7.80%"
+      }
+    },
+    {
+      "type": "stub_notice",
+      "message": "Full lesson in development — check back soon",
+      "available_date": "Summer 2026"
+    }
+  ]
+}

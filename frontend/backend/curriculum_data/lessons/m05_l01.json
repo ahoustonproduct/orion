@@ -1,0 +1,25 @@
+{
+  "id": "m05_l01",
+  "module_id": "m05",
+  "lesson_number": 1,
+  "title": "Extracting Signal from Financial News",
+  "duration_min": 25,
+  "status": "coming_soon",
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Renaissance Technologies' Medallion Fund — arguably the most successful quantitative hedge fund in history, returning 66% annually before fees from 1988 to 2018 — has long incorporated alternative text data including news sentiment as inputs to trading signals. Bloomberg and Refinitiv each sell news sentiment data feeds for tens of thousands of dollars per year to asset managers who believe that processing earnings call transcripts faster and more accurately than competitors generates alpha. The question is no longer whether unstructured text matters in finance — it's whether you know how to extract signal from it.",
+      "explanation": "Financial text data is everywhere: earnings call transcripts, SEC filings (10-K, 10-Q, 8-K), analyst reports, news articles, Federal Reserve meeting minutes. This unstructured data often contains forward-looking information, management sentiment, and competitive intelligence that doesn't appear in structured numerical financial statements. Text mining and NLP are the tools that transform raw text into quantifiable signals that can feed models or support direct analysis.\n\nThe most fundamental NLP task in finance is sentiment analysis: determining whether a piece of text is positive, negative, or neutral about a company's prospects. A basic approach uses a domain-specific word list — the Loughran-McDonald financial sentiment dictionary is the standard, containing words whose financial meaning differs from everyday usage (the word 'liability' is negative in finance but neutral in plain English) — to count positive and negative words. A more sophisticated approach trains a machine learning classifier on labeled financial text. Both have known tradeoffs: word lists are transparent and fast but miss context, while ML classifiers capture context but require labeled training data.\n\nBeyond sentiment, financial NLP includes named entity recognition (identifying company names, ticker symbols, and dollar figures in text), topic modeling (discovering which risk themes dominate a company's 10-K filing compared to peers), and information extraction (pulling structured facts like revenue guidance ranges or acquisition targets from unstructured prose). The pipeline for almost all these tasks follows the same structure: raw text → preprocessing (lowercasing, removing punctuation, tokenizing into words) → feature representation (converting words to numerical vectors) → model or analysis.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\n\n# Loughran-McDonald financial sentiment word lists (abbreviated)\nlm_positive = {'strong', 'growth', 'record', 'exceed', 'outperform', 'robust', 'gain', 'improve', 'strength'}\nlm_negative = {'loss', 'decline', 'weak', 'risk', 'uncertain', 'default', 'impairment', 'adverse', 'headwind'}\n\ndef sentiment_score(text):\n    \"\"\"Net sentiment using Loughran-McDonald financial word counts.\"\"\"\n    tokens = [t.strip('.,;:') for t in text.lower().split()]\n    pos = sum(1 for t in tokens if t in lm_positive)\n    neg = sum(1 for t in tokens if t in lm_negative)\n    return round((pos - neg) / len(tokens), 4) if tokens else 0\n\n# Sample earnings call excerpts — real language patterns\nexcerpts = [\n    {\"company\": \"LendCo\",  \"text\": \"We delivered record revenue growth this quarter, with strong loan originations and improved credit performance across all segments.\"},\n    {\"company\": \"FinBank\", \"text\": \"We experienced a decline in net interest margin and rising loss provisions due to uncertain macroeconomic conditions and adverse credit trends.\"},\n    {\"company\": \"PayTech\", \"text\": \"Revenue was in line with guidance. We continue to monitor risk in our portfolio while investing in growth initiatives.\"},\n]\n\nresults = pd.DataFrame([{\n    'company': e['company'],\n    'score': sentiment_score(e['text'])\n} for e in excerpts])\n\nresults['signal'] = results['score'].apply(\n    lambda s: 'POSITIVE' if s > 0.01 else ('NEGATIVE' if s < -0.01 else 'NEUTRAL')\n)\nprint(results.to_string(index=False))",
+        "output": "  company   score    signal\n   LendCo  0.0435  POSITIVE\n  FinBank -0.0526  NEGATIVE\n  PayTech  0.0000   NEUTRAL"
+      }
+    },
+    {
+      "type": "stub_notice",
+      "message": "Full lesson in development — check back soon",
+      "available_date": "Summer 2026"
+    }
+  ]
+}

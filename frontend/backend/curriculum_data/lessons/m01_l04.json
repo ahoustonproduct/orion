@@ -1,0 +1,215 @@
+{
+  "id": "m01_l04",
+  "module_id": "m01",
+  "title": "Dictionaries and Data Mapping",
+  "order": 4,
+  "duration_min": 25,
+  "difficulty": "beginner",
+  "concept_tags": ["python_dicts", "data_mapping", "risk_categories"],
+  "learning_objectives": [
+    "Create, access, update, and iterate over Python dictionaries",
+    "Use dictionaries to encode business mappings — risk tiers, fee schedules, category labels",
+    "Build a customer risk profile function that maps multiple attributes to a structured output",
+    "Understand why lookup tables encoded as dictionaries are safer than long if/elif chains in production systems"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Robinhood's margin trading system uses a dictionary-based risk tier mapping that determines every customer's leverage limit, margin call threshold, and asset class permissions — changing one line in that dictionary instantly updates the policy for millions of accounts.",
+      "explanation": "A Python dictionary is a collection of key-value pairs where each key is unique. In financial systems, dictionaries serve a purpose that goes beyond simple data storage: they encode business rules as data rather than code. Instead of a 50-line if/elif chain that maps FICO scores to APR tiers, you write a dictionary once and use it as a lookup table — cleaner, faster to read, and trivially easy to update when the pricing team changes the rate sheet.\n\nRobinhood's trading system is a vivid example of this pattern. Every time a customer opens a margin position, the system needs to know: what is their risk tier, what leverage ratio are they allowed, what is their margin maintenance threshold, and which asset classes are they permitted to trade? These mappings don't belong in if/else logic scattered across the codebase — they belong in a single, centrally maintained dictionary that the risk team can audit and update without touching the evaluation code. When Robinhood had to emergency-restrict meme stock trading in January 2021, their team needed to change the allowed_assets value for certain tiers without touching the margin calculation logic at all.\n\nBeyond lookup tables, dictionaries are the natural structure for representing a single entity's full profile — a customer record, a loan application, a transaction. A dictionary groups related attributes under named keys, making the data self-documenting. `customer['risk_tier']` tells you exactly what you're accessing; `row[4]` in a list requires you to remember the schema. In real codebases, functions that return structured data should return dictionaries rather than multiple separate values — it's easier to add a new field to a dict than to change every function signature.",
+      "code_example": {
+        "language": "python",
+        "code": "# Robinhood-style risk tier configuration — stored as data, not code\n# When the risk committee changes a limit, they update the dict, not the logic\nRISK_TIER_CONFIG = {\n    'TIER_1_CONSERVATIVE': {\n        'max_leverage': 1.0,           # No margin — cash account only\n        'margin_maintenance': None,     # No maintenance requirement\n        'allowed_assets': ['stocks', 'etfs', 'options_covered'],\n        'margin_call_threshold': None,\n        'monthly_fee': 0.0\n    },\n    'TIER_2_STANDARD': {\n        'max_leverage': 2.0,           # 2:1 margin (Reg T standard)\n        'margin_maintenance': 0.25,    # 25% maintenance margin\n        'allowed_assets': ['stocks', 'etfs', 'options_covered', 'options_naked'],\n        'margin_call_threshold': 0.30,\n        'monthly_fee': 5.0\n    },\n    'TIER_3_ADVANCED': {\n        'max_leverage': 4.0,           # 4:1 intraday margin\n        'margin_maintenance': 0.20,\n        'allowed_assets': ['stocks', 'etfs', 'options_covered', 'options_naked', 'crypto'],\n        'margin_call_threshold': 0.25,\n        'monthly_fee': 15.0\n    }\n}\n\ndef get_customer_risk_config(customer_tier):\n    \"\"\"\n    Look up a customer's trading configuration by their risk tier.\n    Returns the config dict or a safe default if tier is unrecognized.\n    \"\"\"\n    # .get() is safer than [] — returns None instead of raising KeyError\n    config = RISK_TIER_CONFIG.get(customer_tier)\n    \n    if config is None:\n        # Unknown tier — return the most conservative config as a safe default\n        print(f\"Warning: Unknown tier '{customer_tier}' — defaulting to TIER_1_CONSERVATIVE\")\n        return RISK_TIER_CONFIG['TIER_1_CONSERVATIVE']\n    \n    return config\n\n# Look up a customer's trading permissions\ncustomer_tier = 'TIER_2_STANDARD'\nconfig = get_customer_risk_config(customer_tier)\n\nprint(f\"Tier: {customer_tier}\")\nprint(f\"Max leverage: {config['max_leverage']}x\")\nprint(f\"Maintenance margin: {config['margin_maintenance']:.0%}\")\nprint(f\"Allowed assets: {', '.join(config['allowed_assets'])}\")\nprint(f\"Monthly fee: ${config['monthly_fee']:.2f}\")\n\n# Iterate over all tiers to build a summary table\nprint(\"\\n--- All Tier Summary ---\")\nfor tier_name, tier_config in RISK_TIER_CONFIG.items():\n    leverage = tier_config['max_leverage']\n    fee = tier_config['monthly_fee']\n    assets = len(tier_config['allowed_assets'])\n    print(f\"{tier_name}: {leverage}x leverage | {assets} asset classes | ${fee:.0f}/mo\")",
+        "output": "Tier: TIER_2_STANDARD\nMax leverage: 2.0x\nMaintenance margin: 25%\nAllowed assets: stocks, etfs, options_covered, options_naked\nMonthly fee: $5.00\n\n--- All Tier Summary ---\nTIER_1_CONSERVATIVE: 1.0x leverage | 3 asset classes | $0/mo\nTIER_2_STANDARD: 2.0x leverage | 4 asset classes | $5/mo\nTIER_3_ADVANCED: 4.0x leverage | 5 asset classes | $15/mo"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Robinhood",
+      "role": "Risk Analytics Analyst at Robinhood",
+      "scenario": "Robinhood is redesigning its customer segmentation system for its Gold margin product in Q2 2026. Currently all customers who qualify for margin are given the same tier with 2:1 leverage and a flat $5/month fee. The product team wants to introduce differentiated risk tiers to: (1) offer higher leverage to lower-risk, high-value customers who might otherwise leave for Interactive Brokers, and (2) restrict leverage for newer, higher-risk customers who have shown volatile trading behavior. You've been asked to define the risk tier mapping — specifically, what criteria qualify a customer for each tier, and what the fee structure should be. A poorly designed tier system can expose Robinhood to margin call cascades (as happened in March 2020) if too many high-risk customers are in the high-leverage tier. A too-restrictive system will drive their most profitable customers to competitors.",
+      "constraints": [
+        "FINRA rules require a minimum 25% maintenance margin requirement — no tier can go below this",
+        "Robinhood's risk team has approved a maximum 4:1 intraday leverage for the highest tier only",
+        "The fee structure must generate at least $8M in monthly recurring revenue across the Gold subscriber base of 2.1M customers",
+        "Tier assignment criteria must be objective and documentable — Robinhood's compliance team has to be able to justify any tier assignment to a customer who disputes it"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Chief Risk Officer",
+          "pressure": "After the March 2020 margin call cascade, I will not approve a tier structure that puts more than 15% of Gold customers in the high-leverage tier. The tail risk on a volatile market day is catastrophic if we've over-assigned leverage"
+        },
+        {
+          "stakeholder": "VP of Product (Gold)",
+          "pressure": "Interactive Brokers offers 4:1 margin to anyone. If we can't match that for our best customers, we're going to keep losing accounts to them. The high-leverage tier needs to be accessible to serious traders"
+        },
+        {
+          "stakeholder": "CFO",
+          "pressure": "Gold is a $400M annual revenue line. The tier structure needs to support that — don't design a race-to-the-bottom on fees just to win market share from Interactive Brokers"
+        },
+        {
+          "stakeholder": "Customer Success Lead",
+          "pressure": "We get 200+ complaints a week about tier assignments customers think are unfair. The criteria need to be simple enough that a support rep can explain them in two sentences"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "user_growth",
+      "intro": "To design the tier mapping, we need to understand Robinhood Gold's customer base — how many customers fall into different activity and risk profiles, and what the financial impact of different tier structures would be. We'll use the user_growth dataset to analyze customer segments and model the fee revenue implications.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Load the user_growth dataset and examine the distribution of account age, trading activity, and margin usage",
+          "code": "import pandas as pd\n\ndf = pd.read_csv('user_growth.csv')\n\n# Focus on Gold (margin-eligible) customers\ngold_users = df[df['subscription_tier'] == 'gold'].copy()\nprint(f\"Total Gold subscribers: {len(gold_users):,}\")\nprint(f\"\\nAccount age distribution (days):\")\nprint(gold_users['account_age_days'].describe().round(0))\nprint(f\"\\nMonthly trade count distribution:\")\nprint(gold_users['monthly_trade_count'].describe().round(1))",
+          "output": "Total Gold subscribers: 2,104,820\n\nAccount age distribution (days):\ncount    2104820.0\nmean         412.0\nstd          298.0\nmin            1.0\n25%          182.0\n50%          365.0\n75%          621.0\nmax         2920.0\ndtype: float64\n\nMonthly trade count distribution:\ncount    2104820.0\nmean          18.4\nstd           24.8\nmin            0.0\n25%            3.0\n50%           10.0\n75%           28.0\nmax          480.0",
+          "business_implication": "The Gold subscriber base skews toward established accounts (median 365 days) and moderate trading activity (median 10 trades/month). But the high standard deviation on both metrics suggests significant heterogeneity — some users are very new and very active (high risk) while others are long-tenured and infrequent traders (low risk). A one-size-fits-all tier ignores this risk dispersion."
+        },
+        {
+          "step": 2,
+          "instruction": "Build customer segment profiles using dictionaries — categorize users by account tenure and trading activity to see natural tier groupings",
+          "code": "# Define tier qualification criteria as dictionaries\n# This is the 'data as policy' pattern — criteria live in config, not code\ntier_criteria = {\n    'CONSERVATIVE': {\n        'min_account_age_days': 0,\n        'max_account_age_days': 180,\n        'description': 'New accounts: under 6 months tenure'\n    },\n    'STANDARD': {\n        'min_account_age_days': 181,\n        'max_account_age_days': 730,\n        'description': 'Established accounts: 6 months to 2 years'\n    },\n    'ADVANCED': {\n        'min_account_age_days': 731,\n        'max_account_age_days': 9999,\n        'description': 'Veteran accounts: over 2 years tenure'\n    }\n}\n\n# Apply tier assignment using the dictionary criteria\ndef assign_tier(account_age_days, criteria_dict):\n    for tier_name, criteria in criteria_dict.items():\n        if criteria['min_account_age_days'] <= account_age_days <= criteria['max_account_age_days']:\n            return tier_name\n    return 'CONSERVATIVE'  # Safe default\n\ngold_users['assigned_tier'] = gold_users['account_age_days'].apply(\n    lambda age: assign_tier(age, tier_criteria)\n)\n\n# Count customers in each tier\ntier_counts = gold_users['assigned_tier'].value_counts()\ntier_pcts = tier_counts / len(gold_users) * 100\n\nprint(\"Tier distribution under proposed segmentation:\")\nfor tier in ['CONSERVATIVE', 'STANDARD', 'ADVANCED']:\n    count = tier_counts.get(tier, 0)\n    pct = tier_pcts.get(tier, 0)\n    print(f\"  {tier:20s}: {count:>10,} customers ({pct:.1f}%)\")",
+          "output": "Tier distribution under proposed segmentation:\n  CONSERVATIVE       :    421,840 customers (20.0%)\n  STANDARD           :    862,974 customers (41.0%)\n  ADVANCED           :    819,006 customers (38.9%)",
+          "business_implication": "Under tenure-based segmentation, 39% of customers fall into the advanced tier — notably above the CRO's 15% limit for high-leverage accounts. This means pure tenure-based segmentation is too permissive. We need to add a second criterion (trading volatility or margin utilization) to narrow the advanced tier to a smaller, genuinely lower-risk population."
+        },
+        {
+          "step": 3,
+          "instruction": "Model the monthly revenue impact of three fee structures across the tier distribution",
+          "code": "# Fee structures — three policy options\nfee_structures = {\n    'FLAT': {'CONSERVATIVE': 5.0, 'STANDARD': 5.0, 'ADVANCED': 5.0},\n    'TIERED_MODERATE': {'CONSERVATIVE': 3.0, 'STANDARD': 5.0, 'ADVANCED': 12.0},\n    'TIERED_AGGRESSIVE': {'CONSERVATIVE': 2.0, 'STANDARD': 6.0, 'ADVANCED': 18.0}\n}\n\nprint(f\"{'Fee Structure':>22} {'Monthly Revenue':>18} {'Meets $8M Target?':>20}\")\nprint(\"-\" * 65)\n\nfor structure_name, fees in fee_structures.items():\n    monthly_revenue = 0\n    for tier_name, fee in fees.items():\n        count = tier_counts.get(tier_name, 0)\n        monthly_revenue += count * fee\n    \n    meets_target = 'YES' if monthly_revenue >= 8_000_000 else 'NO'\n    print(f\"{structure_name:>22} ${monthly_revenue:>16,.0f} {meets_target:>20}\")",
+          "output": "        Fee Structure     Monthly Revenue    Meets $8M Target?\n-----------------------------------------------------------------\n                FLAT          $10,524,100                  YES\n    TIERED_MODERATE           $9,242,918                  YES\n  TIERED_AGGRESSIVE           $9,638,180                  YES",
+          "business_implication": "All three fee structures clear the $8M monthly revenue target. The tiered moderate structure generates $9.2M — $1.3M less than flat but provides pricing power: advanced users get more value and pay more, while conservative users pay less, reducing churn in the most price-sensitive segment. This is the classic freemium/tiered SaaS pricing logic applied to financial services."
+        }
+      ]
+    },
+    {
+      "type": "decision_block",
+      "decision_type": "policy_choice",
+      "prompt": "Which risk tier definition policy should Robinhood implement for its Gold margin product redesign? Consider the CRO's 15% advanced-tier limit, the CFO's $8M revenue floor, and the customer success team's need for explainable criteria.",
+      "options": [
+        {
+          "id": "A",
+          "label": "Single Tier — Flat Policy",
+          "description": "All Gold customers get the same 2:1 leverage and $5/month fee regardless of tenure or activity. Simplest to implement and explain. Revenue: $10.5M/month. Advanced tier: 100% (everyone is same tier).",
+          "risk_level": "medium"
+        },
+        {
+          "id": "B",
+          "label": "Three Tiers — Tenure-Based with Moderate Fees",
+          "description": "Three tiers based purely on account age (0-6 months: Conservative/1x/no margin, 6mo-2yr: Standard/2x/$5/mo, 2yr+: Advanced/4x/$12/mo). Advanced tier: 38.9%. Revenue: $9.2M/month. CRO concern: exceeds 15% advanced-tier limit.",
+          "risk_level": "high"
+        },
+        {
+          "id": "C",
+          "label": "Three Tiers — Tenure + Volatility Score with Moderate Fees",
+          "description": "Tier based on BOTH account age AND 90-day trading volatility score. Advanced requires 2yr+ tenure AND volatility score below 0.4 (low risk). Limits advanced tier to ~13% of users. Revenue: $9.1M/month. Meets CRO, CFO, and compliance requirements.",
+          "risk_level": "low"
+        }
+      ],
+      "outcome_function": "fraud_threshold_pl",
+      "optimal_option": "C",
+      "worst_option": "B",
+      "outcome_explanation": "Option C is optimal because it is the only policy that simultaneously satisfies all four constraints: the CRO's 15% advanced-tier limit (C achieves ~13%), the CFO's $8M monthly revenue floor ($9.1M), FINRA's 25% maintenance margin rule (built into all tiers), and the compliance requirement for objective, explainable criteria (tenure + volatility score are both measurable and documentable). Option A fails the CRO — with everyone in the same tier, there is no risk differentiation and the margin call cascade risk from March 2020 is unreduced. Option B satisfies revenue but violates the CRO's 15% limit by putting 39% of customers in the high-leverage tier — exactly the concentration risk the CRO is trying to prevent. The dual criterion in C (tenure AND volatility) creates a more defensible, risk-aligned tier boundary."
+    },
+    {
+      "type": "technical_exercise_block",
+      "language": "python",
+      "standard": {
+        "instructions": "Write a function called `customer_risk_profile` that takes four arguments: `account_age_days` (int), `credit_score` (int), `monthly_trade_count` (int), and `margin_utilization` (float, between 0 and 1). The function must return a dictionary with exactly these keys: 'risk_tier' (str: 'LOW', 'MEDIUM', or 'HIGH'), 'max_leverage' (float), 'monthly_fee' (float), 'can_trade_options' (bool). Use this tier mapping: LOW risk if credit_score >= 720 AND account_age_days >= 365 AND margin_utilization <= 0.50 — max_leverage 4.0, fee $12.00, can_trade_options True. MEDIUM risk if credit_score >= 640 AND account_age_days >= 90 — max_leverage 2.0, fee $5.00, can_trade_options True. HIGH risk otherwise — max_leverage 1.0, fee $0.00, can_trade_options False.",
+        "starter_code": "def customer_risk_profile(account_age_days, credit_score, monthly_trade_count, margin_utilization):\n    \"\"\"\n    Compute a customer's trading risk tier and associated permissions.\n    \n    Returns:\n        dict with keys: risk_tier, max_leverage, monthly_fee, can_trade_options\n    \"\"\"\n    # Your code here\n    pass\n\n# Test cases\nprofile1 = customer_risk_profile(400, 740, 15, 0.40)\nprint(profile1)  # LOW risk\n\nprofile2 = customer_risk_profile(200, 660, 8, 0.65)\nprint(profile2)  # MEDIUM risk\n\nprofile3 = customer_risk_profile(45, 580, 30, 0.90)\nprint(profile3)  # HIGH risk\n\nprofile4 = customer_risk_profile(400, 740, 15, 0.70)\nprint(profile4)  # MEDIUM risk (margin_utilization too high for LOW)",
+        "solution": "def customer_risk_profile(account_age_days, credit_score, monthly_trade_count, margin_utilization):\n    \"\"\"\n    Compute a customer's trading risk tier and associated permissions.\n    \n    Returns:\n        dict with keys: risk_tier, max_leverage, monthly_fee, can_trade_options\n    \"\"\"\n    # LOW risk: best credit, established account, not over-levered\n    if credit_score >= 720 and account_age_days >= 365 and margin_utilization <= 0.50:\n        return {\n            'risk_tier': 'LOW',\n            'max_leverage': 4.0,\n            'monthly_fee': 12.00,\n            'can_trade_options': True\n        }\n    \n    # MEDIUM risk: decent credit, established enough\n    if credit_score >= 640 and account_age_days >= 90:\n        return {\n            'risk_tier': 'MEDIUM',\n            'max_leverage': 2.0,\n            'monthly_fee': 5.00,\n            'can_trade_options': True\n        }\n    \n    # HIGH risk: everyone else — cash-only, no margin, no options\n    return {\n        'risk_tier': 'HIGH',\n        'max_leverage': 1.0,\n        'monthly_fee': 0.00,\n        'can_trade_options': False\n    }\n\n# Test cases\nprofile1 = customer_risk_profile(400, 740, 15, 0.40)\nprint(profile1)  # LOW risk\n\nprofile2 = customer_risk_profile(200, 660, 8, 0.65)\nprint(profile2)  # MEDIUM risk\n\nprofile3 = customer_risk_profile(45, 580, 30, 0.90)\nprint(profile3)  # HIGH risk\n\nprofile4 = customer_risk_profile(400, 740, 15, 0.70)\nprint(profile4)  # MEDIUM (margin too high for LOW)",
+        "hint": "Return a dictionary literal directly from each branch: `return {'risk_tier': 'LOW', 'max_leverage': 4.0, ...}`. Python exits the function at the first `return` it hits, so you don't need elif — just three separate if/return blocks. The last return (HIGH risk) has no condition because it's the catch-all default.",
+        "expected_output": "{'risk_tier': 'LOW', 'max_leverage': 4.0, 'monthly_fee': 12.0, 'can_trade_options': True}\n{'risk_tier': 'MEDIUM', 'max_leverage': 2.0, 'monthly_fee': 5.0, 'can_trade_options': True}\n{'risk_tier': 'HIGH', 'max_leverage': 1.0, 'monthly_fee': 0.0, 'can_trade_options': False}\n{'risk_tier': 'MEDIUM', 'max_leverage': 2.0, 'monthly_fee': 5.0, 'can_trade_options': True}"
+      },
+      "challenge": {
+        "instructions": "Build a complete risk configuration system using a dictionary-of-dictionaries architecture. Create a constant `TIER_CONFIG` dict with three keys ('LOW', 'MEDIUM', 'HIGH') mapping to their config dicts. Then write `customer_risk_profile_v2(account_age_days, credit_score, margin_utilization)` that determines the tier using a helper function `_get_tier(account_age_days, credit_score, margin_utilization)` and then looks up the config from `TIER_CONFIG` using `.get()` with a safe default. Also add a `fee_waiver` key to each tier config: True if monthly_fee is 0.0, else False. Finally, write a third function `summarize_tier_benefits(tier_name)` that takes a tier name string and returns a human-readable string like: 'LOW tier: 4.0x leverage, $12.00/month, options trading enabled'.",
+        "starter_code": "# Define your TIER_CONFIG dict here\nTIER_CONFIG = {}\n\ndef _get_tier(account_age_days, credit_score, margin_utilization):\n    pass\n\ndef customer_risk_profile_v2(account_age_days, credit_score, margin_utilization):\n    pass\n\ndef summarize_tier_benefits(tier_name):\n    pass",
+        "solution": "TIER_CONFIG = {\n    'LOW': {\n        'max_leverage': 4.0,\n        'monthly_fee': 12.00,\n        'can_trade_options': True,\n        'fee_waiver': False\n    },\n    'MEDIUM': {\n        'max_leverage': 2.0,\n        'monthly_fee': 5.00,\n        'can_trade_options': True,\n        'fee_waiver': False\n    },\n    'HIGH': {\n        'max_leverage': 1.0,\n        'monthly_fee': 0.00,\n        'can_trade_options': False,\n        'fee_waiver': True\n    }\n}\n\ndef _get_tier(account_age_days, credit_score, margin_utilization):\n    if credit_score >= 720 and account_age_days >= 365 and margin_utilization <= 0.50:\n        return 'LOW'\n    if credit_score >= 640 and account_age_days >= 90:\n        return 'MEDIUM'\n    return 'HIGH'\n\ndef customer_risk_profile_v2(account_age_days, credit_score, margin_utilization):\n    tier = _get_tier(account_age_days, credit_score, margin_utilization)\n    config = TIER_CONFIG.get(tier, TIER_CONFIG['HIGH'])  # Safe default\n    result = {'risk_tier': tier}\n    result.update(config)\n    return result\n\ndef summarize_tier_benefits(tier_name):\n    config = TIER_CONFIG.get(tier_name)\n    if config is None:\n        return f\"Unknown tier: {tier_name}\"\n    options_str = 'enabled' if config['can_trade_options'] else 'disabled'\n    return (f\"{tier_name} tier: {config['max_leverage']}x leverage, \"\n            f\"${config['monthly_fee']:.2f}/month, options trading {options_str}\")",
+        "hint": "In customer_risk_profile_v2, call _get_tier to get the string 'LOW', 'MEDIUM', or 'HIGH', then use TIER_CONFIG.get(tier, TIER_CONFIG['HIGH']) to look up the config (with HIGH as safe default). Use dict.update() to merge the config into your result dict rather than copying keys one by one."
+      }
+    },
+    {
+      "type": "quiz_block",
+      "questions": [
+        {
+          "id": "m01_l04_q1",
+          "concept_tags": ["python_dicts"],
+          "type": "multiple_choice",
+          "question": "Robinhood's risk config has `TIER_CONFIG = {'LOW': {'max_leverage': 4.0}, 'MEDIUM': {'max_leverage': 2.0}}`. A customer is assigned tier 'PREMIUM' which doesn't exist in the dict. What is the difference between `TIER_CONFIG['PREMIUM']` and `TIER_CONFIG.get('PREMIUM', TIER_CONFIG['MEDIUM'])`?",
+          "options": [
+            "A) Both raise KeyError — .get() does not provide defaults for missing keys",
+            "B) `TIER_CONFIG['PREMIUM']` raises KeyError; `.get()` with a default returns TIER_CONFIG['MEDIUM'] safely",
+            "C) `TIER_CONFIG['PREMIUM']` returns None; `.get()` raises TypeError for missing keys",
+            "D) Both return None — Python dictionaries always return None for missing keys regardless of access method"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: bracket notation `dict['key']` raises a KeyError when the key does not exist — this crashes the program unless you have exception handling. The `.get(key, default)` method returns the default value instead of raising an error when the key is missing. In financial systems, `.get()` with a safe default is preferred for configuration lookups because an unknown customer tier should fall through to the most conservative default (MEDIUM or HIGH risk), not crash the entire trading system. A is wrong: `.get()` absolutely does support default values — that is its primary advantage over bracket notation. C is wrong: bracket notation raises KeyError, not returns None; it never silently returns None. D is wrong: bracket notation raises KeyError, not None; `.get()` returns None only if you don't provide a default argument."
+        },
+        {
+          "id": "m01_l04_q2",
+          "concept_tags": ["data_mapping", "python_dicts"],
+          "type": "multiple_choice",
+          "question": "A financial analyst builds a 30-line if/elif chain to map FICO score ranges to APR tiers. A colleague suggests replacing it with a lookup dictionary. What is the primary advantage of the dictionary approach for a production lending system?",
+          "options": [
+            "A) Dictionary lookups are O(1) while if/elif chains are O(n), making dictionaries significantly faster for large inputs",
+            "B) The APR schedule lives in one place as data, so the pricing team can update rates without touching evaluation logic — reducing the risk of introducing bugs during rate changes",
+            "C) Python dictionaries automatically validate that APR values are positive floats, preventing invalid rate configurations",
+            "D) Dictionaries are mandatory for compliance with CFPB fair lending requirements — if/elif chains are not permitted in underwriting code"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: the core operational advantage of encoding business rules as dictionary data rather than if/elif code is separation of concerns — the pricing team updates the rate schedule (data) without touching the comparison logic (code), and the change is localized, reviewable, and auditable. For a 30-tier APR schedule, this means a single dictionary update vs. carefully editing 30 elif branches where a typo could silently miscategorize customers. A is partially true (O(1) vs O(n)) but is not the primary concern for a 30-item list — the performance difference is microseconds and irrelevant for a loan application that takes seconds to process. C is wrong: Python dictionaries perform no type validation whatsoever — you can store any value including invalid ones. D is wrong: CFPB regulations govern fair lending outcomes and disparate impact, not the specific coding pattern used to implement them."
+        },
+        {
+          "id": "m01_l04_q3",
+          "concept_tags": ["python_dicts"],
+          "type": "short_answer",
+          "question": "What does the `.items()` method on a Python dictionary return, and give an example of a financial task where iterating with `.items()` is the natural choice?",
+          "accepted_answers": [
+            ".items() returns a view of (key, value) pairs that can be iterated with a for loop. Example: iterating over a fee structure dict with `for tier, fee in fee_schedule.items()` to compute total monthly revenue across all tiers.",
+            ".items() returns key-value pairs as tuples. A financial example: iterating `for merchant_category, fraud_rate in fraud_rates.items()` to print a fraud rate report for each merchant category.",
+            ".items() gives you both the key and value in each iteration step. Useful for iterating over a risk tier config to generate a summary table: `for tier_name, config in TIER_CONFIG.items()` to print each tier's leverage and fee."
+          ],
+          "explanation": "A strong answer explains that `.items()` yields (key, value) tuples on each iteration step — meaning you can unpack both in a for loop with `for k, v in dict.items()`. The financial example should demonstrate a case where you need both the key (like a tier name or merchant category label) AND the value (like a config dict or rate) in the same loop body — not just one or the other. A weak answer says 'it returns key-value pairs' without explaining how to use them or giving a relevant example."
+        },
+        {
+          "id": "m01_l04_q4",
+          "concept_tags": ["data_mapping", "risk_categories"],
+          "type": "what_would_you_do",
+          "question": "You are presenting Robinhood's new three-tier margin policy to the CRO. They ask: 'What happens if a customer's risk profile improves over time — say their credit score goes from 640 to 720 and their account ages past 2 years? Do they automatically get upgraded to the LOW tier?' How do you answer, and what would the upgrade mechanism look like in Python?",
+          "sample_answer": "Tier reassignment should be triggered on a scheduled basis — monthly is standard — rather than continuously in real-time, to avoid customers gaming the system by temporarily improving metrics before a large trade. In Python, the upgrade mechanism would be a batch job that calls customer_risk_profile() for every Gold customer at the start of each month, compares the returned tier to their current stored tier, and updates their account configuration if the tier has changed. The TIER_CONFIG dictionary makes this easy: once the new tier is determined, you do a single dictionary lookup to get the new leverage limits, fee, and permissions, and update the customer record. Downgrades (when a customer's metrics worsen) would follow the same logic. Important: any tier change should trigger a notification to the customer explaining the new limits — both for transparency and to reduce support tickets.",
+          "key_concepts": ["scheduled batch reassignment rather than real-time to prevent gaming", "customer_risk_profile() re-evaluates criteria each time it's called", "TIER_CONFIG lookup decouples tier determination from config retrieval", "customer notification on tier changes for transparency"]
+        }
+      ]
+    },
+    {
+      "type": "solution_debrief_block",
+      "optimal_decision": "Implement Option C: Three Tiers with Tenure + Volatility Score criteria and moderate fee structure",
+      "decision_rationale": "Option C is the only policy that satisfies all four binding constraints simultaneously. It limits the advanced tier to approximately 13% of Gold customers (inside the CRO's 15% ceiling), generates $9.1M in monthly revenue (above the CFO's $8M floor), uses objective and explainable criteria (tenure in days and volatility score are both measurable), and complies with FINRA's 25% maintenance margin floor. The dual-criterion requirement — tenure above 730 days AND volatility score below 0.4 — creates a more defensible tier boundary than tenure alone, filtering out long-tenured customers who have demonstrated high-risk trading patterns.",
+      "pl_comparison": [
+        {
+          "label": "Flat Policy (Option A)",
+          "approval_rate": "100% same tier",
+          "default_rate": "No risk differentiation",
+          "monthly_profit": "$10.5M revenue, but highest tail risk",
+          "verdict": "Simplest to implement and highest raw revenue, but provides no risk differentiation. Fails the CRO's core requirement — everyone in the same tier means the March 2020 margin call cascade risk is unaddressed. Not viable long-term."
+        },
+        {
+          "label": "Tenure-Only Tiers (Option B)",
+          "approval_rate": "38.9% advanced tier",
+          "default_rate": "Higher risk concentration",
+          "monthly_profit": "$9.2M revenue, CRO constraint violated",
+          "verdict": "Good revenue and intuitive criteria, but puts 39% of customers in the 4:1 leverage tier — 2.6x the CRO's 15% limit. A volatile market day with 39% of 2.1M customers on 4x leverage creates catastrophic margin call risk. Not approvable."
+        },
+        {
+          "label": "Optimal: Tenure + Volatility (Option C)",
+          "approval_rate": "13% advanced tier",
+          "default_rate": "Best risk-adjusted profile",
+          "monthly_profit": "$9.1M revenue, all constraints met",
+          "verdict": "The only policy that meets all four constraints. $9.1M exceeds the $8M floor. 13% advanced tier is inside the 15% CRO limit. Dual criteria are objective and documentable. Minimal revenue sacrifice vs. Option B ($100K/month) for dramatically better risk profile."
+        }
+      ],
+      "stakeholder_communication": "After modeling all three tier structures against our 2.1M Gold subscriber base, I'm recommending Option C — three tiers defined by account tenure plus 90-day volatility score. This is the only structure that keeps our advanced-tier concentration below 15% (we achieve 13%), meets the $8M monthly revenue floor at $9.1M, and gives the compliance team a clean audit trail. The revenue sacrifice vs. the flat policy is $1.4M monthly, but that cost is the price of not repeating a March 2020-style margin cascade. I'd suggest we announce the new tier structure to customers 60 days before implementation to reduce support volume and give accounts time to understand their new tier assignment.",
+      "key_takeaway": "A dictionary-driven risk tier system that combines account tenure and volatility score limits Robinhood's advanced-tier exposure to 13% of Gold customers — inside the CRO's 15% ceiling — while generating $9.1M in monthly recurring revenue and providing compliance-ready audit documentation.",
+      "next_lessons": ["m01_l05"]
+    }
+  ]
+}

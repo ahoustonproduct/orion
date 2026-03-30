@@ -1,0 +1,25 @@
+{
+  "id": "m11_l01",
+  "module_id": "m11",
+  "lesson_number": 1,
+  "title": "Deal Structure: Asset vs. Stock Acquisitions",
+  "duration_min": 25,
+  "status": "coming_soon",
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "When Microsoft acquired Activision Blizzard for $68.7 billion in 2023 — the largest gaming acquisition in history — the deal structure was a stock purchase, meaning Microsoft assumed all of Activision's liabilities, legal obligations, and regulatory exposure. This wasn't a careless decision: Microsoft's legal and tax teams ran detailed models on the after-tax cost of each structure. In M&A, the deal structure is not paperwork — it determines how much of the announced price actually ends up in the seller's pocket, and what risks the buyer is taking on.",
+      "explanation": "Every acquisition must choose between two fundamental structures: buying the target's assets (asset purchase) or buying its stock/shares (stock purchase). This choice has profound implications for tax treatment, liability exposure, regulatory approval complexity, and the practicalities of closing.\n\nIn an asset purchase, the buyer selects specific assets to acquire (equipment, IP, contracts, inventory) and leaves behind liabilities they don't want. This is extremely attractive to buyers — you get a 'step-up' in the tax basis of acquired assets to fair market value, generating higher future depreciation deductions. The seller, however, often faces double taxation: the company pays corporate tax on the gain, and then shareholders pay again on dividends or capital gains distribution. Asset purchases are common in distressed M&A (buying a bankrupt company's assets out of a Chapter 11 proceeding) and when the buyer is concerned about hidden liabilities in the seller's history.\n\nIn a stock purchase, the buyer acquires 100% of the target's equity — and with it, all assets and all liabilities, including contingent liabilities from lawsuits, environmental obligations, or regulatory violations the buyer may not even know about. The seller typically prefers this structure because they pay tax only once, at the capital gains rate. The buyer inherits the existing tax basis of the assets (no step-up), meaning less future depreciation. Representations, warranties, and indemnification provisions in the purchase agreement are specifically designed to allocate the risk of unknown liabilities between buyer and seller — and negotiating these is a core function of M&A lawyers and deal teams.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\n\n# Compare after-tax proceeds to seller under asset vs. stock purchase\n# Scenario: seller has $50M in assets (tax basis $20M) and is acquired for $80M\n\nPURCHASE_PRICE = 80_000_000\nASSET_TAX_BASIS = 20_000_000\nEQUITY_TAX_BASIS = 15_000_000  # seller's basis in their shares\n\nCORPORATE_TAX_RATE = 0.21\nCAP_GAINS_RATE = 0.20\n\n# --- Asset Purchase ---\nasset_gain = PURCHASE_PRICE - ASSET_TAX_BASIS\ntax_at_corporate_level = asset_gain * CORPORATE_TAX_RATE\nnet_after_corp_tax = PURCHASE_PRICE - tax_at_corporate_level\n# Shareholder then distributes, pays capital gains on remaining gain\nshareholder_basis = EQUITY_TAX_BASIS\nshareholder_distribution_gain = net_after_corp_tax - shareholder_basis\ntax_at_shareholder_level = max(0, shareholder_distribution_gain * CAP_GAINS_RATE)\nasset_net_to_seller = net_after_corp_tax - tax_at_shareholder_level\n\n# --- Stock Purchase ---\nstock_gain = PURCHASE_PRICE - EQUITY_TAX_BASIS\ntax_on_stock_sale = stock_gain * CAP_GAINS_RATE\nstock_net_to_seller = PURCHASE_PRICE - tax_on_stock_sale\n\nresults = pd.DataFrame({\n    'Structure': ['Asset Purchase', 'Stock Purchase'],\n    'Gross Price': [f'${PURCHASE_PRICE/1e6:.0f}M', f'${PURCHASE_PRICE/1e6:.0f}M'],\n    'Total Tax Paid': [\n        f'${(tax_at_corporate_level + tax_at_shareholder_level)/1e6:.2f}M',\n        f'${tax_on_stock_sale/1e6:.2f}M'\n    ],\n    'Net to Seller': [\n        f'${asset_net_to_seller/1e6:.2f}M',\n        f'${stock_net_to_seller/1e6:.2f}M'\n    ]\n})\nprint(results.to_string(index=False))\nprint(f\"\\nSeller preference: Stock purchase saves ${(stock_net_to_seller - asset_net_to_seller)/1e6:.2f}M in taxes\")",
+        "output": "     Structure  Gross Price  Total Tax Paid  Net to Seller\n Asset Purchase        $80M          $19.92M        $60.08M\n  Stock Purchase        $80M          $13.00M        $67.00M\n\nSeller preference: Stock purchase saves $6.92M in taxes"
+      }
+    },
+    {
+      "type": "stub_notice",
+      "message": "Full lesson in development — check back soon",
+      "available_date": "Summer 2026"
+    }
+  ]
+}

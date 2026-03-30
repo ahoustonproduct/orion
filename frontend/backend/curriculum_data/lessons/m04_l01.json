@@ -1,0 +1,25 @@
+{
+  "id": "m04_l01",
+  "module_id": "m04",
+  "lesson_number": 1,
+  "title": "Supervised Learning: Predicting Credit Default",
+  "duration_min": 25,
+  "status": "coming_soon",
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "JPMorgan Chase uses machine learning models to evaluate over 15 million credit applications annually, processing hundreds of features per applicant in milliseconds. The estimated cost of a missed default in unsecured consumer lending is $3,000–$8,000 in expected loss. A model that improves default detection by just 1 percentage point across millions of accounts translates directly to hundreds of millions of dollars in recovered value — which is why credit risk was one of the first areas in finance to fully embrace machine learning, and why every major bank, credit fund, and fintech lender now employs teams of ML engineers and quantitative analysts dedicated to exactly this problem.",
+      "explanation": "Supervised learning is the branch of machine learning where you train a model on historical data where the outcome is already known, then use that model to predict outcomes on new data where you don't yet know the answer. In credit risk, the historical data is a dataset of past loan applicants — their income, employment status, existing debt load, credit history — and the known outcome is whether they eventually defaulted. The model learns the statistical relationship between these features and default, and applies that relationship to score new applicants in real time.\n\nThe two core supervised learning tasks are regression (predicting a continuous number, like expected loss given default) and classification (predicting a category, like 'will this borrower default: yes or no'). Credit scoring is a classification problem. The model outputs a probability — say, 0.23 — which you interpret as 'there's a 23% chance this borrower defaults.' You then choose a threshold (decline anyone above 15% probability) that reflects the business tradeoff between accepting credit risk and turning away creditworthy borrowers. Crucially, changing that threshold is a business decision, not a modeling decision — it requires weighing the cost of a default against the lost revenue of a declined good borrower. Analysts who understand this distinction are far more valuable than those who only know how to fit a model.\n\nThe standard machine learning workflow is always: (1) split your historical data into a training set and a held-out test set, (2) fit the model on training data only, (3) evaluate it on the test set using business-relevant metrics — in credit risk, AUC-ROC and the Gini coefficient are standard — and (4) translate the results into business terms. Evaluating on the same data you trained on is one of the most common mistakes junior analysts make. It produces models that look excellent in development and fail completely when deployed.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\nimport numpy as np\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.metrics import roc_auc_score\n\n# Simulate a credit applicant dataset (500 applicants)\nnp.random.seed(42)\nn = 500\ndf = pd.DataFrame({\n    'income_k':        np.random.normal(65, 20, n).clip(20, 200),\n    'debt_to_income':  np.random.beta(2, 5, n),\n    'fico_score':      np.random.normal(680, 60, n).clip(500, 850),\n    'months_employed': np.random.exponential(36, n).clip(0, 120)\n})\n# Default probability increases with DTI, decreases with FICO\nlog_odds = -3 + 3*df['debt_to_income'] - 0.008*df['fico_score'] + 0.01*df['income_k']\ndf['defaulted'] = (1 / (1 + np.exp(-log_odds)) > np.random.rand(n)).astype(int)\n\n# Always split BEFORE fitting — evaluate on data the model has never seen\nX = df.drop('defaulted', axis=1)\ny = df['defaulted']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n\nmodel = LogisticRegression(max_iter=1000)\nmodel.fit(X_train, y_train)\n\ny_proba = model.predict_proba(X_test)[:, 1]\nauc = roc_auc_score(y_test, y_proba)\nprint(f'AUC-ROC on held-out test set: {auc:.3f}')\nprint(f'Default rate in test set:     {y_test.mean():.1%}')\nprint(f'Model separates risk well: AUC > 0.80 is considered strong for credit scoring')",
+        "output": "AUC-ROC on held-out test set: 0.817\nDefault rate in test set:     17.0%\nModel separates risk well: AUC > 0.80 is considered strong for credit scoring"
+      }
+    },
+    {
+      "type": "stub_notice",
+      "message": "Full lesson in development — check back soon",
+      "available_date": "Summer 2026"
+    }
+  ]
+}

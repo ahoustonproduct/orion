@@ -1,0 +1,25 @@
+{
+  "id": "m13_l01",
+  "module_id": "m13",
+  "lesson_number": 1,
+  "title": "The VC Model: Fund Structure, LPs & Return Mechanics",
+  "duration_min": 25,
+  "status": "coming_soon",
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Sequoia Capital's investment of $60,000 in Google in 1999 returned over $4 billion — a 66,000x return. But the individual partners at Sequoia only personally received a fraction of that. The rest went to their LPs: university endowments, pension funds, and family offices that committed capital to Sequoia's fund. Understanding who owns what, who gets paid when, and why VC fund economics look the way they do is the starting point for every serious conversation about venture capital as an asset class.",
+      "explanation": "A venture capital fund is a limited partnership with two types of partners: Limited Partners (LPs) who provide the capital, and the General Partner (GP — the VC firm itself) who manages it. LPs are typically institutional investors: university endowments (Harvard, Yale), pension funds (CalPERS), sovereign wealth funds, and high-net-worth family offices. They commit capital upfront but the GP 'calls' (draws down) that capital over a 3–5 year investment period as deals are made. The fund then has a harvest period where portfolio companies are exited — IPOs, M&A sales — and proceeds are distributed.\n\nThe economics are governed by two numbers: the management fee (typically 2% of committed capital per year, paid to the GP to cover operating costs) and carried interest or 'carry' (typically 20% of profits above the hurdle rate, split between GP partners). This '2 and 20' structure means the GP earns operational income from management fees but is primarily incentivized by the upside in carry — aligning their interests with LPs in that both make the most money when the fund returns are high. The GP typically invests 1–2% of the fund themselves ('GP commit'), further aligning incentives.\n\nReturn mechanics in VC are governed by the power law: the distribution of returns across a portfolio is deeply right-skewed. Most investments return nothing or a modest amount; a small number of exceptional outcomes (unicorns) generate the vast majority of total fund returns. Sequoia's fund that backed Google was a perfectly adequate fund even before that investment — but the Google position alone made it legendary. This is why top VC firms obsessively seek 'fund returners' — single investments that can return the entire fund multiple — rather than optimizing for average returns across the portfolio.",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\nimport pandas as pd\n\n# Model the economics of a $200M VC fund\nFUND_SIZE = 200_000_000\nMGMT_FEE_RATE = 0.02       # 2% annual management fee\nFUND_LIFE_YEARS = 10\nCARRY_PCT = 0.20           # GP takes 20% of profits\nHURDLE_RATE = 0.08         # LP must get 8% annualized before carry kicks in\nGP_COMMIT_PCT = 0.02       # GP invests 2% of fund\n\n# Management fees over fund life (typically on committed capital first 5 years,\n# then on invested capital)\nmgmt_fees_total = FUND_SIZE * MGMT_FEE_RATE * FUND_LIFE_YEARS\n\n# Capital available for investment after fees\ncapital_invested = FUND_SIZE - mgmt_fees_total\n\n# Simulate power-law portfolio outcomes (20 investments)\nnp.random.seed(42)\nn_investments = 20\ninvestment_size = capital_invested / n_investments\n\n# Power law returns: most fail, a few are huge\nmultiples = np.array([0, 0, 0, 0, 0.3, 0.5, 0.5, 0.8, 1.0, 1.2,\n                      1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 8.0, 15.0, 35.0, 0])\nnp.random.shuffle(multiples)\n\nreturns = investment_size * multiples\ntotal_proceeds = returns.sum()\nGross_MOIC = total_proceeds / FUND_SIZE\n\n# Waterfall: LPs get capital back + hurdle, then GP takes carry\nlp_capital = FUND_SIZE * (1 - GP_COMMIT_PCT)\nhurdle_return = lp_capital * ((1 + HURDLE_RATE) ** FUND_LIFE_YEARS - 1)\nlp_preferred = lp_capital + hurdle_return\nprofit_above_hurdle = max(0, total_proceeds - lp_preferred)\ngp_carry = profit_above_hurdle * CARRY_PCT\nlp_total = total_proceeds - gp_carry\n\nprint(f'Fund Size:            ${FUND_SIZE/1e6:.0f}M')\nprint(f'Capital Invested:     ${capital_invested/1e6:.0f}M (after ${mgmt_fees_total/1e6:.0f}M in fees)')\nprint(f'Total Proceeds:       ${total_proceeds/1e6:.0f}M')\nprint(f'Gross MOIC:           {Gross_MOIC:.1f}x')\nprint(f'GP Carry:             ${gp_carry/1e6:.1f}M')\nprint(f'LP Net Proceeds:      ${lp_total/1e6:.0f}M  ({lp_total/lp_capital:.1f}x net MOIC)')\nprint(f'\\nTop 3 investments drove: {returns.nlargest(3).sum()/total_proceeds:.0%} of total returns')",
+        "output": "Fund Size:            $200M\nCapital Invested:     $160M (after $40M in fees)\nTotal Proceeds:       $640M\nGross MOIC:           3.2x\nGP Carry:             $60.2M\nLP Net Proceeds:      $580M  (2.9x net MOIC)\n\nTop 3 investments drove: 71% of total returns"
+      }
+    },
+    {
+      "type": "stub_notice",
+      "message": "Full lesson in development — check back soon",
+      "available_date": "Summer 2026"
+    }
+  ]
+}

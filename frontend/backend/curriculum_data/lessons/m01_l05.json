@@ -1,0 +1,211 @@
+{
+  "id": "m01_l05",
+  "module_id": "m01",
+  "title": "Working with Pandas — Loading and Exploring Data",
+  "order": 5,
+  "duration_min": 25,
+  "difficulty": "beginner",
+  "concept_tags": ["pandas_basics", "data_exploration", "eda", "descriptive_stats"],
+  "learning_objectives": [
+    "Load a CSV file into a pandas DataFrame and inspect its structure",
+    "Use .info(), .describe(), and .value_counts() to quickly understand a new dataset",
+    "Identify data quality issues (nulls, wrong types, outliers) before any analysis",
+    "Compute segment-level descriptive statistics and identify the highest-risk customer group"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "When LendingClub's data team receives a new loan portfolio, the first 20 minutes are always the same: load the data, run .info() and .describe(), and find out what's broken before touching any business logic — because one undetected null in a loan_amount column can silently corrupt every downstream calculation.",
+      "explanation": "Pandas is the de facto standard library for tabular data analysis in Python. A DataFrame is a two-dimensional table with labeled rows (index) and columns, sitting in memory where you can query, transform, and compute on it with minimal code. For financial analysts, pandas replaces the most tedious parts of Excel: you can load a 500,000-row loan portfolio in two lines of code and run queries that would crash a spreadsheet.\n\nBut before any analysis can be trusted, you need to understand the data itself. Exploratory Data Analysis (EDA) is the discipline of answering the question: 'What is this data, and what's wrong with it?' In lending, a single data quality issue — like FICO scores stored as strings, or loan amounts that include formatting commas making them strings instead of floats — can silently produce wrong approvals, wrong risk metrics, or wrong regulatory reports. The cost of finding a data quality issue after you've built your analysis on top of it is orders of magnitude higher than finding it at the start.\n\nThe canonical EDA toolkit in pandas has five steps: (1) `df.shape` — how many rows and columns? (2) `df.dtypes` or `df.info()` — are the column types what you expect? (3) `df.isnull().sum()` — how many missing values per column? (4) `df.describe()` — what are the min, max, mean, percentiles for numeric columns? Are there impossible values? (5) `df['column'].value_counts()` — for categorical columns, what categories exist and how common are they? These five steps catch 90% of data quality issues before they propagate into your analysis.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\n\n# Load a loan portfolio — this is always the first line of any analysis\ndf = pd.read_csv('loan_applications.csv')\n\n# Step 1: Shape — how big is this dataset?\nprint(f\"Dataset shape: {df.shape[0]:,} rows x {df.shape[1]} columns\\n\")\n\n# Step 2: Column types — are they what you expect?\n# This is where you catch 'credit_score stored as object (string)' bugs\nprint(\"Column types:\")\nprint(df.dtypes)\nprint()\n\n# Step 3: Missing values — where are the gaps?\nnull_counts = df.isnull().sum()\nnull_pct = (null_counts / len(df) * 100).round(1)\nnulls_df = pd.DataFrame({'null_count': null_counts, 'null_pct': null_pct})\nnulls_df = nulls_df[nulls_df['null_count'] > 0]  # Only show columns with nulls\nif len(nulls_df) > 0:\n    print(\"Columns with missing values:\")\n    print(nulls_df)\nelse:\n    print(\"No missing values detected.\")\nprint()\n\n# Step 4: Descriptive statistics — spot impossible values immediately\n# Min credit score of -1? Max loan amount of $9,999,999? These flag data issues\nprint(\"Key numeric statistics:\")\nprint(df[['credit_score', 'loan_amount', 'annual_income', 'debt_to_income']].describe().round(2))\n\n# Step 5: Category distribution — are the categories what you expect?\nprint(\"\\nLoan purpose distribution:\")\nprint(df['loan_purpose'].value_counts())",
+        "output": "Dataset shape: 48,312 rows x 14 columns\n\nColumn types:\napplicant_id        object\ncredit_score         int64\nannual_income      float64\nloan_amount        float64\nloan_purpose        object\ndebt_to_income    float64\nemployment_years   float64\ndefaulted            int64\n...\n\nColumns with missing values:\n                null_count  null_pct\nemployment_years       1847       3.8\nannual_income           312       0.6\n\nKey numeric statistics:\n        credit_score  loan_amount  annual_income  debt_to_income\ncount       48312.0      48312.0        48000.0         48312.0\nmean          671.4      14285.6        74823.1             0.33\nstd            68.9       8742.3        28411.2             0.11\nmin           540.0       1000.0        12000.0             0.04\n25%           621.0       7500.0        54000.0             0.24\n50%           668.0      12500.0        68000.0             0.31\n75%           722.0      20000.0        90000.0             0.41\nmax           820.0      50000.0       350000.0             0.89\n\nLoan purpose distribution:\nhome_improvement    14823\ndebt_consolidation  12104\nauto                 8441\nmedical              6812\ntravel               4231\nbusiness             1901"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "LendingClub",
+      "role": "Credit Portfolio Analyst at LendingClub",
+      "scenario": "LendingClub has just acquired a $180M loan portfolio from a regional bank that is exiting the consumer lending business. Before LendingClub can book these loans on its balance sheet, the risk team needs to complete a portfolio review: understand the composition of the book, identify the highest-risk customer segment, and recommend how to allocate the $100K marketing budget for portfolio servicing (which segments need proactive outreach to prevent delinquency). You've been given the full loan application dataset and one week to deliver a segment-level risk report to the CFO. Your first task is EDA — you need to understand what you're actually looking at before making any recommendations.",
+      "constraints": [
+        "The CFO presentation is in 5 business days — there is no time for a complete model build, EDA and segment analysis is sufficient",
+        "LendingClub's credit policy prohibits making any servicing decisions based on demographic attributes — analysis must use financial/behavioral data only",
+        "The $100K servicing budget must be allocated across exactly three segments — any allocation that leaves one segment with $0 will be rejected",
+        "Any null values in credit_score or loan_amount must be resolved before segment analysis — imputation or exclusion must be documented"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "CFO",
+          "pressure": "I need to know which segment of this portfolio is most likely to go delinquent in the next 90 days so we can build a servicing plan. Give me the highest-risk bucket and the dollar exposure"
+        },
+        {
+          "stakeholder": "Head of Portfolio Risk",
+          "pressure": "Before you do any analysis, show me the data quality report. I need to know what percentage of the portfolio has missing data and how you handled it — I won't sign off on analysis built on dirty data"
+        },
+        {
+          "stakeholder": "Marketing Servicing Team",
+          "pressure": "We have $100K in outreach budget for the acquired portfolio. Tell us which three segments to target and how much to spend on each. We need a number, not a range"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "loan_applications",
+      "intro": "We'll walk through a structured EDA of the acquired loan portfolio. The goal is to identify the three key customer segments, compute risk metrics for each, and gather the evidence needed to recommend a $100K servicing budget allocation.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Run the full EDA protocol: shape, dtypes, nulls, and describe — document every finding",
+          "code": "import pandas as pd\nimport numpy as np\n\ndf = pd.read_csv('loan_applications.csv')\n\n# ---- DATA QUALITY REPORT ----\nprint(\"=\" * 50)\nprint(\"DATA QUALITY REPORT\")\nprint(\"=\" * 50)\n\nprint(f\"\\n1. Dataset dimensions: {df.shape[0]:,} rows, {df.shape[1]} columns\")\n\nprint(\"\\n2. Column data types:\")\nfor col, dtype in df.dtypes.items():\n    expected = 'OK'\n    if col in ['credit_score', 'loan_amount'] and dtype == 'object':\n        expected = '*** TYPE ERROR — should be numeric ***'\n    print(f\"   {col:25s}: {str(dtype):10s} {expected}\")\n\nprint(\"\\n3. Missing value summary:\")\nfor col in df.columns:\n    nulls = df[col].isnull().sum()\n    if nulls > 0:\n        pct = nulls / len(df) * 100\n        print(f\"   {col:25s}: {nulls:,} nulls ({pct:.1f}%)\")\n\nprint(\"\\n4. Numeric range check (flag values outside plausible range):\")\nprint(f\"   credit_score: min={df['credit_score'].min()}, max={df['credit_score'].max()} (expect 300-850)\")\nprint(f\"   loan_amount:  min=${df['loan_amount'].min():,.0f}, max=${df['loan_amount'].max():,.0f} (expect $1K-$50K)\")\nprint(f\"   dti:          min={df['debt_to_income'].min():.2f}, max={df['debt_to_income'].max():.2f} (expect 0.0-1.0)\")",
+          "output": "==================================================\nDATA QUALITY REPORT\n==================================================\n\n1. Dataset dimensions: 48,312 rows, 14 columns\n\n2. Column data types:\n   applicant_id             : object     OK\n   credit_score             : int64      OK\n   loan_amount              : float64    OK\n   annual_income            : float64    OK\n   loan_purpose             : object     OK\n   debt_to_income           : float64    OK\n   employment_years         : float64    OK\n   defaulted                : int64      OK\n\n3. Missing value summary:\n   employment_years         : 1,847 nulls (3.8%)\n   annual_income            : 312 nulls (0.6%)\n\n4. Numeric range check:\n   credit_score: min=540, max=820 (expect 300-850)\n   loan_amount:  min=$1,000, max=$50,000 (expect $1K-$50K)\n   dti:          min=0.04, max=0.89 (expect 0.0-1.0)",
+          "business_implication": "The data is largely clean — two columns have null values but neither is a critical risk variable. Credit scores, loan amounts, and DTI ratios are all within plausible ranges, meaning no corrupt or test data contaminated the export. The 3.8% null rate on employment_years is non-trivial but acceptable to exclude for a 5-day EDA timeline. We can proceed to segment analysis with high confidence in the numeric columns."
+        },
+        {
+          "step": 2,
+          "instruction": "Segment the portfolio into three groups by loan purpose category and compute risk metrics for each segment",
+          "code": "# Define three segments based on loan purpose risk profile\n# (This grouping is based on LendingClub's historical default data by purpose)\nsegment_map = {\n    'home_improvement': 'SECURED_PURPOSE',  # Lower default historically\n    'auto': 'SECURED_PURPOSE',\n    'debt_consolidation': 'HIGH_RISK_PURPOSE',  # Signals existing debt stress\n    'medical': 'HIGH_RISK_PURPOSE',             # Emergency-driven borrowing\n    'travel': 'DISCRETIONARY_PURPOSE',          # Least urgent, mixed risk\n    'business': 'DISCRETIONARY_PURPOSE'\n}\n\ndf['segment'] = df['loan_purpose'].map(segment_map)\n\n# Compute segment-level risk metrics\nsegment_stats = df.groupby('segment').agg(\n    loan_count=('applicant_id', 'count'),\n    total_balance=('loan_amount', 'sum'),\n    avg_loan=('loan_amount', 'mean'),\n    avg_credit_score=('credit_score', 'mean'),\n    avg_dti=('debt_to_income', 'mean'),\n    default_rate=('defaulted', 'mean')\n).round(2)\n\nsegment_stats['pct_of_portfolio'] = (segment_stats['loan_count'] / len(df) * 100).round(1)\nsegment_stats['total_balance_M'] = (segment_stats['total_balance'] / 1e6).round(2)\n\nprint(segment_stats[['loan_count', 'pct_of_portfolio', 'total_balance_M',\n                       'avg_credit_score', 'avg_dti', 'default_rate']].to_string())",
+          "output": "                      loan_count  pct_of_portfolio  total_balance_M  avg_credit_score  avg_dti  default_rate\nsegment                                                                                                       \nDISCRETIONARY_PURPOSE       6132              12.7             76.2            678.20     0.31          0.019\nHIGH_RISK_PURPOSE          18916              39.1            238.4            651.40     0.38          0.041\nSECURED_PURPOSE            23264              48.2            284.1            692.80     0.28          0.014",
+          "business_implication": "HIGH_RISK_PURPOSE (debt consolidation and medical) is the critical segment: 39% of the portfolio by count, $238M in balance, average credit score of 651 (the lowest of the three segments), and a 4.1% default rate — nearly 3x the secured-purpose segment. This is where the servicing budget will do the most work preventing delinquencies."
+        },
+        {
+          "step": 3,
+          "instruction": "Compute the dollar exposure at risk in each segment and the expected 90-day delinquency count to frame the budget allocation",
+          "code": "# Model expected 90-day delinquencies using segment default rates\n# Assumption: 90-day delinquency rate is approximately 30% of annual default rate\n# (industry rule of thumb for consumer lending)\nfor segment in ['HIGH_RISK_PURPOSE', 'SECURED_PURPOSE', 'DISCRETIONARY_PURPOSE']:\n    seg_data = df[df['segment'] == segment]\n    count = len(seg_data)\n    balance = seg_data['loan_amount'].sum()\n    annual_default_rate = seg_data['defaulted'].mean()\n    q_delinquency_rate = annual_default_rate * 0.30  # 90-day window\n    expected_delinquencies = int(count * q_delinquency_rate)\n    at_risk_balance = balance * q_delinquency_rate\n    \n    print(f\"\\n{segment}:\")\n    print(f\"  Loans: {count:,} | Balance: ${balance/1e6:.1f}M\")\n    print(f\"  Annual default rate: {annual_default_rate:.1%}\")\n    print(f\"  Expected 90-day delinquencies: {expected_delinquencies:,}\")\n    print(f\"  90-day at-risk balance: ${at_risk_balance:,.0f}\")",
+          "output": "HIGH_RISK_PURPOSE:\n  Loans: 18,916 | Balance: $238.4M\n  Annual default rate: 4.1%\n  Expected 90-day delinquencies: 233\n  90-day at-risk balance: $2,931,480\n\nSECRETARY_PURPOSE:\n  Loans: 23,264 | Balance: $284.1M\n  Annual default rate: 1.4%\n  Expected 90-day delinquencies: 98\n  90-day at-risk balance: $1,193,220\n\nDISCRETIONARY_PURPOSE:\n  Loans: 6,132 | Balance: $76.2M\n  Annual default rate: 1.9%\n  Expected 90-day delinquencies: 35\n  90-day at-risk balance: $435,546",
+          "business_implication": "HIGH_RISK_PURPOSE has 233 expected delinquencies in the next 90 days — 2.4x more than SECURED_PURPOSE. The $2.9M at-risk balance in that segment alone justifies heavy servicing investment. Even if proactive outreach prevents only 10% of those delinquencies, it saves $293K on a relatively small servicing spend."
+        }
+      ]
+    },
+    {
+      "type": "decision_block",
+      "decision_type": "budget_allocation",
+      "prompt": "Allocate LendingClub's $100,000 servicing outreach budget across the three acquired portfolio segments. The goal is to minimize expected delinquencies within the 90-day window. The HIGH_RISK_PURPOSE segment has the most expected delinquencies (233), SECURED_PURPOSE has 98, and DISCRETIONARY_PURPOSE has 35.",
+      "budget_total": 100000,
+      "categories": [
+        {
+          "id": "high_risk",
+          "label": "HIGH_RISK_PURPOSE (Debt Consolidation + Medical)",
+          "description": "233 expected delinquencies. 4.1% annual default rate. $238M balance. Highest delinquency risk and dollar exposure in the portfolio."
+        },
+        {
+          "id": "secured",
+          "label": "SECURED_PURPOSE (Home Improvement + Auto)",
+          "description": "98 expected delinquencies. 1.4% annual default rate. $284M balance. Lower risk but largest balance concentration."
+        },
+        {
+          "id": "discretionary",
+          "label": "DISCRETIONARY_PURPOSE (Travel + Business)",
+          "description": "35 expected delinquencies. 1.9% annual default rate. $76M balance. Smallest segment by count and lowest absolute delinquency volume."
+        }
+      ],
+      "optimal_allocation": {
+        "high_risk": 65000,
+        "secured": 25000,
+        "discretionary": 10000
+      },
+      "outcome_explanation": "The optimal allocation concentrates 65% of the budget on HIGH_RISK_PURPOSE because that segment represents 64% of expected delinquencies (233 of 366 total) and 64% of the at-risk balance ($2.93M of $4.56M total). Assuming a 12% delinquency-prevention rate from proactive outreach (industry average for early-stage intervention), the $65K allocation to HIGH_RISK prevents ~28 delinquencies worth ~$351K in avoided charge-offs — a 5.4x ROI on the servicing spend. The SECURED_PURPOSE segment gets $25K to address its large balance concentration despite lower default rates. DISCRETIONARY_PURPOSE receives $10K minimum to meet the 'no segment gets $0' constraint while not over-investing in the lowest-risk segment."
+    },
+    {
+      "type": "technical_exercise_block",
+      "language": "python",
+      "standard": {
+        "instructions": "Load a DataFrame (passed as a parameter — you don't need to read a file) and write a function called `run_eda` that takes a DataFrame and returns a dictionary with five keys: 'shape' (tuple of rows, cols), 'null_counts' (dict of column name to null count, only columns with nulls > 0), 'numeric_summary' (a DataFrame from .describe() on numeric columns only), 'dtypes' (dict of column name to dtype string), and 'top_categories' (a dict mapping each object-type column to a dict of its top 3 value_counts as {value: count}). The function must handle DataFrames with no null values gracefully (return empty dict for null_counts).",
+        "starter_code": "import pandas as pd\n\ndef run_eda(df):\n    \"\"\"\n    Run a standard EDA protocol on a DataFrame.\n    \n    Args:\n        df (pd.DataFrame): Input dataset\n    \n    Returns:\n        dict with keys: shape, null_counts, numeric_summary, dtypes, top_categories\n    \"\"\"\n    # Your code here\n    pass\n\n# Test with a sample DataFrame\nsample_data = {\n    'credit_score': [720, 680, None, 590, 710],\n    'loan_amount': [15000, 8000, 22000, 5000, 18000],\n    'loan_purpose': ['auto', 'travel', 'auto', 'medical', 'travel'],\n    'defaulted': [0, 0, 1, 1, 0]\n}\ntest_df = pd.DataFrame(sample_data)\nresult = run_eda(test_df)\n\nprint(\"Shape:\", result['shape'])\nprint(\"Null counts:\", result['null_counts'])\nprint(\"Dtypes:\", result['dtypes'])\nprint(\"Top categories:\", result['top_categories'])",
+        "solution": "import pandas as pd\n\ndef run_eda(df):\n    \"\"\"\n    Run a standard EDA protocol on a DataFrame.\n    \n    Args:\n        df (pd.DataFrame): Input dataset\n    \n    Returns:\n        dict with keys: shape, null_counts, numeric_summary, dtypes, top_categories\n    \"\"\"\n    # Shape\n    shape = df.shape\n    \n    # Null counts — only columns that actually have nulls\n    null_series = df.isnull().sum()\n    null_counts = {col: int(count) for col, count in null_series.items() if count > 0}\n    \n    # Numeric summary from .describe()\n    numeric_cols = df.select_dtypes(include='number')\n    numeric_summary = numeric_cols.describe()\n    \n    # Dtypes as strings\n    dtypes = {col: str(dtype) for col, dtype in df.dtypes.items()}\n    \n    # Top 3 value counts for object (categorical) columns\n    top_categories = {}\n    for col in df.select_dtypes(include='object').columns:\n        vc = df[col].value_counts().head(3)\n        top_categories[col] = vc.to_dict()\n    \n    return {\n        'shape': shape,\n        'null_counts': null_counts,\n        'numeric_summary': numeric_summary,\n        'dtypes': dtypes,\n        'top_categories': top_categories\n    }\n\n# Test\nsample_data = {\n    'credit_score': [720, 680, None, 590, 710],\n    'loan_amount': [15000, 8000, 22000, 5000, 18000],\n    'loan_purpose': ['auto', 'travel', 'auto', 'medical', 'travel'],\n    'defaulted': [0, 0, 1, 1, 0]\n}\ntest_df = pd.DataFrame(sample_data)\nresult = run_eda(test_df)\n\nprint(\"Shape:\", result['shape'])\nprint(\"Null counts:\", result['null_counts'])\nprint(\"Dtypes:\", result['dtypes'])\nprint(\"Top categories:\", result['top_categories'])",
+        "hint": "Use `df.select_dtypes(include='number')` to get only numeric columns for the summary. Use a dict comprehension with a condition to build null_counts: `{col: int(count) for col, count in null_series.items() if count > 0}`. For top_categories, iterate over `df.select_dtypes(include='object').columns` and convert the head(3) value_counts to a dict with `.to_dict()`.",
+        "expected_output": "Shape: (5, 4)\nNull counts: {'credit_score': 1}\nDtypes: {'credit_score': 'float64', 'loan_amount': 'int64', 'loan_purpose': 'object', 'defaulted': 'int64'}\nTop categories: {'loan_purpose': {'auto': 2, 'travel': 2, 'medical': 1}}"
+      },
+      "challenge": {
+        "instructions": "Write a function called `flag_data_quality_issues` that takes a DataFrame and a `schema` dictionary (mapping column names to expected dtype strings like 'int64', 'float64', 'object') and returns a list of issue dictionaries. Each issue dict should have: 'column', 'issue_type' (one of: 'WRONG_TYPE', 'HIGH_NULL_RATE', 'SUSPICIOUS_OUTLIER'), and 'detail' (a descriptive string). Flag WRONG_TYPE if actual dtype doesn't match schema. Flag HIGH_NULL_RATE if null percentage exceeds 5%. Flag SUSPICIOUS_OUTLIER if any numeric column has a value more than 5 standard deviations from the mean.",
+        "starter_code": "def flag_data_quality_issues(df, schema):\n    # schema example: {'credit_score': 'int64', 'loan_amount': 'float64', 'loan_purpose': 'object'}\n    # Returns list of {'column': ..., 'issue_type': ..., 'detail': ...} dicts\n    pass",
+        "solution": "def flag_data_quality_issues(df, schema):\n    issues = []\n    \n    for col, expected_dtype in schema.items():\n        if col not in df.columns:\n            continue\n        \n        actual_dtype = str(df[col].dtype)\n        \n        # Check type mismatch\n        if actual_dtype != expected_dtype:\n            issues.append({\n                'column': col,\n                'issue_type': 'WRONG_TYPE',\n                'detail': f'Expected {expected_dtype}, got {actual_dtype}'\n            })\n        \n        # Check high null rate\n        null_rate = df[col].isnull().mean()\n        if null_rate > 0.05:\n            issues.append({\n                'column': col,\n                'issue_type': 'HIGH_NULL_RATE',\n                'detail': f'{null_rate:.1%} of values are null (threshold: 5%)'\n            })\n        \n        # Check for numeric outliers\n        if df[col].dtype in ['int64', 'float64']:\n            col_data = df[col].dropna()\n            mean = col_data.mean()\n            std = col_data.std()\n            if std > 0:\n                max_z = ((col_data - mean) / std).abs().max()\n                if max_z > 5:\n                    issues.append({\n                        'column': col,\n                        'issue_type': 'SUSPICIOUS_OUTLIER',\n                        'detail': f'Max z-score of {max_z:.1f} exceeds 5.0 threshold'\n                    })\n    \n    return issues",
+        "hint": "Loop over schema.items() to check each column. Convert `df[col].dtype` to string with `str()` for comparison. For outlier detection, compute z-scores as `(col_data - mean) / std` and check if the absolute max exceeds 5. Use `.dropna()` before computing mean/std to handle columns with missing values."
+      }
+    },
+    {
+      "type": "quiz_block",
+      "questions": [
+        {
+          "id": "m01_l05_q1",
+          "concept_tags": ["pandas_basics", "data_exploration"],
+          "type": "multiple_choice",
+          "question": "You load a loan portfolio with `df = pd.read_csv('loans.csv')` and run `df['credit_score'].mean()` which returns 672.4. Then you notice `df.dtypes` shows credit_score as 'object'. What most likely happened, and what should you do?",
+          "options": [
+            "A) This is impossible — if dtype is object, pandas cannot compute a mean and would raise TypeError",
+            "B) The credit_score column contains some string values (like 'N/A' or '—') that forced pandas to infer it as object, and the mean was computed by silently dropping non-numeric values — you should fix the column with pd.to_numeric(df['credit_score'], errors='coerce')",
+            "C) Object dtype means the column is stored as large integers — the mean is correct and no action is needed",
+            "D) Pandas always stores the first column as object dtype regardless of its content — you need to manually set dtypes for every column"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: when pandas encounters a mix of numeric and string values in a CSV column, it infers the column as object (string) dtype. If you then call .mean() on an object column, pandas in newer versions raises a TypeError for a pure string column — but if only some values are non-numeric, it may have been coerced during read. The safe fix is `pd.to_numeric(df['credit_score'], errors='coerce')` which converts valid numbers and replaces invalid strings with NaN. You can then see exactly how many rows had invalid credit scores. A is wrong: older pandas versions could sometimes compute stats on mixed-type columns, and the exact behavior depends on version. C is wrong: object dtype in pandas specifically means string/mixed type, not large integers — large integers are stored as int64. D is wrong: pandas infers dtypes independently per column based on content — object is not a default for any particular column position."
+        },
+        {
+          "id": "m01_l05_q2",
+          "concept_tags": ["eda", "descriptive_stats"],
+          "type": "multiple_choice",
+          "question": "Running `df['loan_amount'].describe()` on a 48,000-row portfolio shows a max of $9,500,000. The product only offers loans up to $50,000. What is the correct analyst response?",
+          "options": [
+            "A) Exclude all rows where loan_amount > 50000 immediately and proceed with analysis",
+            "B) Investigate the anomalous rows first: check how many there are, look at the full record, determine if they are data entry errors or valid but unusual loans before deciding on treatment",
+            "C) Divide all loan_amount values by 100 — the data was likely entered in cents rather than dollars",
+            "D) The describe() max represents the 100th percentile which can be higher than the product maximum due to statistical extrapolation"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: the correct analyst response to any anomalous value in a describe() output is to investigate before treating. How many rows have loan_amount > $50K? Is it 1 or 1,000? Are they clustered in a particular loan_purpose or time period? Are they the same applicant_id repeated? These answers determine whether to exclude, cap, flag, or escalate the issue. A is wrong: blindly excluding rows without investigation can delete valid data — what if those rows represent a different product tier that was legitimately included in the export? C is wrong: if the data were in cents, ALL values would be 100x too large, not just the max — you would see minimum amounts of $100,000 for a $1,000 loan, which describe() would have shown. D is wrong: describe() max is the literal maximum value in the column — it does not extrapolate or estimate beyond observed values."
+        },
+        {
+          "id": "m01_l05_q3",
+          "concept_tags": ["pandas_basics"],
+          "type": "short_answer",
+          "question": "What is the difference between `df.info()` and `df.describe()` in pandas, and when would you use each one at the start of an analysis?",
+          "accepted_answers": [
+            "df.info() shows column names, non-null counts, and dtypes for every column — use it to detect missing values and wrong types. df.describe() shows statistical summary (mean, std, min, max, percentiles) for numeric columns only — use it to detect impossible values and understand distributions.",
+            "info() gives structural metadata: how many non-null values per column and the dtype — good for data quality checks. describe() gives statistical summaries for numeric columns — good for spotting outliers and understanding the range of values.",
+            "df.info() tells you about the shape and types of the data. df.describe() tells you about the values in numeric columns. Use info() first to check for nulls and type issues, then describe() to check if the numbers are in plausible ranges."
+          ],
+          "explanation": "A complete answer distinguishes both the content and the use case for each method. info() is a structural diagnostic — it tells you what columns exist, whether they have the right types, and how many non-null values exist per column. It's the first thing you run because type errors and null counts determine whether any downstream analysis is valid. describe() is a statistical diagnostic — it gives you min, max, mean, standard deviation, and quartiles for numeric columns, which is where you find impossible values (negative credit scores, $9.5M loans, DTI of 15.0). A good answer connects each method to a specific type of problem it catches."
+        },
+        {
+          "id": "m01_l05_q4",
+          "concept_tags": ["data_exploration", "eda"],
+          "type": "what_would_you_do",
+          "question": "You run EDA on a loan portfolio and discover that 8% of annual_income values are null. The VP of Risk wants the analysis done today. What are the two main options for handling the nulls, and which would you choose for a 5-day EDA analysis vs. a production model?",
+          "sample_answer": "The two main options are exclusion (drop rows with null income) and imputation (fill nulls with a reasonable estimate like the median or segment-specific mean). For a 5-day EDA, I would exclude the 8% of rows with null income and document it clearly — the goal is a defensible directional analysis, not a production-grade model, and excluding 8% of rows won't materially change segment-level default rates or budget allocation recommendations. I'd flag in the report that 8% of the portfolio has no income data, which itself is a risk flag worth escalating. For a production model, I would impute using the median income for that applicant's employment category and credit score band, or use a model-based imputation — because excluding 8% of real applications means rejecting or mis-scoring those customers, which creates a fair lending issue if the null rate is non-random (e.g., self-employed applicants are more likely to have income data gaps).",
+          "key_concepts": ["exclusion vs. imputation tradeoff", "EDA context allows exclusion with documentation", "production context requires principled imputation to avoid biased outcomes", "8% null rate should itself be flagged as a data quality finding"]
+        }
+      ]
+    },
+    {
+      "type": "solution_debrief_block",
+      "optimal_decision": "Allocate $65K to HIGH_RISK_PURPOSE, $25K to SECURED_PURPOSE, $10K to DISCRETIONARY_PURPOSE",
+      "decision_rationale": "The optimal allocation concentrates investment where expected delinquencies are highest. HIGH_RISK_PURPOSE (debt consolidation + medical) carries 233 of 366 total expected 90-day delinquencies — 64% of the problem — with $2.93M of the $4.56M total at-risk balance. At a 12% intervention success rate (industry standard for early-stage outreach), the $65K allocation to this segment is expected to prevent 28 delinquencies worth $351K in avoided charge-offs, a 5.4x ROI on the spend. SECURED_PURPOSE gets $25K despite lower default rates because its $284M balance concentration creates large absolute dollar risk from even a small number of delinquencies. DISCRETIONARY_PURPOSE receives the minimum $10K to satisfy the allocation constraint while not over-investing in the segment with the fewest expected delinquencies.",
+      "pl_comparison": [
+        {
+          "label": "Equal split ($33K each)",
+          "approval_rate": "N/A — budget allocation",
+          "default_rate": "366 expected delinquencies prevented at 12% rate: 44",
+          "monthly_profit": "$33K to HIGH_RISK prevents 9.3 delinquencies worth $113K; suboptimal concentration",
+          "verdict": "Equal allocation ignores the 3x difference in delinquency rates across segments. The HIGH_RISK segment can absorb more spend productively; equal allocation under-invests there and over-invests in DISCRETIONARY, wasting $23K."
+        },
+        {
+          "label": "Optimal ($65K / $25K / $10K)",
+          "approval_rate": "N/A — budget allocation",
+          "default_rate": "28 HIGH_RISK + 12 SECURED + 4 DISCRETIONARY = 44 total delinquencies prevented",
+          "monthly_profit": "Avoided charge-offs: $351K + $143K + $17K = $511K; 5.1x ROI on $100K spend",
+          "verdict": "Concentrates spend where it generates the highest ROI. Each dollar spent on HIGH_RISK_PURPOSE outreach prevents 5.4x its cost in charge-offs. Best total outcome."
+        },
+        {
+          "label": "All-in on HIGH_RISK ($100K / $0 / $0)",
+          "approval_rate": "N/A — budget allocation",
+          "default_rate": "28 delinquencies prevented (same as optimal for HIGH_RISK portion)",
+          "monthly_profit": "Missed prevention in SECURED and DISCRETIONARY costs $160K in avoidable charge-offs",
+          "verdict": "Violates the CFO's no-zero-segment rule, and the marginal return on $100K vs. $65K in the HIGH_RISK segment diminishes — the highest-risk borrowers may not be reachable even with double the outreach budget."
+        }
+      ],
+      "stakeholder_communication": "Based on the EDA of the acquired portfolio, the highest-risk segment is debt consolidation and medical loans — 39% of the book by count, 4.1% annual default rate, and 233 expected delinquencies in the next 90 days. I recommend allocating $65K of the servicing budget to proactive outreach for this segment, $25K to home improvement and auto loans given their large balance concentration, and $10K to the travel and business segment. At a 12% intervention success rate, this allocation is projected to prevent approximately 44 delinquencies, avoiding an estimated $511K in charge-offs — a 5x return on the servicing spend. I'll flag separately that 3.8% of the employment_years field is null, which warrants follow-up with the regional bank before the full portfolio booking.",
+      "key_takeaway": "EDA of the acquired LendingClub portfolio reveals that debt consolidation and medical loans — 39% of the book — carry a 4.1% default rate and represent $2.93M of 90-day at-risk balance, justifying a 65% concentration of the $100K servicing budget in that segment for a projected 5x ROI.",
+      "next_lessons": ["m01_l06"]
+    }
+  ]
+}

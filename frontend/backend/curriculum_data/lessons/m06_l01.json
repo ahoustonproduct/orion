@@ -1,0 +1,25 @@
+{
+  "id": "m06_l01",
+  "module_id": "m06",
+  "lesson_number": 1,
+  "title": "Optimization: Allocating Capital Across Investments",
+  "duration_min": 25,
+  "status": "coming_soon",
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "BlackRock's Aladdin platform — which manages risk for over $21 trillion in assets — runs thousands of optimization routines daily to answer one question in many forms: given our constraints, what is the best possible allocation of capital? Mean-variance portfolio optimization, the mathematical foundation behind Aladdin's core logic, was invented by Harry Markowitz in 1952 and earned him the Nobel Prize. Every quantitative asset manager, robo-advisor (Betterment, Wealthfront), and systematic hedge fund runs some version of this math.",
+      "explanation": "Prescriptive analytics differs from descriptive and predictive analytics in a fundamental way: it doesn't just describe what happened or predict what will happen — it recommends what you should do. Optimization is the mathematical heart of prescriptive analytics. You define an objective function (what you want to maximize or minimize — expected return, profit, or conversely portfolio variance, cost, risk), specify constraints (you can only invest 100% of capital; no single position can exceed 25%; the portfolio beta must stay below 1.2), and solve for the decision variables (how much to allocate to each asset) that optimize the objective while satisfying all constraints.\n\nMean-variance optimization (MVO), the Markowitz framework, is the canonical finance application. Given a set of assets with expected returns and a covariance matrix of their returns, MVO finds the portfolio weights that maximize expected return for a given level of risk — or equivalently, minimize risk for a given level of expected return. The set of all such optimal portfolios traces out the 'efficient frontier.' Any portfolio below this frontier is dominated: you could get the same return with less risk, or more return with the same risk, by moving to the frontier. This is the mathematical proof that diversification is not just intuitive wisdom — it is mathematically optimal.\n\nIn practice, MVO has well-known limitations: it is extremely sensitive to the input expected returns (garbage in, garbage out), and it tends to produce highly concentrated portfolios. Practitioners impose additional constraints — maximum position sizes, sector limits, factor exposure bounds — to make the solution robust. These constrained optimization problems are solved numerically using tools like scipy.optimize in Python or commercial solvers.",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\nfrom scipy.optimize import minimize\n\n# 4-asset universe: US Equity, Int'l Equity, Bonds, Real Estate\nexpected_returns = np.array([0.10, 0.08, 0.04, 0.07])  # annual expected returns\n\n# Covariance matrix (annualized) — captures correlation between assets\ncov_matrix = np.array([\n    [ 0.040,  0.028,  0.004,  0.015],   # US Equity\n    [ 0.028,  0.045,  0.003,  0.012],   # Int'l Equity\n    [ 0.004,  0.003,  0.005, -0.001],   # Bonds\n    [ 0.015,  0.012, -0.001,  0.025],   # Real Estate\n])\n\nasset_names = ['US Equity', \"Int'l Equity\", 'Bonds', 'Real Estate']\n\n# Minimize portfolio variance (maximize risk-adjusted return)\ndef portfolio_variance(weights):\n    return weights @ cov_matrix @ weights\n\n# Constraints: weights sum to 1, each weight between 5% and 50%\nconstraints = {'type': 'eq', 'fun': lambda w: np.sum(w) - 1}\nbounds = [(0.05, 0.50)] * 4\n\nresult = minimize(portfolio_variance, x0=[0.25]*4,\n                  method='SLSQP', bounds=bounds, constraints=constraints)\noptimal_weights = result.x\n\nport_return = optimal_weights @ expected_returns\nport_vol = np.sqrt(result.fun)\nsharpe = (port_return - 0.045) / port_vol  # assume 4.5% risk-free rate\n\nprint('Optimal Portfolio Weights:')\nfor name, w in zip(asset_names, optimal_weights):\n    print(f'  {name:15s}: {w:.1%}')\nprint(f'\\nExpected Return:  {port_return:.1%}')\nprint(f'Portfolio Volatility: {port_vol:.1%}')\nprint(f'Sharpe Ratio:     {sharpe:.2f}')",
+        "output": "Optimal Portfolio Weights:\n  US Equity      : 22.8%\n  Int'l Equity   : 5.0%\n  Bonds          : 50.0%\n  Real Estate    : 22.2%\n\nExpected Return:  6.9%\nPortfolio Volatility: 11.8%\nSharpe Ratio:     0.20"
+      }
+    },
+    {
+      "type": "stub_notice",
+      "message": "Full lesson in development — check back soon",
+      "available_date": "Summer 2026"
+    }
+  ]
+}

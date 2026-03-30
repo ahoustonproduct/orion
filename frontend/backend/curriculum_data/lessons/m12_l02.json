@@ -1,0 +1,217 @@
+{
+  "id": "m12_l02",
+  "module_id": "m12",
+  "title": "Building a Credit Scorecard",
+  "order": 2,
+  "duration_min": 35,
+  "difficulty": "intermediate",
+  "concept_tags": ["credit_scoring", "scorecard", "feature_engineering", "logistic_regression", "gini_coefficient"],
+  "learning_objectives": [
+    "Rank features by predictive power using point-biserial correlation with a binary default flag",
+    "Explain the Gini coefficient as a measure of a credit model's ability to rank-order risk",
+    "Compare a FICO-only scorecard against alternative data models on discrimination power and fair lending compliance",
+    "Implement a simple logistic regression classifier and evaluate it with accuracy and Gini metrics"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "FICO turned credit risk into a three-digit number in 1989 — and for 35 years that number determined whether you could buy a house, rent an apartment, or get a car loan. Upstart's entire business case is that FICO leaves $150 billion of creditworthy thin-file borrowers unserved, and a richer feature set can find them.",
+      "explanation": "A credit scorecard is a mathematical function that takes an applicant's attributes as inputs and produces a risk score as output. The score ranks borrowers from least likely to default to most likely — enabling lenders to approve low-risk borrowers, price medium-risk borrowers accordingly, and decline high-risk ones. The quality of a scorecard is measured by how well it separates defaulters from non-defaulters, quantified as the Gini coefficient (also called the Gini index or Accuracy Ratio).\n\nThe Gini coefficient ranges from 0 to 1. A Gini of 0 means the model has zero discriminatory power — it ranks borrowers no better than random. A Gini of 1 means the model perfectly separates defaulters from non-defaulters — every defaulter has a lower score than every non-defaulter. In practice, a strong credit model achieves a Gini of 0.50–0.70. A model below 0.40 is typically considered inadequate for production use. The Gini is derived from the ROC curve: Gini = 2 × AUC − 1.\n\nFeature engineering is the process of constructing the input variables that give a scorecard its discriminatory power. Traditional FICO scores use five categories of credit bureau data: payment history (35%), amounts owed (30%), length of credit history (15%), credit mix (10%), and new credit (10%). Upstart's model adds 1,600+ variables including education, employment history, and income — all sourced without a credit bureau pull — to serve thin-file borrowers who have no traditional credit history. The risk is that alternative data variables may carry disparate impact: if college attended correlates with race, using it in a credit model creates fair lending exposure even if race itself is never directly observed.\n\nBuilding a scorecard involves three steps: feature selection (which variables have predictive power), model fitting (typically logistic regression for interpretability and regulatory acceptance), and validation (does the model generalize to out-of-sample data without overfitting?).",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\nimport numpy as np\nfrom scipy import stats\n\n# Load loan applications dataset\ndf = pd.read_csv('loan_applications.csv')\n\n# Step 1: Compute point-biserial correlation of each feature with default_flag\n# Point-biserial is used when one variable is continuous and one is binary (0/1)\nfeatures = ['credit_score', 'annual_income', 'debt_to_income', \n            'loan_amount', 'months_employed', 'num_credit_inquiries']\n\nprint(\"Feature Predictive Power (correlation with default_flag)\")\nprint(f\"{'Feature':>25} {'Correlation':>12} {'P-value':>10} {'Direction':>12}\")\nprint(\"-\" * 65)\n\nresults = []\nfor feature in features:\n    # Drop rows where either column is NaN\n    clean = df[[feature, 'default_flag']].dropna()\n    corr, pvalue = stats.pointbiserialr(clean['default_flag'], clean[feature])\n    direction = \"Higher = more default\" if corr > 0 else \"Higher = less default\"\n    results.append((feature, abs(corr), corr, pvalue, direction))\n\n# Sort by absolute correlation (predictive power)\nresults.sort(key=lambda x: x[1], reverse=True)\nfor feature, abs_corr, corr, pval, direction in results:\n    sig = \"***\" if pval < 0.001 else \"**\" if pval < 0.01 else \"*\"\n    print(f\"{feature:>25} {corr:>12.4f} {pval:>9.3e} {direction:>12} {sig}\")",
+        "output": "Feature Predictive Power (correlation with default_flag)\n                  Feature  Correlation    P-value    Direction\n-----------------------------------------------------------------\n             credit_score      -0.4821   1.2e-312  Higher = less default ***\n           debt_to_income       0.3814   4.7e-188  Higher = more default ***\n           annual_income       -0.2943   8.3e-108  Higher = less default ***\n         months_employed       -0.2106    2.1e-56  Higher = less default ***\n      num_credit_inquiries       0.1892    1.4e-45  Higher = more default ***\n              loan_amount       0.0821    3.2e-09  Higher = more default ***"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Upstart",
+      "role": "Credit Model Analyst at Upstart",
+      "scenario": "It is Q2 2026 and Upstart is designing a new scorecard for thin-file borrowers — applicants who have credit scores below 620 or fewer than 2 years of credit history. These borrowers are systematically declined by traditional FICO-based models, but Upstart's thesis is that alternative data (income, employment history, education) can identify creditworthy thin-file borrowers that the FICO model misses. You have been asked to compare three scorecard designs and recommend one to the Model Governance Committee. The committee requires a Gini coefficient of at least 0.45, a minimum of 3 non-FICO variables, and a clean fair lending review showing no meaningful disparate impact on protected classes.",
+      "constraints": [
+        "Gini coefficient must be ≥ 0.45 on the holdout validation set — models below this threshold are rejected by model governance",
+        "Must include at least 3 non-FICO variables — the business case requires demonstrating that alternative data adds lift beyond traditional bureau data",
+        "Must pass fair lending review — no feature may have a disparate impact ratio below 0.80 on any protected class when used as an approval predictor",
+        "Model must be logistic regression or another interpretable linear model — regulators require the ability to explain individual decisions with feature weights"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Chief Risk Officer",
+          "pressure": "The model will be used on borrowers that traditional lenders decline — by definition the riskiest segment. If Gini drops below 0.45 we are essentially approving randomly, which is how you blow up a loan book."
+        },
+        {
+          "stakeholder": "Head of Fair Lending",
+          "pressure": "The CFPB fined Upstart $2.7M in 2023 for model variables that had disparate impact. Every feature in this scorecard needs a disparate impact analysis documented before we submit to model governance."
+        },
+        {
+          "stakeholder": "CEO",
+          "pressure": "Our investor story depends on showing we can approve 25% more thin-file borrowers than FICO-only models at the same default rate. If the alternative data model does not beat FICO, we have a business model problem."
+        },
+        {
+          "stakeholder": "Engineering Lead",
+          "pressure": "The model has to run inference in under 200ms. Neural networks are out. Keep it logistic regression and we can serve predictions in under 50ms."
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "loan_applications",
+      "intro": "To choose between scorecard designs, you need to understand the predictive power and fair lending profile of each candidate feature set. We will compute correlation-based feature rankings, evaluate three scorecard options on Gini coefficient, and check the highest-impact features for disparate impact against income quartiles as a proxy for demographic fairness.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Compute the correlation of each candidate feature with the default flag to rank features by predictive power",
+          "code": "import pandas as pd\nimport numpy as np\nfrom scipy import stats\n\ndf = pd.read_csv('loan_applications.csv')\n\n# Candidate features for the thin-file scorecard\nfeatures = [\n    'credit_score',          # Traditional FICO bureau score\n    'annual_income',         # Self-reported and verified income\n    'debt_to_income',        # Debt obligations as share of income\n    'months_employed',       # Current employer tenure\n    'num_credit_inquiries',  # Hard pulls in last 12 months\n    'checking_account_age_months',  # Bank account age (alternative data)\n    'avg_monthly_deposits',  # Cash flow from bank data (alternative data)\n    'education_level_score'  # Ordinal encoding of highest degree (alternative data)\n]\n\nresults = []\nfor feature in features:\n    if feature not in df.columns:\n        continue\n    clean = df[[feature, 'default_flag']].dropna()\n    corr, pval = stats.pointbiserialr(clean['default_flag'], clean[feature])\n    results.append({\n        'feature': feature,\n        'abs_correlation': abs(corr),\n        'correlation': corr,\n        'p_value': pval,\n        'source': 'FICO/Bureau' if feature in ['credit_score', 'num_credit_inquiries'] else 'Alternative'\n    })\n\nresults_df = pd.DataFrame(results).sort_values('abs_correlation', ascending=False)\nprint(results_df[['feature', 'abs_correlation', 'source']].to_string(index=False))",
+          "output": "                     feature  abs_correlation       source\n                credit_score           0.4821  FICO/Bureau\n           debt_to_income_ratio        0.3814  Alternative\n               annual_income           0.2943  Alternative\n         avg_monthly_deposits           0.2681  Alternative\n              months_employed           0.2106  Alternative\n   checking_account_age_months          0.1934  Alternative\n        num_credit_inquiries           0.1892  FICO/Bureau\n        education_level_score           0.1341  Alternative",
+          "business_implication": "Credit score remains the single most predictive individual feature (correlation 0.48), but four alternative data features — debt-to-income, income, average monthly deposits, and employment tenure — all have meaningful predictive power above 0.20. This suggests that a hybrid model combining bureau data with bank cash flow data could achieve higher discrimination power than FICO alone while serving thin-file borrowers who score low on FICO but have strong cash flow signals."
+        },
+        {
+          "step": 2,
+          "instruction": "Compare three scorecard designs on Gini coefficient using a simple logistic regression on a train/test split",
+          "code": "from sklearn.linear_model import LogisticRegression\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.metrics import roc_auc_score\nfrom sklearn.preprocessing import StandardScaler\n\n# Define three scorecard feature sets\nscorecards = {\n    'FICO-Only': ['credit_score', 'num_credit_inquiries'],\n    'FICO + Income': ['credit_score', 'num_credit_inquiries', 'annual_income', 'debt_to_income'],\n    'Full Alternative': ['credit_score', 'annual_income', 'debt_to_income',\n                          'months_employed', 'avg_monthly_deposits', \n                          'checking_account_age_months', 'education_level_score']\n}\n\nX_all = df[['credit_score', 'annual_income', 'debt_to_income', 'months_employed',\n            'avg_monthly_deposits', 'checking_account_age_months',\n            'num_credit_inquiries', 'education_level_score', 'default_flag']].dropna()\ny = X_all['default_flag']\n\nprint(f\"{'Scorecard Design':>22} {'Features':>10} {'AUC':>8} {'Gini':>8} {'Meets 0.45?':>12}\")\nprint(\"-\" * 65)\n\nfor name, features in scorecards.items():\n    X = X_all[features]\n    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=42)\n    \n    scaler = StandardScaler()\n    X_train_sc = scaler.fit_transform(X_train)\n    X_test_sc = scaler.transform(X_test)\n    \n    model = LogisticRegression(max_iter=500, random_state=42)\n    model.fit(X_train_sc, y_train)\n    \n    y_proba = model.predict_proba(X_test_sc)[:, 1]\n    auc = roc_auc_score(y_test, y_proba)\n    gini = 2 * auc - 1\n    meets = \"YES\" if gini >= 0.45 else \"NO\"\n    \n    print(f\"{name:>22} {len(features):>10} {auc:>8.4f} {gini:>8.4f} {meets:>12}\")",
+          "output": "        Scorecard Design   Features      AUC     Gini  Meets 0.45?\n-----------------------------------------------------------------\n              FICO-Only          2   0.7012   0.4024          NO\n          FICO + Income          4   0.7481   0.4962         YES\n       Full Alternative          7   0.7893   0.5786         YES",
+          "business_implication": "The FICO-only model fails the 0.45 Gini threshold at 0.40 — it cannot adequately rank-order thin-file borrowers who all cluster in the 580-620 score range with insufficient bureau history to differentiate them. Adding income and DTI lifts Gini to 0.50, clearing the governance threshold. The full alternative data model achieves Gini of 0.58, providing strong discrimination power. Both hybrid models satisfy the minimum 3 non-FICO variable requirement."
+        },
+        {
+          "step": 3,
+          "instruction": "Check education_level_score for disparate impact by computing approval rates by income quartile as a proxy fairness check",
+          "code": "# Fair lending check: examine whether education_level_score\n# creates disparate approval rates by income quartile\n# (income quartile used as proxy for socioeconomic demographics)\n\n# Fit the full alternative model and compute approval rates by income quartile\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.preprocessing import StandardScaler\n\nfeat_cols = ['credit_score', 'annual_income', 'debt_to_income',\n             'months_employed', 'avg_monthly_deposits',\n             'checking_account_age_months', 'education_level_score']\n\nclean = df[feat_cols + ['default_flag', 'annual_income']].dropna()\nX = clean[feat_cols]\ny = clean['default_flag']\n\nscaler = StandardScaler()\nX_sc = scaler.fit_transform(X)\nmodel = LogisticRegression(max_iter=500, random_state=42)\nmodel.fit(X_sc, y)\n\n# Predict approval (probability of default < 0.15 threshold)\nclean['default_prob'] = model.predict_proba(X_sc)[:, 1]\nclean['approved'] = (clean['default_prob'] < 0.15).astype(int)\n\n# Compute approval rates by income quartile\nclean['income_quartile'] = pd.qcut(clean['annual_income'], q=4,\n                                    labels=['Q1 (lowest)', 'Q2', 'Q3', 'Q4 (highest)'])\n\napproval_by_quartile = clean.groupby('income_quartile', observed=True)['approved'].mean()\nprint(\"Approval rate by income quartile:\")\nfor q, rate in approval_by_quartile.items():\n    di_ratio = rate / approval_by_quartile.max()\n    flag = \" <- DISPARATE IMPACT\" if di_ratio < 0.80 else \"\"\n    print(f\"  {q}: {rate:.1%}  (DI ratio: {di_ratio:.2f}){flag}\")",
+          "output": "Approval rate by income quartile:\n  Q1 (lowest): 38.4%  (DI ratio: 0.54) <- DISPARATE IMPACT\n  Q2: 52.1%  (DI ratio: 0.73) <- DISPARATE IMPACT\n  Q3: 64.8%  (DI ratio: 0.91)\n  Q4 (highest): 71.2%  (DI ratio: 1.00)",
+          "business_implication": "The full alternative data model shows significant disparate impact by income quartile: the lowest-income applicants are approved at only 54% the rate of the highest-income quartile, well below the 80% rule threshold. The likely culprit is education_level_score, which correlates with income and may proxy for socioeconomic status that correlates with protected class membership. This model requires feature remediation — likely removing or replacing education_level_score — before it can pass fair lending review."
+        }
+      ]
+    },
+    {
+      "type": "decision_block",
+      "decision_type": "policy_choice",
+      "prompt": "The Model Governance Committee requires a Gini ≥ 0.45, at least 3 non-FICO variables, and a fair lending review showing no disparate impact below the 80% rule. Based on your analysis, which scorecard design do you recommend?",
+      "options": [
+        {
+          "id": "A",
+          "label": "FICO-Only Scorecard",
+          "description": "Uses only credit_score and num_credit_inquiries. Gini: 0.40 (below 0.45 threshold). Does not include any non-FICO variables. Simple and fully ECOA-compliant but fails governance criteria.",
+          "risk_level": "low"
+        },
+        {
+          "id": "B",
+          "label": "FICO + Income Scorecard",
+          "description": "Adds annual_income and debt_to_income to bureau data. Gini: 0.50 (meets 0.45 threshold). Includes 2 non-FICO variables — falls one short of the 3-variable minimum. Fair lending profile favorable.",
+          "risk_level": "medium"
+        },
+        {
+          "id": "C",
+          "label": "Full Alternative Data Model (with education removed)",
+          "description": "Seven variables including bureau score, income, DTI, employment tenure, and bank cash flow — but with education_level_score removed after the disparate impact finding. Gini: 0.56 after feature revision. Meets all three governance criteria.",
+          "risk_level": "medium"
+        }
+      ],
+      "outcome_function": "scorecard_design_pl",
+      "optimal_option": "C",
+      "worst_option": "A",
+      "outcome_explanation": "Option C (Full Alternative Data without education) is the optimal choice. Removing education_level_score resolves the disparate impact finding while only modestly reducing Gini from 0.58 to 0.56 — still well above the 0.45 threshold. It includes 5 non-FICO variables (income, DTI, employment tenure, monthly deposits, account age), satisfying the 3-variable minimum. Most importantly, the higher Gini means the model can approve 24% more thin-file borrowers at the same default rate compared to the FICO-only model, directly supporting Upstart's core business proposition. Option A fails on Gini and variable count. Option B meets Gini but falls one variable short of the governance minimum and leaves significant discriminatory power on the table."
+    },
+    {
+      "type": "technical_exercise_block",
+      "language": "python",
+      "standard": {
+        "instructions": "Write a Python function called `rank_features_by_default_correlation` that takes a DataFrame and a list of feature column names and returns a new DataFrame with columns: 'feature', 'correlation', 'abs_correlation', and 'rank'. Use scipy.stats.pointbiserialr to compute correlation between each feature and the 'default_flag' column. Sort by absolute correlation descending and assign rank 1 to the most predictive feature. Drop rows with NaN before computing each correlation.",
+        "starter_code": "import pandas as pd\nfrom scipy import stats\n\ndef rank_features_by_default_correlation(df, feature_cols):\n    \"\"\"\n    Rank features by their point-biserial correlation with default_flag.\n    \n    Args:\n        df (pd.DataFrame): DataFrame containing features and 'default_flag' column\n        feature_cols (list): List of feature column names to evaluate\n    \n    Returns:\n        pd.DataFrame: Ranked features with correlation and abs_correlation columns\n    \"\"\"\n    # Your code here\n    pass\n\n# Test\ndf = pd.read_csv('loan_applications.csv')\nresult = rank_features_by_default_correlation(\n    df, \n    ['credit_score', 'annual_income', 'debt_to_income', 'months_employed']\n)\nprint(result)",
+        "solution": "import pandas as pd\nfrom scipy import stats\n\ndef rank_features_by_default_correlation(df, feature_cols):\n    \"\"\"\n    Rank features by their point-biserial correlation with default_flag.\n    \n    Args:\n        df (pd.DataFrame): DataFrame containing features and 'default_flag' column\n        feature_cols (list): List of feature column names to evaluate\n    \n    Returns:\n        pd.DataFrame: Ranked features with correlation and abs_correlation columns\n    \"\"\"\n    results = []\n    for feature in feature_cols:\n        clean = df[[feature, 'default_flag']].dropna()\n        corr, pval = stats.pointbiserialr(clean['default_flag'], clean[feature])\n        results.append({\n            'feature': feature,\n            'correlation': round(corr, 4),\n            'abs_correlation': round(abs(corr), 4)\n        })\n    \n    result_df = pd.DataFrame(results)\n    result_df = result_df.sort_values('abs_correlation', ascending=False).reset_index(drop=True)\n    result_df['rank'] = result_df.index + 1\n    return result_df[['feature', 'correlation', 'abs_correlation', 'rank']]\n\n# Test\ndf = pd.read_csv('loan_applications.csv')\nresult = rank_features_by_default_correlation(\n    df, \n    ['credit_score', 'annual_income', 'debt_to_income', 'months_employed']\n)\nprint(result)",
+        "hint": "Create an empty list, loop over feature_cols, and for each one: drop NaN rows from the two-column subset, run pointbiserialr, and append a dict to the list. Convert to DataFrame, sort by abs_correlation descending, reset the index, then add a rank column using the index + 1.",
+        "expected_output": "                feature  correlation  abs_correlation  rank\n           credit_score      -0.4821           0.4821     1\n      debt_to_income           0.3814           0.3814     2\n         annual_income         -0.2943           0.2943     3\n       months_employed         -0.2106           0.2106     4"
+      },
+      "challenge": {
+        "instructions": "Write a function called `evaluate_scorecard` that takes a DataFrame, a list of feature column names, and a test_size parameter (default 0.30). The function should: (1) drop rows where any feature or default_flag is NaN, (2) split into train/test sets using train_test_split with random_state=42, (3) standardize features with StandardScaler, (4) fit a LogisticRegression with max_iter=500, (5) compute and return a dictionary with keys: 'auc', 'gini', 'n_train', 'n_test', 'n_features'. The Gini coefficient is 2 * AUC - 1.",
+        "starter_code": "from sklearn.linear_model import LogisticRegression\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.metrics import roc_auc_score\nfrom sklearn.preprocessing import StandardScaler\nimport pandas as pd\n\ndef evaluate_scorecard(df, feature_cols, test_size=0.30):\n    \"\"\"\n    Fit and evaluate a logistic regression scorecard.\n    \n    Returns:\n        dict with keys: auc, gini, n_train, n_test, n_features\n    \"\"\"\n    # Your code here\n    pass\n\n# Test\ndf = pd.read_csv('loan_applications.csv')\nresult = evaluate_scorecard(df, ['credit_score', 'annual_income', 'debt_to_income'])\nprint(result)",
+        "solution": "from sklearn.linear_model import LogisticRegression\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.metrics import roc_auc_score\nfrom sklearn.preprocessing import StandardScaler\nimport pandas as pd\n\ndef evaluate_scorecard(df, feature_cols, test_size=0.30):\n    \"\"\"\n    Fit and evaluate a logistic regression scorecard.\n    \n    Returns:\n        dict with keys: auc, gini, n_train, n_test, n_features\n    \"\"\"\n    # Drop NaN rows across all required columns\n    required_cols = feature_cols + ['default_flag']\n    clean = df[required_cols].dropna()\n    \n    X = clean[feature_cols]\n    y = clean['default_flag']\n    \n    # Train/test split\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=test_size, random_state=42\n    )\n    \n    # Standardize\n    scaler = StandardScaler()\n    X_train_sc = scaler.fit_transform(X_train)\n    X_test_sc = scaler.transform(X_test)\n    \n    # Fit logistic regression\n    model = LogisticRegression(max_iter=500, random_state=42)\n    model.fit(X_train_sc, y_train)\n    \n    # Evaluate\n    y_proba = model.predict_proba(X_test_sc)[:, 1]\n    auc = roc_auc_score(y_test, y_proba)\n    gini = 2 * auc - 1\n    \n    return {\n        'auc': round(auc, 4),\n        'gini': round(gini, 4),\n        'n_train': len(X_train),\n        'n_test': len(X_test),\n        'n_features': len(feature_cols)\n    }\n\ndf = pd.read_csv('loan_applications.csv')\nresult = evaluate_scorecard(df, ['credit_score', 'annual_income', 'debt_to_income'])\nprint(result)",
+        "hint": "Use scaler.fit_transform on training data and scaler.transform (not fit_transform) on test data — fitting the scaler on test data would leak test information into the model. Remember that model.predict_proba returns a 2-column array; you want column index 1 (probability of default=1)."
+      }
+    },
+    {
+      "type": "quiz_block",
+      "questions": [
+        {
+          "id": "m12_l02_q1",
+          "concept_tags": ["gini_coefficient"],
+          "type": "multiple_choice",
+          "question": "Upstart's new thin-file scorecard achieves a Gini coefficient of 0.38 on the validation set, compared to 0.40 for the existing FICO-only model. The model governance committee requires Gini ≥ 0.45. What does a Gini of 0.38 tell you about the model's performance?",
+          "options": [
+            "A) The model correctly classifies 38% of all borrowers",
+            "B) The model is accurate 38% of the time and fails 62% of the time",
+            "C) The model has 38% discriminatory power above random chance — it ranks borrowers somewhat better than random but not well enough for production use",
+            "D) 38% of loans in the validation set defaulted"
+          ],
+          "correct_index": 2,
+          "explanation": "C is correct: the Gini coefficient measures a model's ability to rank-order borrowers from least to most likely to default. A Gini of 0 means the model ranks no better than random; a Gini of 1 means perfect separation. A Gini of 0.38 means the model has 38% of maximum possible discriminatory power — substantially above random but below the governance minimum of 0.45. A is wrong: Gini is not a classification accuracy metric. B is wrong: this describes error rate, not Gini. D is wrong: Gini has no relationship to the observed default rate in the dataset."
+        },
+        {
+          "id": "m12_l02_q2",
+          "concept_tags": ["feature_engineering", "scorecard"],
+          "type": "multiple_choice",
+          "question": "When comparing features for inclusion in a credit scorecard, a data scientist ranks 'average monthly bank deposits' with a point-biserial correlation of 0.27 against 'default_flag' and 'education level' with a correlation of 0.13. Which statement is most accurate?",
+          "options": [
+            "A) Education level should be excluded because its correlation is less than 0.20",
+            "B) Average monthly deposits has stronger predictive power and is a safer fair lending choice because it measures cash flow behavior rather than a socioeconomic proxy",
+            "C) Both variables should be included because any positive correlation adds value to a scorecard",
+            "D) The correlation coefficients are too low to be useful — only features with correlation above 0.50 add meaningful predictive power"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: average monthly deposits both has higher predictive power (0.27 vs. 0.13) AND is a more defensible fair lending choice because it measures a direct financial behavior (cash inflow) rather than a socioeconomic attribute (education) that can proxy for race or income level. A is wrong: there is no universal cutoff at 0.20 — inclusion decisions depend on whether incremental Gini lift justifies the complexity and fair lending risk. C is wrong: blindly including all correlated features leads to overfitting and fair lending violations. D is wrong: in credit scoring, correlations of 0.15-0.35 are commonly used and valuable; correlations above 0.50 in tabular financial data are rare."
+        },
+        {
+          "id": "m12_l02_q3",
+          "concept_tags": ["logistic_regression", "scorecard"],
+          "type": "multiple_choice",
+          "question": "A credit scorecard built on the training data achieves a Gini of 0.72 in-sample but only 0.44 on the holdout validation set. What is the most likely explanation and the correct remediation?",
+          "options": [
+            "A) The model is underfitting — add more features to improve training performance",
+            "B) The model is overfitting to the training data — it has learned noise rather than signal and fails to generalize; remediate with regularization or fewer features",
+            "C) The validation set is unrepresentative — the holdout data must have a different default rate, making comparison invalid",
+            "D) A Gini gap of 0.28 is normal and expected — training Gini is always higher than validation Gini by definition"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: a large gap between training Gini (0.72) and validation Gini (0.44) is the textbook signature of overfitting — the model has memorized patterns specific to the training data that do not generalize to new observations. Remediations include L1 or L2 regularization in logistic regression, reducing the number of features (removing low-signal variables), or increasing training data size. A is wrong: the problem is too much model complexity, not too little. C is wrong: a representative holdout split (e.g., stratified by default rate) makes this scenario implausible as the primary explanation. D is wrong: while some gap is expected, a 0.28 gap is excessive and indicates a real model quality problem that would not be acceptable in production."
+        },
+        {
+          "id": "m12_l02_q4",
+          "concept_tags": ["fair_lending", "scorecard"],
+          "type": "what_would_you_do",
+          "question": "You are presenting your recommended scorecard (Full Alternative Data without education) to Upstart's Head of Fair Lending. She asks: 'How do you know this model does not have disparate impact if we do not have race data in our dataset?' How do you respond, and what analysis would you run?",
+          "sample_answer": "I would explain that the absence of race data does not mean the model is fair — it means we must use proxy variables to test for disparate impact. I would run a Bayesian Improved Surname Geocoding (BISG) analysis, which estimates race probabilities from surname and census tract data, then compute approval rates by estimated race group and check the 80% rule: if the approval rate for any racial group is below 80% of the approval rate of the highest-approved group, that triggers a disparate impact finding. I would also run approval rate analysis by income quartile and zip code cluster as supplemental checks. If the BISG analysis shows a disparate impact violation, I would identify which feature is the primary driver — likely avg_monthly_deposits or debt_to_income correlating with income levels that correlate with race — and either remove that feature, replace it with a less correlated proxy, or document a compelling business justification for its inclusion and explore mitigation through adverse action notice improvements.",
+          "key_concepts": ["BISG proxy methodology for estimating race without direct data", "80% rule for measuring disparate impact", "identifying which feature drives the disparity", "business justification defense vs. mitigation through model revision"]
+        }
+      ]
+    },
+    {
+      "type": "solution_debrief_block",
+      "optimal_decision": "Recommend the Full Alternative Data Model with education_level_score removed",
+      "decision_rationale": "The revised full alternative data model (Option C, education removed) is the only design that satisfies all three governance criteria: Gini of 0.56 (above 0.45 minimum), 5 non-FICO variables (above 3-variable minimum), and a clean fair lending profile after removing the education variable that drove disparate impact on lower-income quartiles. Removing education only reduces Gini from 0.58 to 0.56 — a minimal sacrifice for regulatory compliance. The model's superior Gini means it can differentiate risk within the thin-file segment where FICO scores cluster, allowing Upstart to approve approximately 24% more creditworthy thin-file borrowers at the same default rate relative to the FICO-only baseline.",
+      "pl_comparison": [
+        {
+          "label": "FICO-Only",
+          "approval_rate": "Baseline",
+          "default_rate": "Gini 0.40",
+          "monthly_profit": "Fails governance",
+          "verdict": "Fails the Gini minimum and does not include any alternative data variables. Cannot differentiate thin-file borrowers who cluster in the 580-620 FICO range. Does not support the business case for the product."
+        },
+        {
+          "label": "FICO + Income",
+          "approval_rate": "+8% vs. FICO-only",
+          "default_rate": "Gini 0.50",
+          "monthly_profit": "Passes governance",
+          "verdict": "Meets Gini and fair lending criteria but includes only 2 non-FICO variables, falling short of the 3-variable governance requirement. Would require adding one more alternative data feature before submission."
+        },
+        {
+          "label": "Full Alt (education removed)",
+          "approval_rate": "+24% vs. FICO-only",
+          "default_rate": "Gini 0.56",
+          "monthly_profit": "Optimal — all criteria met",
+          "verdict": "Meets all three governance criteria. The removal of education_level_score resolves the disparate impact finding at a cost of only 0.02 Gini points. Bank cash flow features (avg_monthly_deposits, checking_account_age_months) provide the incremental lift without fair lending risk. Recommended for model governance submission."
+        }
+      ],
+      "stakeholder_communication": "To the Model Governance Committee: I recommend the Full Alternative Data scorecard with education_level_score removed. This model achieves a validation Gini of 0.56, includes 5 non-FICO variables (income, DTI, employment tenure, monthly deposits, account age), and clears the 80% disparate impact rule across income quartile proxies. Removing education reduced Gini from 0.58 to 0.56 — a two-point reduction that is operationally immaterial but eliminates the fair lending finding that would have delayed deployment. The model approves 24% more thin-file borrowers than our FICO baseline at equivalent projected default rates, directly supporting our Q2 growth target for the thin-file segment.",
+      "key_takeaway": "A credit scorecard is only as good as its worst feature — a high Gini model that fails fair lending review cannot be deployed. The optimal scorecard maximizes discrimination power subject to both performance and regulatory constraints.",
+      "next_lessons": ["m12_l03"]
+    }
+  ]
+}

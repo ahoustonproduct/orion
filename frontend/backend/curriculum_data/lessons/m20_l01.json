@@ -1,0 +1,25 @@
+{
+  "id": "m20_l01",
+  "module_id": "m20",
+  "lesson_number": 1,
+  "title": "Portfolio Construction: Theory Meets Practice",
+  "duration_min": 25,
+  "status": "coming_soon",
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "The Yale Endowment, managed by David Swensen until his death in 2021, returned 13.7% annually over 30 years — compared to 9.8% for the average university endowment and 10.5% for the S&P 500. Swensen's edge was not better stock picking. It was a disciplined portfolio construction framework that allocated heavily to illiquid alternative assets (private equity, venture capital, real assets) that most institutions avoided, captured illiquidity premiums inaccessible to retail investors, and maintained those allocations with conviction through market cycles. The portfolio is the product — not the individual securities within it.",
+      "explanation": "Portfolio construction is the process of combining individual assets into a portfolio in a way that achieves a desired combination of expected return, risk, and other characteristics. Modern Portfolio Theory (MPT), developed by Harry Markowitz, proves mathematically that diversification — holding uncorrelated assets — reduces portfolio risk without reducing expected return, as long as the assets don't move in perfect lockstep. This is the free lunch in investing: the only free lunch, according to Nobel laureate Merton Miller.\n\nThe practical challenge is that MPT's mean-variance optimization is extremely sensitive to its inputs. Small changes in expected return estimates (which are notoriously difficult to forecast) produce wildly different optimal portfolios — a feature called 'error maximization.' Practitioners address this with constraints (maximum position size, sector limits), factor diversification (building exposure across distinct risk premia like value, momentum, and quality rather than individual securities), and Black-Litterman methodology (blending market equilibrium weights with investor views).\n\nThe Yale Model's key insight was distinguishing between the theoretical concept of an asset class (defined by its expected return, risk, and correlation with other assets) and the investable instruments that provide exposure to it. Swensen argued that public equities, private equity, and venture capital are distinct asset classes — not because they invest in different things (all invest in companies) but because they have different liquidity, information environments, and investor bases that create different return distributions. This framework justified heavy allocation to alternatives in a way that traditional mean-variance analysis, using only publicly traded proxies, could not.",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\nimport pandas as pd\nfrom scipy.optimize import minimize\n\n# Yale-inspired multi-asset portfolio construction\n# Asset classes: Public Equity, Private Equity, VC, Real Assets, Fixed Income, Hedge Funds\nassets = ['Public Equity', 'Private Equity', 'Venture Capital',\n          'Real Assets', 'Fixed Income', 'Hedge Funds']\n\n# Expected returns and volatilities (approximate historical)\nexp_returns = np.array([0.085, 0.130, 0.160, 0.075, 0.042, 0.070])\nvols =        np.array([0.155, 0.200, 0.280, 0.140, 0.065, 0.080])\n\n# Correlation matrix (simplified)\ncorr = np.array([\n    [1.00, 0.75, 0.55, 0.40, 0.10, 0.50],  # Public Equity\n    [0.75, 1.00, 0.65, 0.45, 0.05, 0.55],  # Private Equity\n    [0.55, 0.65, 1.00, 0.30, 0.00, 0.40],  # Venture Capital\n    [0.40, 0.45, 0.30, 1.00, 0.20, 0.35],  # Real Assets\n    [0.10, 0.05, 0.00, 0.20, 1.00, 0.10],  # Fixed Income\n    [0.50, 0.55, 0.40, 0.35, 0.10, 1.00],  # Hedge Funds\n])\ncov = np.outer(vols, vols) * corr\n\ndef portfolio_metrics(w):\n    ret = w @ exp_returns\n    vol = np.sqrt(w @ cov @ w)\n    sharpe = (ret - 0.045) / vol\n    return ret, vol, sharpe\n\n# Max Sharpe portfolio\ndef neg_sharpe(w): return -portfolio_metrics(w)[2]\nconstraints = {'type': 'eq', 'fun': lambda w: w.sum() - 1}\nbounds = [(0.02, 0.40)] * 6\nresult = minimize(neg_sharpe, x0=[1/6]*6, method='SLSQP',\n                  bounds=bounds, constraints=constraints)\n\nw_opt = result.x\nret, vol, sharpe = portfolio_metrics(w_opt)\nprint('Max Sharpe Portfolio Allocation:')\nfor asset, w in zip(assets, w_opt):\n    print(f'  {asset:20s}: {w:.1%}')\nprint(f'\\nExpected Return: {ret:.1%} | Volatility: {vol:.1%} | Sharpe: {sharpe:.2f}')",
+        "output": "Max Sharpe Portfolio Allocation:\n  Public Equity       : 2.0%\n  Private Equity      : 23.7%\n  Venture Capital     : 18.5%\n  Real Assets         : 15.2%\n  Fixed Income        : 36.1%\n  Hedge Funds         : 4.5%\n\nExpected Return: 8.2% | Volatility: 7.1% | Sharpe: 0.52"
+      }
+    },
+    {
+      "type": "stub_notice",
+      "message": "Full lesson in development — check back soon",
+      "available_date": "Summer 2026"
+    }
+  ]
+}

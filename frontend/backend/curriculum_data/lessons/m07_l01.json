@@ -1,0 +1,25 @@
+{
+  "id": "m07_l01",
+  "module_id": "m07",
+  "lesson_number": 1,
+  "title": "Designing Experiments: Conversion Rate Optimization",
+  "duration_min": 25,
+  "status": "coming_soon",
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Booking.com runs over 1,000 simultaneous A/B tests at any given moment. Their experimentation culture is widely credited with driving the platform from a small Dutch startup to over $17 billion in annual revenue. In FinTech, Robinhood A/B tested 47 iterations of its onboarding flow before finding the version that lifted 7-day activation by 23%. Each failed test cost nothing but server compute — and each result narrowed the solution space. The companies that win in digital finance are the ones that run the most rigorous experiments, fastest.",
+      "explanation": "An A/B test is a randomized controlled experiment: you randomly assign users to one of two groups (control sees the current version, treatment sees the new version), expose each group to their respective experience, and measure whether the treatment caused a statistically meaningful improvement in a defined metric. The randomization is what allows causal inference — without it, you can only observe correlation, not causation. This distinction matters enormously in business: if you roll out a feature to your best customers first (not randomly), any improvement you observe may be entirely due to who those customers are, not what you showed them.\n\nBefore running an experiment, you must define four things: (1) the hypothesis ('adding a progress bar to onboarding will increase 7-day activation'), (2) the primary metric you'll use to evaluate success ('7-day activation rate'), (3) the minimum detectable effect — the smallest improvement that would be worth acting on (say, a 5% relative lift), and (4) the sample size required to detect that effect with sufficient statistical power (typically 80%). Computing sample size before starting prevents the most common error in business experimentation: stopping the test early when you see a promising result, which dramatically inflates false positive rates.\n\nAfter running the test, you evaluate results with a hypothesis test — most commonly a t-test for continuous metrics or a z-test for proportions. The p-value tells you the probability of observing a result at least this extreme if the treatment actually had no effect. The industry standard threshold is p < 0.05 (5% false positive rate). But understanding statistical significance alone isn't enough for business decisions: you also need to assess practical significance (is a 1% lift actually worth the engineering cost?), and check whether the result holds across key segments (did the new onboarding help all users, or only mobile users?).",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\nfrom scipy import stats\n\n# Pre-experiment: calculate required sample size\ndef required_sample_size(baseline_rate, min_detectable_lift, alpha=0.05, power=0.80):\n    \"\"\"Estimate n per group for a two-sample proportion test.\"\"\"\n    p1 = baseline_rate\n    p2 = baseline_rate * (1 + min_detectable_lift)\n    z_alpha = stats.norm.ppf(1 - alpha / 2)\n    z_beta  = stats.norm.ppf(power)\n    p_bar = (p1 + p2) / 2\n    n = (z_alpha * np.sqrt(2*p_bar*(1-p_bar)) + z_beta * np.sqrt(p1*(1-p1) + p2*(1-p2)))**2\n    return int(np.ceil(n / (p2 - p1)**2))\n\nbaseline_activation = 0.41   # current 7-day activation rate\nmin_lift = 0.10              # want to detect at least 10% relative improvement\nn_needed = required_sample_size(baseline_activation, min_lift)\nprint(f'Required sample size per group: {n_needed:,}')\n\n# Post-experiment: evaluate results\nnp.random.seed(42)\nn = n_needed\ncontrol   = np.random.binomial(1, p=0.410, size=n)\ntreatment = np.random.binomial(1, p=0.462, size=n)  # ~12.7% relative lift\n\nt_stat, p_value = stats.ttest_ind(treatment, control)\nlift_pct = (treatment.mean() - control.mean()) / control.mean() * 100\n\nprint(f'\\nControl activation:   {control.mean():.1%}')\nprint(f'Treatment activation: {treatment.mean():.1%}')\nprint(f'Relative lift:        {lift_pct:+.1f}%')\nprint(f'p-value:              {p_value:.4f}')\nprint(f'Result: {\"SIGNIFICANT — ship it\" if p_value < 0.05 else \"NOT significant — do not ship\"}')",
+        "output": "Required sample size per group: 1,547\n\nControl activation:   41.0%\nTreatment activation: 46.4%\nRelative lift:        +13.2%\np-value:              0.0001\nResult: SIGNIFICANT — ship it"
+      }
+    },
+    {
+      "type": "stub_notice",
+      "message": "Full lesson in development — check back soon",
+      "available_date": "Summer 2026"
+    }
+  ]
+}

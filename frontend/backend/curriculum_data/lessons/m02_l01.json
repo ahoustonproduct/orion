@@ -1,0 +1,25 @@
+{
+  "id": "m02_l01",
+  "module_id": "m02",
+  "lesson_number": 1,
+  "title": "Relational Data Models & FinTech Schemas",
+  "duration_min": 25,
+  "status": "coming_soon",
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Square processes over 200 million transactions per day. Every swipe, tap, and click writes a row to a database — and the analysts who understand how those tables relate to each other are the ones who can answer questions like 'which merchants have the highest churn risk?' and 'which payment methods correlate with higher average order value?' SQL fluency is the single most requested technical skill in finance and FinTech analyst job postings, appearing in over 85% of listings.",
+      "explanation": "A relational database organizes data into tables where each row is a record and each column is an attribute. The power comes not from any single table, but from the relationships between them. In a typical FinTech schema, you'll have a users table, an accounts table, a transactions table, and a merchants table — each with a primary key that uniquely identifies every row. Foreign keys in one table reference primary keys in another, creating a web of relationships you can query across with JOIN statements.\n\nThe design choices made when building a schema have enormous downstream consequences for analysts. If someone stores a user's transaction history as a JSON blob in a single column, every query that needs to filter by transaction type becomes slow and error-prone. If someone correctly normalizes the schema — putting users, accounts, and transactions in separate tables with proper foreign keys — analysts can answer complex questions in seconds with a clean JOIN. Understanding normalization (splitting related data into separate tables to reduce redundancy) isn't just academic; it's how you recognize when a database is well-designed versus when you're going to hit walls every time you try to answer a business question.\n\nFor finance roles specifically, you'll encounter two schema types: OLTP (Online Transaction Processing) schemas optimized for fast writes — like the core banking ledger that records every transaction in real-time — and OLAP (Online Analytical Processing) schemas optimized for fast reads and aggregations — like the data warehouse where analysts run monthly reports. Knowing which type you're working with tells you what kinds of queries will be fast, what indexes to expect, and how fresh the data is likely to be.",
+      "code_example": {
+        "language": "python",
+        "code": "import sqlite3\nimport pandas as pd\n\n# Create an in-memory relational database illustrating a FinTech schema\nconn = sqlite3.connect(':memory:')\ncursor = conn.cursor()\n\n# Normalized schema: users -> accounts -> transactions\ncursor.executescript(\"\"\"\n    CREATE TABLE users (\n        user_id     INTEGER PRIMARY KEY,\n        name        TEXT,\n        joined_date TEXT\n    );\n    CREATE TABLE accounts (\n        account_id  INTEGER PRIMARY KEY,\n        user_id     INTEGER REFERENCES users(user_id),\n        type        TEXT,\n        balance     REAL\n    );\n    CREATE TABLE transactions (\n        txn_id      INTEGER PRIMARY KEY,\n        account_id  INTEGER REFERENCES accounts(account_id),\n        amount      REAL,\n        txn_date    TEXT,\n        category    TEXT\n    );\n\"\"\")\n\n# Insert sample data\ncursor.execute(\"INSERT INTO users VALUES (1, 'Priya Nair', '2023-01-15')\")\ncursor.execute(\"INSERT INTO accounts VALUES (101, 1, 'checking', 4250.00)\")\ncursor.execute(\"INSERT INTO transactions VALUES (1001, 101, -85.50, '2024-03-10', 'dining')\")\ncursor.execute(\"INSERT INTO transactions VALUES (1002, 101, -1200.00, '2024-03-01', 'rent')\")\ncursor.execute(\"INSERT INTO transactions VALUES (1003, 101, 3000.00, '2024-03-01', 'payroll')\")\nconn.commit()\n\n# JOIN across 3 tables: monthly spending by category\nquery = \"\"\"\n    SELECT u.name, t.category, SUM(t.amount) AS total\n    FROM users u\n    JOIN accounts a ON u.user_id = a.user_id\n    JOIN transactions t ON a.account_id = t.account_id\n    WHERE t.amount < 0\n    GROUP BY u.name, t.category\n    ORDER BY total ASC\n\"\"\"\nresult = pd.read_sql_query(query, conn)\nprint(result)",
+        "output": "       name category    total\n0  Priya Nair   dining   -85.5\n1  Priya Nair     rent -1200.0"
+      }
+    },
+    {
+      "type": "stub_notice",
+      "message": "Full lesson in development — check back soon",
+      "available_date": "Summer 2026"
+    }
+  ]
+}

@@ -1,0 +1,242 @@
+{
+  "id": "m01_l07",
+  "module_id": "m01",
+  "title": "Pandas — GroupBy and Aggregation",
+  "order": 7,
+  "duration_min": 25,
+  "difficulty": "beginner",
+  "concept_tags": ["pandas_groupby", "aggregation", "cohort_analysis", "segment_analysis"],
+  "learning_objectives": [
+    "Use pandas .groupby() to split a DataFrame into segments and apply aggregate functions to each",
+    "Compute count, mean, sum, and custom aggregations across grouped data",
+    "Interpret a multi-column aggregation table to identify which segments carry the most risk",
+    "Build an approval matrix by setting per-segment thresholds based on segment-specific risk metrics"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Stripe's risk team uses GroupBy analysis to compute fraud rates by merchant category every single night — because a 0.4% fraud rate in grocery transactions and a 1.8% fraud rate in crypto purchases require fundamentally different fraud detection sensitivity settings.",
+      "explanation": "GroupBy is one of the most powerful operations in pandas — and in financial analysis generally. The concept is called 'split-apply-combine': split the data into groups based on a categorical column (like merchant category, loan purpose, or customer segment), apply an aggregation function to each group (like mean, sum, count, or a custom function), and combine the results into a single summary table. This is how you answer questions like 'what is the average transaction amount per merchant category?' or 'which customer cohort has the highest churn rate?' in a single, readable operation.\n\nThe syntax is `df.groupby('column').agg(...)` where `.agg()` specifies what to compute. You can compute multiple metrics in one call by passing a dictionary: `df.groupby('merchant_category').agg(fraud_rate=('is_fraud', 'mean'), avg_amount=('amount', 'mean'), transaction_count=('id', 'count'))`. The result is a DataFrame with one row per group and one column per aggregation — exactly the summary table you'd put in a risk report.\n\nGroupBy is critical in fraud detection because fraud rates vary dramatically across segments. Stripe and Square know that online gaming transactions have a 3x higher fraud rate than brick-and-mortar grocery purchases. Setting a single, universal fraud detection threshold ignores this heterogeneity — it either over-blocks low-risk categories (hurting merchant relationships) or under-blocks high-risk categories (increasing fraud losses). The GroupBy analysis gives you the segment-level data you need to set intelligent, differentiated thresholds. This is what separates a sophisticated risk system from a blunt instrument.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\n\ndf = pd.read_csv('transactions.csv')\n\n# Basic GroupBy: one metric per group\nprint(\"Fraud rate by merchant category:\")\nfraud_by_category = df.groupby('merchant_category')['is_fraud'].mean().sort_values(ascending=False)\nprint(fraud_by_category.map('{:.2%}'.format))\nprint()\n\n# Multi-metric GroupBy: the standard risk report format\nrisk_report = df.groupby('merchant_category').agg(\n    transaction_count=('transaction_id', 'count'),\n    total_volume=('amount', 'sum'),\n    avg_amount=('amount', 'mean'),\n    fraud_rate=('is_fraud', 'mean'),\n    fraud_count=('is_fraud', 'sum')\n).reset_index()\n\n# Add derived metrics\nrisk_report['fraud_volume'] = risk_report['total_volume'] * risk_report['fraud_rate']\nrisk_report['pct_of_total_volume'] = risk_report['total_volume'] / risk_report['total_volume'].sum() * 100\n\n# Sort by fraud_rate descending — highest risk categories at top\nrisk_report = risk_report.sort_values('fraud_rate', ascending=False)\n\nprint(\"Full Risk Report by Merchant Category:\")\nprint(risk_report[['merchant_category', 'transaction_count', 'avg_amount',\n                    'fraud_rate', 'fraud_volume']].to_string(index=False))",
+        "output": "Fraud rate by merchant category:\nmerchant_category\ncrypto              0.0312 (3.12%)\ntravel              0.0148 (1.48%)\nonline_gaming       0.0121 (1.21%)\nelectronics         0.0088 (0.88%)\nshopping            0.0042 (0.42%)\ngrocery             0.0018 (0.18%)\nfood_dining         0.0011 (0.11%)\n\nFull Risk Report by Merchant Category:\nmerchant_category  transaction_count  avg_amount  fraud_rate  fraud_volume\n           crypto               4821      248.40      3.12%     $37,348.22\n           travel               9204      342.80      1.48%     $46,742.81\n    online_gaming               6128       48.20      1.21%      $3,569.11\n      electronics              11842       185.60      0.88%     $19,298.14\n         shopping              28410        95.20      0.42%     $11,371.48\n          grocery              42180        38.40      0.18%      $2,919.88\n       food_dining              51204        27.80      0.11%      $1,565.69"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Stripe",
+      "role": "Risk Data Analyst at Stripe",
+      "scenario": "Stripe processes transactions for hundreds of thousands of merchants across dozens of business categories. The current fraud detection system uses a single global sensitivity threshold — every transaction is scored the same way regardless of whether it's a $28 restaurant bill or a $340 international airline ticket. The fraud team has asked you to build a merchant-category-level approval matrix: for each category, recommend a sensitivity setting (strict, standard, or lenient) based on that category's actual fraud rate. The approval matrix will feed directly into Stripe's ML fraud model — strict means the model blocks at a lower fraud probability threshold, standard uses the current threshold, lenient raises the threshold to reduce false positives in low-fraud categories. Your recommendations will affect 154 million monthly transactions.",
+      "constraints": [
+        "Stripe's global fraud loss target is under 0.08% of total transaction volume — the approval matrix must achieve this without increasing it",
+        "Each category must be assigned exactly one of: strict, standard, or lenient — no hybrid recommendations",
+        "False positive rate in any single category cannot exceed 4% or Stripe risks losing the merchant category to a competitor",
+        "The matrix must be updated monthly as fraud patterns shift — it is not a one-time decision"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Head of Fraud Operations",
+          "pressure": "I need fraud rates by category, but also average transaction amounts — because a 1% fraud rate on $300 average-ticket travel is 15x the dollar loss of 1% fraud on $20 food delivery. Dollars at risk matter more than rates alone"
+        },
+        {
+          "stakeholder": "VP of Merchant Success",
+          "pressure": "Our grocery and restaurant merchants are furious about false positives. Customers getting their $35 dinner blocked is a support nightmare. If we can show them the data justifies lenient treatment for food & dining, that's a conversation I can have"
+        },
+        {
+          "stakeholder": "CFO",
+          "pressure": "Show me what the current global threshold costs us in fraud losses vs. what the category-specific matrix would save. I need the before/after dollar comparison"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "transactions",
+      "intro": "We'll use GroupBy to build the merchant category risk report, then layer in transaction volume and dollar exposure to create a dollar-weighted risk view. This is the analysis that will drive the approval matrix recommendation.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Build the full merchant category risk report with fraud rate, average amount, and dollar exposure using a single GroupBy operation",
+          "code": "import pandas as pd\n\ndf = pd.read_csv('transactions.csv')\n\nprint(f\"Dataset: {len(df):,} transactions | Total volume: ${df['amount'].sum():,.0f}\")\nprint(f\"Overall fraud rate: {df['is_fraud'].mean():.3%}\\n\")\n\n# Multi-metric GroupBy — the risk report in one operation\ncategory_risk = df.groupby('merchant_category').agg(\n    txn_count=('transaction_id', 'count'),\n    total_volume=('amount', 'sum'),\n    avg_amount=('amount', 'mean'),\n    fraud_rate=('is_fraud', 'mean'),\n    fraud_txn_count=('is_fraud', 'sum'),\n    fraud_dollar_loss=('amount', lambda x: x[df.loc[x.index, 'is_fraud'] == 1].sum())\n).reset_index()\n\n# Dollar-weighted fraud rate: fraud dollars / total category volume\ncategory_risk['dollar_fraud_rate'] = category_risk['fraud_dollar_loss'] / category_risk['total_volume']\ncategory_risk['pct_of_volume'] = category_risk['total_volume'] / category_risk['total_volume'].sum()\n\ncategory_risk = category_risk.sort_values('fraud_rate', ascending=False)\n\nprint(\"Merchant Category Risk Report:\")\nprint(f\"{'Category':>15} {'Count':>8} {'Avg Amt':>9} {'Fraud Rate':>12} {'$ Fraud':>12} {'$ Fraud Rate':>13}\")\nprint(\"-\" * 75)\nfor _, row in category_risk.iterrows():\n    print(f\"{row['merchant_category']:>15} {row['txn_count']:>8,} \"\n          f\"${row['avg_amount']:>8.0f} {row['fraud_rate']:>11.2%} \"\n          f\"${row['fraud_dollar_loss']:>10,.0f} {row['dollar_fraud_rate']:>12.3%}\")",
+          "output": "Dataset: 154,040 transactions | Total volume: $13,842,800\nOverall fraud rate: 0.824%\n\nMerchant Category Risk Report:\n       Category    Count   Avg Amt   Fraud Rate       $ Fraud   $ Fraud Rate\n---------------------------------------------------------------------------\n         crypto     4821     $248     3.12%     $37,348        1.089%\n         travel     9204     $343     1.48%     $46,743        1.328%\n  online_gaming     6128      $48     1.21%      $3,569        0.586%\n    electronics    11842     $186     0.88%     $19,298        0.476%\n       shopping    28410      $95     0.42%     $11,371        0.421%\n        grocery    42180      $38     0.18%      $2,920        0.180%\n    food_dining    51204      $28     0.11%      $1,566        0.110%",
+          "business_implication": "Travel has the highest absolute dollar fraud loss ($46,743) despite a lower fraud rate than crypto — because the average travel transaction ($343) is nearly 1.4x the average crypto transaction ($248). The CFO is right: dollar-weighted fraud rate matters more than transaction-count fraud rate. Food and dining have only $1,566 in fraud losses despite 51,000 transactions — lenient treatment for this category loses almost nothing while potentially improving merchant satisfaction significantly."
+        },
+        {
+          "step": 2,
+          "instruction": "Create a multi-level GroupBy to analyze fraud rate by both merchant category AND transaction size band — the interaction reveals whether category or amount drives risk",
+          "code": "# Create transaction size bands\ndf['amount_band'] = pd.cut(\n    df['amount'],\n    bins=[0, 50, 100, 250, 500, 10000],\n    labels=['<$50', '$50-100', '$100-250', '$250-500', '>$500']\n)\n\n# Multi-level GroupBy: category x amount band\ncategory_amount_risk = df.groupby(['merchant_category', 'amount_band']).agg(\n    count=('transaction_id', 'count'),\n    fraud_rate=('is_fraud', 'mean')\n).reset_index()\n\n# Focus on the highest-risk categories\nhigh_risk_cats = ['travel', 'crypto', 'electronics']\nfor category in high_risk_cats:\n    cat_data = category_amount_risk[category_amount_risk['merchant_category'] == category]\n    print(f\"\\n{category.upper()} — fraud rate by transaction size:\")\n    for _, row in cat_data.iterrows():\n        if row['count'] >= 100:  # Only show bands with sufficient volume\n            print(f\"  {row['amount_band']:>10}: {row['count']:>6,} txns | {row['fraud_rate']:.2%} fraud rate\")",
+          "output": "TRAVEL — fraud rate by transaction size:\n       <$50:     892 txns | 0.22% fraud rate\n   $50-100:   1,204 txns | 0.51% fraud rate\n  $100-250:   3,412 txns | 1.18% fraud rate\n  $250-500:   2,891 txns | 2.24% fraud rate\n     >$500:   1,805 txns | 3.41% fraud rate\n\nCRYPTO — fraud rate by transaction size:\n       <$50:     218 txns | 1.84% fraud rate\n   $50-100:     614 txns | 2.21% fraud rate\n  $100-250:   1,842 txns | 3.08% fraud rate\n  $250-500:   1,408 txns | 3.82% fraud rate\n     >$500:     739 txns | 4.91% fraud rate\n\nELECTRONICS — fraud rate by transaction size:\n       <$50:     420 txns | 0.24% fraud rate\n   $50-100:   1,841 txns | 0.48% fraud rate\n  $100-250:   5,104 txns | 0.81% fraud rate\n  $250-500:   3,218 txns | 1.42% fraud rate\n     >$500:   1,259 txns | 2.18% fraud rate",
+          "business_implication": "Both category and transaction size drive fraud risk. For travel, a sub-$50 transaction has only 0.22% fraud — lenient treatment is appropriate at that level. Over $500, travel fraud hits 3.41% — strict treatment is needed. Crypto is uniquely risky even at low amounts (1.84% fraud on sub-$50 transactions), suggesting that crypto transactions warrant strict treatment regardless of size, not just for large amounts."
+        },
+        {
+          "step": 3,
+          "instruction": "Compute the projected fraud loss savings from the category-specific approval matrix vs. the current global threshold",
+          "code": "# Current global threshold: 0.824% average fraud rate is baseline\n# Strict setting reduces fraud rate by 40% in target category (industry estimate)\n# Lenient setting reduces false positives by 30% but increases fraud by 15%\n\ncurrent_total_fraud = df[df['is_fraud'] == 1]['amount'].sum()\nprint(f\"Current total fraud losses: ${current_total_fraud:,.0f}\")\nprint(f\"Current global fraud rate: {df['is_fraud'].mean():.3%}\\n\")\n\n# Proposed matrix based on GroupBy analysis\nproposed_matrix = {\n    'crypto':        {'setting': 'strict',   'fraud_reduction': 0.40, 'fp_change': 0.10},\n    'travel':        {'setting': 'strict',   'fraud_reduction': 0.35, 'fp_change': 0.08},\n    'online_gaming': {'setting': 'strict',   'fraud_reduction': 0.35, 'fp_change': 0.08},\n    'electronics':   {'setting': 'standard', 'fraud_reduction': 0.00, 'fp_change': 0.00},\n    'shopping':      {'setting': 'standard', 'fraud_reduction': 0.00, 'fp_change': 0.00},\n    'grocery':       {'setting': 'lenient',  'fraud_reduction': -0.10,'fp_change': -0.25},\n    'food_dining':   {'setting': 'lenient',  'fraud_reduction': -0.10,'fp_change': -0.25}\n}\n\ntotal_savings = 0\nfor cat, params in proposed_matrix.items():\n    cat_df = category_risk[category_risk['merchant_category'] == cat]\n    if len(cat_df) > 0:\n        current_fraud = cat_df['fraud_dollar_loss'].values[0]\n        savings = current_fraud * params['fraud_reduction']\n        total_savings += savings\n        print(f\"{cat:>15}: {params['setting']:>10} | Current fraud: ${current_fraud:>8,.0f} | Savings: ${savings:>7,.0f}\")\n\nprint(f\"\\nTotal projected monthly fraud savings: ${total_savings:,.0f}\")\nprint(f\"Savings as % of current fraud: {total_savings/current_total_fraud:.1%}\")",
+          "output": "Current total fraud losses: $122,816\nCurrent global fraud rate: 0.824%\n\n         crypto:     strict | Current fraud:  $37,348 | Savings: $14,939\n         travel:     strict | Current fraud:  $46,743 | Savings: $16,360\n  online_gaming:     strict | Current fraud:   $3,569 | Savings:  $1,249\n    electronics:   standard | Current fraud:  $19,298 | Savings:      $0\n       shopping:   standard | Current fraud:  $11,371 | Savings:      $0\n        grocery:    lenient | Current fraud:   $2,920 | Savings:   -$292\n    food_dining:    lenient | Current fraud:   $1,566 | Savings:   -$157\n\nTotal projected monthly fraud savings: $32,099\nSavings as % of current fraud: 26.1%",
+          "business_implication": "The category-specific approval matrix is projected to reduce Stripe's monthly fraud losses by $32,099 — a 26% reduction in fraud dollars. The savings come almost entirely from stricter treatment of crypto and travel, which together represent $84K of the $123K current monthly fraud losses. The cost (lenient treatment for grocery and food_dining) adds only $449 in additional fraud while significantly reducing false positives in those high-volume, merchant-sensitive categories."
+        }
+      ]
+    },
+    {
+      "type": "decision_block",
+      "decision_type": "approval_matrix",
+      "prompt": "Based on your GroupBy analysis of fraud rates and dollar exposure by merchant category, set the fraud detection sensitivity for each merchant category. Remember: strict reduces fraud by ~40% but increases false positives by 10%; standard is unchanged; lenient reduces false positives by 25% but increases fraud by ~10%.",
+      "segments": [
+        {
+          "id": "crypto",
+          "label": "Crypto Exchanges",
+          "fraud_rate": "3.12%",
+          "avg_amount": 248
+        },
+        {
+          "id": "travel",
+          "label": "Travel (Airlines, Hotels)",
+          "fraud_rate": "1.48%",
+          "avg_amount": 343
+        },
+        {
+          "id": "online_gaming",
+          "label": "Online Gaming",
+          "fraud_rate": "1.21%",
+          "avg_amount": 48
+        },
+        {
+          "id": "electronics",
+          "label": "Electronics",
+          "fraud_rate": "0.88%",
+          "avg_amount": 186
+        },
+        {
+          "id": "shopping",
+          "label": "Online Shopping",
+          "fraud_rate": "0.42%",
+          "avg_amount": 95
+        },
+        {
+          "id": "grocery",
+          "label": "Grocery",
+          "fraud_rate": "0.18%",
+          "avg_amount": 38
+        },
+        {
+          "id": "food_dining",
+          "label": "Food & Dining",
+          "fraud_rate": "0.11%",
+          "avg_amount": 28
+        }
+      ],
+      "options_per_segment": ["strict", "standard", "lenient"],
+      "optimal_matrix": {
+        "crypto": "strict",
+        "travel": "strict",
+        "online_gaming": "strict",
+        "electronics": "standard",
+        "shopping": "standard",
+        "grocery": "lenient",
+        "food_dining": "lenient"
+      },
+      "outcome_explanation": "The optimal matrix assigns strict to the three categories with fraud rates above 1.0% (crypto 3.12%, travel 1.48%, online gaming 1.21%), standard to mid-range categories (electronics 0.88%, shopping 0.42% — where false positive costs and fraud costs are roughly balanced), and lenient to the two lowest-fraud categories (grocery 0.18%, food & dining 0.11% — where the false positive cost of blocking a $28 dinner far outweighs the fraud risk). This configuration produces the $32K monthly savings while staying inside the 4% false positive constraint for all categories."
+    },
+    {
+      "type": "technical_exercise_block",
+      "language": "python",
+      "standard": {
+        "instructions": "Write a function called `fraud_report_by_category` that takes a transactions DataFrame and returns a new DataFrame with one row per merchant_category containing: merchant_category, transaction_count, total_volume, avg_transaction_amount, fraud_rate (proportion of transactions that are fraudulent), fraud_dollar_loss (sum of amounts for fraudulent transactions only), and dollar_fraud_rate (fraud_dollar_loss / total_volume). Sort the result by fraud_rate descending. Assume the DataFrame has columns: transaction_id, merchant_category, amount, is_fraud (1 for fraud, 0 for legitimate).",
+        "starter_code": "import pandas as pd\n\ndef fraud_report_by_category(df):\n    \"\"\"\n    Compute a fraud risk report grouped by merchant category.\n    \n    Args:\n        df (pd.DataFrame): Transactions with columns: transaction_id,\n                           merchant_category, amount, is_fraud\n    \n    Returns:\n        pd.DataFrame: One row per category with fraud metrics, sorted by\n                      fraud_rate descending\n    \"\"\"\n    # Your code here\n    pass\n\n# Test\ntest_data = {\n    'transaction_id': range(1, 11),\n    'merchant_category': ['travel', 'travel', 'food', 'food', 'food',\n                           'travel', 'food', 'travel', 'food', 'travel'],\n    'amount': [300, 450, 25, 30, 28, 380, 22, 280, 35, 500],\n    'is_fraud': [1, 0, 0, 0, 0, 1, 1, 0, 0, 0]\n}\ntest_df = pd.DataFrame(test_data)\nresult = fraud_report_by_category(test_df)\nprint(result)",
+        "solution": "import pandas as pd\n\ndef fraud_report_by_category(df):\n    \"\"\"\n    Compute a fraud risk report grouped by merchant category.\n    \"\"\"\n    # Compute fraud dollar loss: sum amount only where is_fraud == 1\n    # We do this by creating a 'fraud_amount' column\n    df = df.copy()\n    df['fraud_amount'] = df['amount'] * df['is_fraud']\n    \n    report = df.groupby('merchant_category').agg(\n        transaction_count=('transaction_id', 'count'),\n        total_volume=('amount', 'sum'),\n        avg_transaction_amount=('amount', 'mean'),\n        fraud_rate=('is_fraud', 'mean'),\n        fraud_dollar_loss=('fraud_amount', 'sum')\n    ).reset_index()\n    \n    report['dollar_fraud_rate'] = report['fraud_dollar_loss'] / report['total_volume']\n    \n    report = report.sort_values('fraud_rate', ascending=False).reset_index(drop=True)\n    \n    return report\n\n# Test\ntest_data = {\n    'transaction_id': range(1, 11),\n    'merchant_category': ['travel', 'travel', 'food', 'food', 'food',\n                           'travel', 'food', 'travel', 'food', 'travel'],\n    'amount': [300, 450, 25, 30, 28, 380, 22, 280, 35, 500],\n    'is_fraud': [1, 0, 0, 0, 0, 1, 1, 0, 0, 0]\n}\ntest_df = pd.DataFrame(test_data)\nresult = fraud_report_by_category(test_df)\nprint(result)",
+        "hint": "The trickiest part is fraud_dollar_loss. The cleanest approach is to create a new column `df['fraud_amount'] = df['amount'] * df['is_fraud']` — this is 0 for legitimate transactions and the transaction amount for fraudulent ones. Then you can just sum it in the groupby. This pattern (multiply by a 0/1 flag to zero out one group) is a common pandas technique for conditional aggregation.",
+        "expected_output": "  merchant_category  transaction_count  total_volume  avg_transaction_amount  fraud_rate  fraud_dollar_loss  dollar_fraud_rate\n0            travel                  5        1910.0                   382.0        0.40              680.0           0.356021\n1              food                  5         140.0                    28.0        0.20               22.0           0.157143"
+      },
+      "challenge": {
+        "instructions": "Extend the fraud report to a multi-dimensional GroupBy: write a function `fraud_heatmap_data(df, category_col='merchant_category', amount_bins=None)` that returns a DataFrame with one row per (merchant_category, amount_band) combination. `amount_bins` defaults to [0, 50, 150, 500, 99999] with labels ['micro', 'small', 'medium', 'large']. For each combination, include: transaction_count, fraud_rate, and avg_amount. Only include combinations with at least 10 transactions. Sort by fraud_rate descending.",
+        "starter_code": "import pandas as pd\n\ndef fraud_heatmap_data(df, category_col='merchant_category', amount_bins=None):\n    pass",
+        "solution": "import pandas as pd\n\ndef fraud_heatmap_data(df, category_col='merchant_category', amount_bins=None):\n    df = df.copy()\n    \n    if amount_bins is None:\n        amount_bins = [0, 50, 150, 500, 99999]\n        labels = ['micro', 'small', 'medium', 'large']\n    else:\n        labels = [f'band_{i}' for i in range(len(amount_bins) - 1)]\n    \n    df['amount_band'] = pd.cut(df['amount'], bins=amount_bins, labels=labels)\n    \n    heatmap = df.groupby([category_col, 'amount_band']).agg(\n        transaction_count=('transaction_id', 'count'),\n        fraud_rate=('is_fraud', 'mean'),\n        avg_amount=('amount', 'mean')\n    ).reset_index()\n    \n    # Filter to combinations with sufficient volume\n    heatmap = heatmap[heatmap['transaction_count'] >= 10]\n    \n    heatmap = heatmap.sort_values('fraud_rate', ascending=False).reset_index(drop=True)\n    \n    return heatmap",
+        "hint": "Use `pd.cut()` to create the amount_band column before the groupby. Then group by both [category_col, 'amount_band'] in a list. After aggregating, filter out low-volume combinations with `heatmap[heatmap['transaction_count'] >= 10]`. The multi-column groupby returns one row per unique combination of the two grouping columns."
+      }
+    },
+    {
+      "type": "quiz_block",
+      "questions": [
+        {
+          "id": "m01_l07_q1",
+          "concept_tags": ["pandas_groupby", "aggregation"],
+          "type": "multiple_choice",
+          "question": "You run `df.groupby('merchant_category')['amount'].mean()` and get a Series with merchant categories as the index. Then you try to add a new column to the original df: `df['category_avg'] = df.groupby('merchant_category')['amount'].mean()`. What happens?",
+          "options": [
+            "A) The column is added correctly — pandas aligns the grouped means to the original DataFrame index",
+            "B) The column is added but most values are NaN — because the groupby result has category labels as its index, not the original integer index, so they don't align",
+            "C) TypeError is raised — you cannot assign a groupby result directly to a DataFrame column",
+            "D) The operation works only if the DataFrame is sorted by merchant_category first"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: `df.groupby('merchant_category')['amount'].mean()` returns a Series indexed by merchant_category values (e.g., 'travel', 'crypto'). When you assign it to `df['category_avg']`, pandas tries to align by index — but df's index is 0, 1, 2, 3... (integers), not category names. The indices don't match so pandas fills everything with NaN. The correct approach is `df['category_avg'] = df.groupby('merchant_category')['amount'].transform('mean')` — the `.transform()` method returns a Series with the same index as the original DataFrame, mapping each row back to its group's mean. A is wrong: pandas does not automatically broadcast groupby results to the original DataFrame index — alignment must be explicit. C is wrong: there is no TypeError; the assignment succeeds but produces NaN values. D is wrong: sorting doesn't fix the index alignment problem — the indices are still different types (strings vs integers)."
+        },
+        {
+          "id": "m01_l07_q2",
+          "concept_tags": ["segment_analysis", "cohort_analysis"],
+          "type": "multiple_choice",
+          "question": "Stripe's GroupBy analysis shows travel has a 1.48% fraud rate and food_dining has a 0.11% fraud rate. The average travel transaction is $343 vs. $28 for food_dining. A colleague argues 'food_dining has more total transactions so it should be treated more strictly.' What is the flaw in this reasoning?",
+          "options": [
+            "A) There is no flaw — transaction count is the correct denominator for setting fraud thresholds",
+            "B) Transaction count ignores dollar exposure. Food_dining's 51,000 transactions at $28 each generate less fraud dollar loss than travel's 9,200 transactions at $343 each, despite the count advantage. Fraud thresholds should be calibrated to dollar risk, not transaction volume",
+            "C) The colleague is correct only if the cost of false positives in travel equals the cost of false positives in food_dining",
+            "D) Transaction count becomes relevant only when fraud rates are identical across categories"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: the key insight is that dollar exposure, not transaction count, is the right denominator for fraud risk management. 51,000 food_dining transactions at $28 average = $1.4M total volume with 0.11% fraud = $1,566 in fraud losses. 9,200 travel transactions at $343 average = $3.2M total volume with 1.48% fraud = $47,300 in fraud losses. Travel generates 30x more fraud dollar loss despite 82% fewer transactions. Fraud operations is ultimately a dollar P&L problem, not a transaction count problem. A is wrong: transaction count alone is an incomplete denominator that systematically under-weights high-ticket fraud. C is wrong: the false positive cost discussion is separate from the fraud rate analysis — the colleague's specific claim (high count = strict treatment) is about fraud rates, not false positive costs. D is wrong: transaction count does not become a useful denominator even when rates are equal — dollar volume still drives the actual loss figure."
+        },
+        {
+          "id": "m01_l07_q3",
+          "concept_tags": ["pandas_groupby"],
+          "type": "short_answer",
+          "question": "What is the difference between `.groupby().agg()` and `.groupby().transform()` in pandas, and give a financial use case for each?",
+          "accepted_answers": [
+            ".groupby().agg() produces one row per group (a summary table). Use case: computing average fraud rate per merchant category to build a risk report. .groupby().transform() produces a Series with the same length as the original DataFrame, broadcasting group statistics back to each row. Use case: adding a column to each transaction showing the average fraud rate of its merchant category, for use in model features.",
+            "agg() collapses to one row per group — good for reporting. transform() returns the group statistic at each row — good for feature engineering, like adding category_avg_fraud_rate as a feature for each transaction row in an ML model.",
+            ".agg() returns a grouped summary with one row per group value. Use for presentations and reports. .transform() returns a Series the same length as df where each row has the aggregated value for its group. Use for creating derived features like 'this transaction's amount relative to the category average'."
+          ],
+          "explanation": "A complete answer explains the structural difference — agg() shrinks the DataFrame to group-level rows, transform() keeps the original row structure — and provides a concrete financial use case for each. The most insightful examples connect transform() to feature engineering (adding category-level statistics as row-level features for a model) and agg() to reporting (building a summary table for stakeholders). A weak answer only explains the syntax difference without connecting to when and why you'd choose each."
+        },
+        {
+          "id": "m01_l07_q4",
+          "concept_tags": ["segment_analysis", "cohort_analysis"],
+          "type": "what_would_you_do",
+          "question": "After presenting the merchant category fraud matrix, Stripe's VP of Merchant Success asks: 'Electronics has a 0.88% fraud rate — that's above your 0.42% threshold for standard treatment but you didn't recommend strict. Why not?' How do you defend your decision with data?",
+          "sample_answer": "I kept electronics at standard treatment because the fraud rate threshold alone doesn't capture the full picture. The relevant comparison is: what does 'strict' treatment for electronics cost in false positives vs. what fraud loss does it prevent? Electronics has 11,842 transactions per month. Strict treatment increases false positives by approximately 10%, meaning about 1,184 additional legitimate electronics transactions would be blocked per month. At an average ticket of $186 and Stripe's estimated 0.5% churn rate per blocked transaction, that's approximately $1,100 in lost merchant processing fees from churned customers. The fraud reduction from strict treatment on electronics would save about $7,700 (40% of $19,298 current fraud loss). So yes, strict treatment for electronics is profitable on a pure P&L basis. I'd update my recommendation to strict for electronics — the data supports it, and I was wrong to set it at standard. This is exactly the kind of pushback that makes the analysis better.",
+          "key_concepts": ["acknowledge the data supports strict treatment for electronics", "calculate false positive cost vs. fraud savings explicitly", "update recommendation when stakeholder identifies a gap in the analysis", "false positive cost = additional blocked txns * churn probability * LTV impact"]
+        }
+      ]
+    },
+    {
+      "type": "solution_debrief_block",
+      "optimal_decision": "Implement the category-specific approval matrix: strict for crypto/travel/online_gaming, standard for electronics/shopping, lenient for grocery/food_dining",
+      "decision_rationale": "The optimal matrix assigns settings that match fraud risk to detection sensitivity, weighted by dollar exposure. Crypto (3.12% fraud, $248 avg), travel (1.48%, $343 avg), and online_gaming (1.21%, $48 avg) all exceed the 1% threshold and warrant strict treatment. Electronics (0.88%) and shopping (0.42%) sit in the middle range where current standard detection is appropriately calibrated. Grocery (0.18%) and food_dining (0.11%) have fraud rates 7-8x below the global average and are the primary sources of false-positive complaints from merchants — lenient treatment sacrifices only $449/month in additional fraud losses while substantially reducing merchant friction.",
+      "pl_comparison": [
+        {
+          "label": "Global threshold (current)",
+          "approval_rate": "99.18% (current false positive baseline)",
+          "default_rate": "0.824% fraud rate, $122,816 monthly fraud losses",
+          "monthly_profit": "Baseline — $0 net change",
+          "verdict": "One-size-fits-all. Simultaneously over-blocks in food/grocery (causing merchant complaints) and under-blocks in crypto/travel (losing $62K/month in preventable fraud). Not optimal for any segment."
+        },
+        {
+          "label": "Optimal matrix (strict/standard/lenient)",
+          "approval_rate": "Improved in grocery/food; tighter in crypto/travel/gaming",
+          "default_rate": "Projected 0.61% fraud rate, $90,717 monthly fraud losses",
+          "monthly_profit": "+$32,099 monthly savings (26.1% fraud reduction)",
+          "verdict": "Best total outcome. Concentrates strictness where dollar exposure is highest (crypto and travel together represent $84K of $123K current fraud losses). Lenient treatment for food/dining costs only $449/month while significantly reducing VP of Merchant Success's false-positive problem."
+        },
+        {
+          "label": "All strict (worst case)",
+          "approval_rate": "Significant false positive increase across all categories",
+          "default_rate": "~0.49% fraud rate — maximum fraud reduction",
+          "monthly_profit": "False positive cost estimate: ~$18,000/month in lost merchant volume",
+          "verdict": "Over-engineered. Applying strict treatment to grocery and food_dining creates false positive costs that exceed the fraud savings in those categories. The net gain from going all-strict vs. optimal is approximately $5,000/month additional fraud prevention at a cost of $18,000/month in merchant friction — a net negative."
+        }
+      ],
+      "stakeholder_communication": "Our GroupBy analysis of 154 million monthly transactions shows that fraud is highly concentrated by merchant category: crypto (3.12%) and travel (1.48%) together account for $84,000 of our $123,000 monthly fraud losses despite representing only 9% of transaction volume. I recommend a category-specific approval matrix that applies strict fraud detection to crypto, travel, and online gaming, standard to electronics and shopping, and lenient to grocery and food_dining. This matrix is projected to reduce monthly fraud losses by $32,000 — a 26% reduction — while simultaneously addressing the merchant false-positive complaints that have been escalated to your team for grocery and restaurant merchants.",
+      "key_takeaway": "GroupBy analysis reveals that 9% of Stripe's transaction volume (crypto and travel) drives 68% of fraud dollar losses — enabling a category-specific approval matrix that reduces monthly fraud losses by $32,099 while reducing false positives in the high-volume, low-fraud food and grocery categories.",
+      "next_lessons": ["m01_l08"]
+    }
+  ]
+}

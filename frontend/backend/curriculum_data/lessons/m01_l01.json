@@ -1,0 +1,199 @@
+{
+  "id": "m01_l01",
+  "module_id": "m01",
+  "title": "Variables, Types, and Business Logic",
+  "order": 1,
+  "duration_min": 25,
+  "difficulty": "beginner",
+  "concept_tags": ["python_variables", "data_types", "business_logic", "conditional_logic"],
+  "learning_objectives": [
+    "Declare and assign Python variables using business-meaningful names",
+    "Distinguish between int, float, str, and bool data types and choose the right one for financial data",
+    "Write conditional logic (if/elif/else) that enforces a real loan approval policy",
+    "Understand why precise data types prevent costly financial errors in production systems"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Affirm's entire buy-now-pay-later underwriting engine starts with a single Python variable holding a credit score — get the data type wrong and you approve a 580 FICO applicant for a $5,000 loan.",
+      "explanation": "Every financial system begins with data. Before Affirm can decide whether to offer you 0% financing on that Peloton bike, its underwriting code must store your credit score, annual income, requested loan amount, and employment status in memory. In Python, each of these becomes a variable — a named container holding a value. The name you give a variable is a business decision as much as a technical one: `cs` is ambiguous, `credit_score` is self-documenting, and `applicant_credit_score_fico` tells a compliance auditor exactly what they're looking at.\n\nData types determine what operations are valid and what errors are impossible. A credit score stored as an integer (int) can be compared with `>` and `<` operators, which is exactly how an approval threshold works. If you accidentally store it as a string ('720'), then `credit_score > 660` raises a TypeError and your loan approval pipeline crashes at 2 AM. At Affirm's scale — processing millions of transactions monthly — a type error in production can mean thousands of failed approvals and real revenue loss before an on-call engineer catches it.\n\nBooleans (True/False) are the natural output of a loan decision: approved or not. Floats handle interest rates and loan amounts where decimals matter. Understanding which type belongs where is the foundation of writing financial logic that is both correct and auditable — because regulators will ask why a loan was approved or denied, and 'the variable had the wrong type' is not an acceptable answer.",
+      "code_example": {
+        "language": "python",
+        "code": "# Loan application data — types chosen deliberately\napplicant_name = \"Maria Chen\"          # str: identifier, never do math on names\ncredit_score = 720                     # int: FICO scores are always whole numbers\nannual_income = 95000.0                # float: income can have cents, use float\nloan_amount = 15000.0                  # float: dollar amounts need decimal precision\nloan_purpose = \"home_improvement\"      # str: categorical, drives policy rules\nis_existing_customer = True            # bool: binary flag — yes or no\ndebt_to_income_ratio = 0.32           # float: ratio between 0 and 1\n\n# Conditional logic: translating Affirm's underwriting policy into code\n# Policy: approve if credit >= 680 AND dti < 0.40 AND loan <= 20000\nif credit_score >= 680 and debt_to_income_ratio < 0.40 and loan_amount <= 20000:\n    approved = True\n    decision_reason = \"Meets all underwriting criteria\"\nelif credit_score >= 620 and is_existing_customer:\n    # Existing customers get a second-chance window — retention matters\n    approved = True\n    decision_reason = \"Approved via existing customer exception\"\nelse:\n    approved = False\n    decision_reason = \"Does not meet minimum underwriting standards\"\n\n# Output the decision in a format a compliance log would expect\nprint(f\"Applicant: {applicant_name}\")\nprint(f\"Credit Score: {credit_score} | DTI: {debt_to_income_ratio:.0%} | Amount: ${loan_amount:,.0f}\")\nprint(f\"Decision: {'APPROVED' if approved else 'DENIED'}\")\nprint(f\"Reason: {decision_reason}\")",
+        "output": "Applicant: Maria Chen\nCredit Score: 720 | DTI: 32% | Amount: $15,000\nDecision: APPROVED\nReason: Meets all underwriting criteria"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Affirm",
+      "role": "Junior Credit Risk Analyst at Affirm",
+      "scenario": "It's Q1 2026 and Affirm has just signed a partnership with United Airlines to offer installment financing for flights booked directly on united.com. The average ticket price in the partnership is $420. Your VP of Credit Risk has asked you to set the initial minimum FICO score threshold for this product. Set it too low and you'll see elevated defaults, hurting Affirm's net interest margin and triggering covenant violations with their warehouse lenders. Set it too high and you'll approve so few customers that United's partnership team will complain the product doesn't move the needle on conversion — and a $50M distribution deal could be at risk. You have historical data from Affirm's travel-adjacent loans (luggage, vacation packages) to inform your decision, but the airline vertical is new territory. Leadership wants a number by end of day.",
+      "constraints": [
+        "Affirm's warehouse lending agreement requires portfolio default rate to stay below 3.5%",
+        "United Airlines expects at least 18% of checkout-page visitors to qualify for financing",
+        "The new product launches in 6 weeks — there is no time for A/B testing before go-live",
+        "Regulatory fair lending rules require the threshold to be applied uniformly — no manual overrides"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "VP of Credit Risk",
+          "pressure": "Keep defaults under 3.5% or we breach our warehouse facility covenants — that's an existential risk for this product line"
+        },
+        {
+          "stakeholder": "Head of Partnerships (United deal lead)",
+          "pressure": "United's CFO is watching conversion rates weekly — if we're not hitting 18% qualification rate in month one, they'll reconsider the exclusivity clause"
+        },
+        {
+          "stakeholder": "Chief Compliance Officer",
+          "pressure": "Whatever threshold you pick, document the business justification with data — CFPB is scrutinizing BNPL underwriting practices and we need a clean audit trail"
+        },
+        {
+          "stakeholder": "Data Science Team",
+          "pressure": "Our travel-adjacent loan model shows a sharp default inflection point around 650 FICO — below that, defaults double from 2.1% to 4.3% based on our last 18 months of data"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "loan_applications",
+      "intro": "Before setting the FICO threshold, you need to understand what the data actually shows. We'll examine the loan_applications dataset to see how applicant volume, approval rates, and default rates shift across the FICO spectrum. This is the analysis that will justify your threshold to the CCO and the VP of Credit Risk.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Load the dataset and inspect its shape and column types to understand what you're working with",
+          "code": "import pandas as pd\n\n# Load the loan applications dataset\ndf = pd.read_csv('loan_applications.csv')\n\n# Always start with shape and dtypes — know your data before you analyze it\nprint(f\"Dataset: {df.shape[0]:,} rows, {df.shape[1]} columns\")\nprint(\"\\nColumn types:\")\nprint(df.dtypes)\nprint(\"\\nFirst 3 rows:\")\nprint(df[['applicant_id', 'credit_score', 'loan_amount', 'loan_purpose', 'defaulted']].head(3))",
+          "output": "Dataset: 48,312 rows, 14 columns\n\nColumn types:\napplicant_id        object\ncredit_score         int64\nannual_income      float64\nloan_amount        float64\nloan_purpose        object\ndebt_to_income    float64\ndefaulted            int64\n...\n\nFirst 3 rows:\n   applicant_id  credit_score  loan_amount loan_purpose  defaulted\n0     APP-00001           712        420.0       travel          0\n1     APP-00002           598        420.0       travel          1\n2     APP-00003           664        420.0       travel          0",
+          "business_implication": "The dataset has 48,000+ historical travel-adjacent loan applications — large enough to compute reliable default rates by FICO band. The 'defaulted' column is an integer (0 or 1), which makes computing default rates as simple as taking the mean. This is exactly the kind of historical data that will make your threshold defensible to regulators."
+        },
+        {
+          "step": 2,
+          "instruction": "Compute default rate by FICO band to identify where defaults spike — this is the core of your threshold decision",
+          "code": "# Create FICO score bands — standard industry groupings\ndf['fico_band'] = pd.cut(\n    df['credit_score'],\n    bins=[580, 620, 640, 660, 680, 700, 720, 780],\n    labels=['580-619', '620-639', '640-659', '660-679', '680-699', '700-719', '720+']\n)\n\n# Aggregate: count applications, compute default rate, and average loan amount per band\nband_analysis = df.groupby('fico_band').agg(\n    application_count=('applicant_id', 'count'),\n    default_rate=('defaulted', 'mean'),\n    avg_loan_amount=('loan_amount', 'mean')\n).reset_index()\n\nband_analysis['default_rate_pct'] = band_analysis['default_rate'].map('{:.1%}'.format)\nband_analysis['approval_share'] = (band_analysis['application_count'] / band_analysis['application_count'].sum()).map('{:.1%}'.format)\n\nprint(band_analysis[['fico_band', 'application_count', 'approval_share', 'default_rate_pct', 'avg_loan_amount']].to_string(index=False))",
+          "output": "fico_band  application_count approval_share default_rate_pct  avg_loan_amount\n  580-619               5821         12.1%            5.8%           398.20\n  620-639               6104         12.6%            4.2%           405.50\n  640-659               7890         16.3%            3.1%           412.80\n  660-679               8234         17.0%            2.0%           418.40\n  680-699               7612         15.8%            1.4%           425.60\n  700-719               6891         14.3%            0.9%           431.20\n     720+               5760         11.9%            0.5%           440.10",
+          "business_implication": "The inflection point is unmistakable: default rate drops from 3.1% to 2.0% when moving from the 640-659 band to the 660-679 band. Affirm's warehouse covenant requires defaults below 3.5%, which means any threshold at 640 or below carries meaningful covenant risk. The 660+ band clears the 3.5% requirement with a 75-basis-point safety margin."
+        },
+        {
+          "step": 3,
+          "instruction": "Compute the approval rate at each candidate threshold to check against United's 18% minimum qualification requirement",
+          "code": "# Test three candidate thresholds: 640, 660, 680\ncandidate_thresholds = [640, 660, 680]\ntotal_applicants = len(df)\n\nprint(f\"Total applicants in dataset: {total_applicants:,}\")\nprint(f\"United's minimum qualification rate required: 18.0%\\n\")\nprint(f\"{'Threshold':>12} {'Qualifies':>12} {'Qual Rate':>12} {'Avg Default Rate':>18} {'Covenant Safe?':>15}\")\nprint(\"-\" * 75)\n\nfor threshold in candidate_thresholds:\n    qualifies = df[df['credit_score'] >= threshold]\n    qual_rate = len(qualifies) / total_applicants\n    avg_default = qualifies['defaulted'].mean()\n    covenant_safe = \"YES\" if avg_default < 0.035 else \"NO\"\n    united_ok = \"YES\" if qual_rate >= 0.18 else \"NO\"\n    print(f\"{threshold:>12} {len(qualifies):>12,} {qual_rate:>11.1%} {avg_default:>17.1%}   {covenant_safe} / United: {united_ok}\")",
+          "output": "Total applicants in dataset: 48,312\nUnited's minimum qualification rate required: 18.0%\n\n   Threshold     Qualifies    Qual Rate   Avg Default Rate Covenant Safe?\n---------------------------------------------------------------------------\n         640        34,487        71.4%              2.0%   YES / United: YES\n         660        28,497        59.0%              1.4%   YES / United: YES\n         680        21,803        45.1%              0.9%   YES / United: YES",
+          "business_implication": "All three thresholds satisfy United's 18% qualification rate — in fact, all three exceed it significantly, which means you have room to be conservative on credit quality without jeopardizing the partnership SLA. The real differentiator is the default rate and covenant margin: a 660 threshold delivers a 2.1-point safety buffer below the 3.5% covenant ceiling, while still approving 59% of applicants. A 640 threshold saves only 0.5 points of buffer for a riskier portfolio."
+        }
+      ]
+    },
+    {
+      "type": "decision_block",
+      "decision_type": "numeric_threshold",
+      "prompt": "Based on the FICO band analysis, set the minimum credit score threshold for Affirm's United Airlines installment financing product. The warehouse covenant requires a portfolio default rate below 3.5%. United requires at least 18% of checkout visitors to qualify. Where do you set the bar?",
+      "slider_min": 580,
+      "slider_max": 740,
+      "slider_step": 5,
+      "default_value": 640,
+      "outcome_function": "credit_threshold_pl",
+      "optimal_value": 660,
+      "worst_value": 580,
+      "outcome_explanation": "The outcome function simulates monthly P&L based on the chosen threshold applied to a projected 10,000 monthly applicants. At each threshold, it models: approval volume, default-driven charge-offs (at $420 average ticket), net interest income from performing loans, and a penalty if the default rate breaches the 3.5% warehouse covenant (modeled as a 50-basis-point rate increase on the entire facility). A threshold of 660 maximizes monthly profit at approximately $41,200 by balancing volume with a 2.0% default rate. Thresholds below 640 trigger the covenant penalty model, sharply reducing profit. Thresholds above 700 reduce defaults further but cut approval volume so much that net interest income falls below $38,000 monthly."
+    },
+    {
+      "type": "technical_exercise_block",
+      "language": "python",
+      "standard": {
+        "instructions": "Write a function called `approve_loan` that takes three arguments: `credit_score` (int), `loan_amount` (float), and `is_existing_customer` (bool, default False). The function should return True if the application is approved, False otherwise. Apply these rules in order: (1) Approve if credit_score >= 660 AND loan_amount <= 25000. (2) Approve if credit_score >= 620 AND is_existing_customer is True AND loan_amount <= 10000. (3) Deny all other applications. Add a docstring explaining what the function does.",
+        "starter_code": "def approve_loan(credit_score, loan_amount, is_existing_customer=False):\n    \"\"\"\n    Evaluate a loan application against Affirm's underwriting policy.\n    \n    Args:\n        credit_score (int): Applicant's FICO score\n        loan_amount (float): Requested loan amount in dollars\n        is_existing_customer (bool): Whether applicant has an existing Affirm account\n    \n    Returns:\n        bool: True if approved, False if denied\n    \"\"\"\n    # Your code here\n    pass\n\n# Test your function\nprint(approve_loan(720, 15000))           # Should print: True\nprint(approve_loan(590, 5000, True))      # Should print: True  (existing customer exception)\nprint(approve_loan(590, 5000, False))     # Should print: False\nprint(approve_loan(650, 30000))           # Should print: False (loan too large)\nprint(approve_loan(630, 8000, True))      # Should print: True  (existing customer, small loan)",
+        "solution": "def approve_loan(credit_score, loan_amount, is_existing_customer=False):\n    \"\"\"\n    Evaluate a loan application against Affirm's underwriting policy.\n    \n    Args:\n        credit_score (int): Applicant's FICO score\n        loan_amount (float): Requested loan amount in dollars\n        is_existing_customer (bool): Whether applicant has an existing Affirm account\n    \n    Returns:\n        bool: True if approved, False if denied\n    \"\"\"\n    # Primary approval path: meets standard underwriting criteria\n    if credit_score >= 660 and loan_amount <= 25000:\n        return True\n    \n    # Secondary approval path: existing customer exception for small loans\n    if credit_score >= 620 and is_existing_customer and loan_amount <= 10000:\n        return True\n    \n    # Default: deny\n    return False\n\n# Test your function\nprint(approve_loan(720, 15000))           # True\nprint(approve_loan(590, 5000, True))      # True  (existing customer exception)\nprint(approve_loan(590, 5000, False))     # False\nprint(approve_loan(650, 30000))           # False (loan too large)\nprint(approve_loan(630, 8000, True))      # True  (existing customer, small loan)",
+        "hint": "Use an if/elif/else structure. The first condition needs both credit_score AND loan_amount checks joined with `and`. The second condition needs three things joined with `and`. Remember: once you `return True`, Python exits the function immediately — you don't need an else after each if.",
+        "expected_output": "True\nTrue\nFalse\nFalse\nTrue"
+      },
+      "challenge": {
+        "instructions": "Extend `approve_loan` into a more realistic version called `evaluate_application` that takes a dictionary representing a full loan application and returns a dictionary with the decision and the reason code. The input dict will have keys: 'credit_score', 'loan_amount', 'annual_income', 'debt_to_income', 'loan_purpose', 'is_existing_customer'. Apply these rules: (1) Deny immediately if debt_to_income > 0.50 — reason: 'DTI_EXCEEDS_MAXIMUM'. (2) Approve if credit_score >= 680 and debt_to_income <= 0.40 — reason: 'STANDARD_APPROVAL'. (3) Approve if credit_score >= 640 and loan_purpose in ['home_improvement', 'medical'] and loan_amount <= 15000 — reason: 'PURPOSE_EXCEPTION'. (4) Approve if is_existing_customer and credit_score >= 620 and loan_amount <= 8000 — reason: 'EXISTING_CUSTOMER_EXCEPTION'. (5) Otherwise deny — reason: 'DOES_NOT_MEET_CRITERIA'. Return {'approved': True/False, 'reason_code': 'REASON', 'decision_text': 'Human readable explanation'}.",
+        "starter_code": "def evaluate_application(application):\n    # application is a dict with keys:\n    # credit_score, loan_amount, annual_income, debt_to_income,\n    # loan_purpose, is_existing_customer\n    pass\n\n# Test cases\napp1 = {'credit_score': 700, 'loan_amount': 12000, 'annual_income': 80000,\n        'debt_to_income': 0.35, 'loan_purpose': 'travel', 'is_existing_customer': False}\nprint(evaluate_application(app1))  # STANDARD_APPROVAL\n\napp2 = {'credit_score': 645, 'loan_amount': 10000, 'annual_income': 55000,\n        'debt_to_income': 0.42, 'loan_purpose': 'home_improvement', 'is_existing_customer': False}\nprint(evaluate_application(app2))  # PURPOSE_EXCEPTION",
+        "solution": "def evaluate_application(application):\n    cs = application['credit_score']\n    amount = application['loan_amount']\n    dti = application['debt_to_income']\n    purpose = application['loan_purpose']\n    existing = application['is_existing_customer']\n\n    if dti > 0.50:\n        return {\n            'approved': False,\n            'reason_code': 'DTI_EXCEEDS_MAXIMUM',\n            'decision_text': f'Debt-to-income ratio of {dti:.0%} exceeds the 50% maximum allowed.'\n        }\n    if cs >= 680 and dti <= 0.40:\n        return {\n            'approved': True,\n            'reason_code': 'STANDARD_APPROVAL',\n            'decision_text': f'Approved under standard underwriting: FICO {cs}, DTI {dti:.0%}.'\n        }\n    if cs >= 640 and purpose in ['home_improvement', 'medical'] and amount <= 15000:\n        return {\n            'approved': True,\n            'reason_code': 'PURPOSE_EXCEPTION',\n            'decision_text': f'Approved via purpose exception for {purpose} loan of ${amount:,.0f}.'\n        }\n    if existing and cs >= 620 and amount <= 8000:\n        return {\n            'approved': True,\n            'reason_code': 'EXISTING_CUSTOMER_EXCEPTION',\n            'decision_text': f'Approved via existing customer exception: FICO {cs}, loan ${amount:,.0f}.'\n        }\n    return {\n        'approved': False,\n        'reason_code': 'DOES_NOT_MEET_CRITERIA',\n        'decision_text': f'Application denied: FICO {cs} and profile do not meet any approval pathway.'\n    }",
+        "hint": "Extract the application fields into local variables at the top for readability. Handle the hard deny case (DTI > 0.50) first before any approvals — order matters in conditional chains. Remember that `in` can check membership in a list: `purpose in ['home_improvement', 'medical']`."
+      }
+    },
+    {
+      "type": "quiz_block",
+      "questions": [
+        {
+          "id": "m01_l01_q1",
+          "concept_tags": ["data_types"],
+          "type": "multiple_choice",
+          "question": "A loan underwriting system stores a customer's annual income as `income = '85000'`. What problem does this create when computing debt-to-income ratio with `dti = loan_amount / income`?",
+          "options": [
+            "A) Python will automatically convert '85000' to a number before dividing",
+            "B) The code raises a TypeError because you cannot divide a float by a string",
+            "C) The result will be slightly inaccurate due to string rounding",
+            "D) The variable name 'income' is reserved in Python and will cause a NameError"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: dividing a float by a string raises TypeError: unsupported operand type(s) for /: 'float' and 'str'. Python does NOT automatically convert strings to numbers for arithmetic — this is a deliberate design choice to prevent silent errors. A is wrong: Python has no implicit numeric coercion for arithmetic operators. C is wrong: strings don't participate in division at all — there is no 'rounding' because no calculation occurs. D is wrong: 'income' is not a reserved keyword in Python; reserved keywords are things like 'if', 'for', 'return', 'class'."
+        },
+        {
+          "id": "m01_l01_q2",
+          "concept_tags": ["conditional_logic", "business_logic"],
+          "type": "multiple_choice",
+          "question": "Affirm's policy approves a loan if credit_score >= 660 AND loan_amount <= 25000. An application comes in with credit_score = 710 and loan_amount = 27000. What does the Python expression `credit_score >= 660 and loan_amount <= 25000` evaluate to?",
+          "options": [
+            "A) True, because the credit score condition is satisfied",
+            "B) True, because 710 is well above 660 which compensates for the loan amount",
+            "C) False, because both conditions must be True for `and` to return True",
+            "D) SyntaxError, because you cannot chain comparisons with `and` in Python"
+          ],
+          "correct_index": 2,
+          "explanation": "C is correct: the `and` operator in Python requires both operands to be True to return True. `credit_score >= 660` evaluates to True (710 >= 660), but `loan_amount <= 25000` evaluates to False (27000 > 25000). True and False = False. A is wrong: satisfying one condition in an `and` expression is not sufficient — all conditions must be True. B is wrong: Python boolean logic has no concept of 'compensation' between conditions; each is evaluated independently as True or False. D is wrong: chaining comparisons with `and` is completely valid Python syntax."
+        },
+        {
+          "id": "m01_l01_q3",
+          "concept_tags": ["python_variables", "data_types"],
+          "type": "short_answer",
+          "question": "Name two Python data types used in the loan approval example and give a specific loan-related variable that should use each type. Explain why the type fits the variable.",
+          "accepted_answers": [
+            "int for credit_score because FICO scores are always whole numbers; float for loan_amount because dollar amounts can have cents",
+            "bool for approved because a loan decision is binary yes/no; float for debt_to_income_ratio because it is a proportion between 0 and 1",
+            "str for loan_purpose because it is a category label not a number; int for credit_score because FICO is always a whole number"
+          ],
+          "explanation": "A strong answer names two specific types (int, float, str, or bool), pairs each with a meaningful financial variable, and explains the fit with domain reasoning — not just 'it's a number.' For example: int fits credit_score because FICO scores by definition are whole numbers (620, 710, 780) and treating them as floats (720.0) adds no precision and invites comparison bugs. Float fits loan_amount because monetary values frequently include cents and rounding to int could create material errors. Bool fits the approval decision because loan outcomes are binary and using bool (not 0/1 integers) makes the code self-documenting. Str fits loan_purpose because it is a categorical label used for policy routing, not arithmetic."
+        },
+        {
+          "id": "m01_l01_q4",
+          "concept_tags": ["business_logic", "conditional_logic"],
+          "type": "what_would_you_do",
+          "question": "You are a credit analyst at Affirm. The data science team has shown that adding a debt-to-income (DTI) check to the loan approval function reduces defaults by 0.8 percentage points, but it also reduces approval volume by 12%, which the partnerships team says will cost $2.1M in annual revenue. Your VP asks you to make a recommendation. What do you say, and what Python logic would you add to the approval function?",
+          "sample_answer": "I would recommend adding the DTI check with a threshold of 40-45% rather than a strict cutoff, because the 0.8pp default reduction translates to real charge-off savings that likely exceed the revenue loss on the marginal 12% of applicants. Specifically, if the current portfolio default rate is around 2%, reducing it to 1.2% on a $100M monthly origination volume saves roughly $800K in monthly charge-offs — far exceeding the revenue impact on the 12% of declined applications. In Python, I'd add `and debt_to_income <= 0.40` to the primary approval condition and run a backtest on historical data to confirm the exact revenue/risk tradeoff before deployment.",
+          "key_concepts": ["tradeoff between approval volume and default rate", "translating default rate reduction into dollar savings", "adding a conditional with `and` to enforce the DTI rule"]
+        }
+      ]
+    },
+    {
+      "type": "solution_debrief_block",
+      "optimal_decision": "Set the minimum FICO threshold at 660",
+      "decision_rationale": "A threshold of 660 produces an estimated portfolio default rate of 2.0%, which sits 150 basis points below Affirm's 3.5% warehouse covenant ceiling — a meaningful safety margin for a new product with model uncertainty. It approves 59% of applicants in the historical dataset, clearing United's 18% qualification rate requirement by a wide margin. At 10,000 projected monthly applicants and a $420 average ticket, a 660 threshold approves ~5,900 loans, generating approximately $2.48M in monthly originations. With a 2.0% default rate, expected charge-offs are ~$49,500/month, leaving net interest income of ~$41,200 after cost of funds at current warehouse rates.",
+      "pl_comparison": [
+        {
+          "label": "Too low (620)",
+          "approval_rate": "75.2%",
+          "default_rate": "3.8%",
+          "monthly_profit": "$28,400",
+          "verdict": "Breaches the 3.5% warehouse covenant, triggering a 50bp rate increase on the entire credit facility. The additional cost of funds erases $12,800 in monthly profit relative to the optimal threshold, and covenant violation risk could shut down the product entirely."
+        },
+        {
+          "label": "Optimal (660)",
+          "approval_rate": "59.0%",
+          "default_rate": "2.0%",
+          "monthly_profit": "$41,200",
+          "verdict": "Balances approval volume with credit quality. Clears the warehouse covenant with a 150bp margin, satisfies United's qualification rate SLA, and maximizes monthly profit. The data science team's inflection point analysis confirms 660 as the natural break in the default rate curve."
+        },
+        {
+          "label": "Too high (700)",
+          "approval_rate": "38.4%",
+          "default_rate": "0.7%",
+          "monthly_profit": "$31,600",
+          "verdict": "Credit quality is excellent but approval volume collapses to 3,840 monthly loans. At this rate, United's partnership team will flag the conversion impact within 60 days. The incremental default savings ($5,460/month vs. optimal) do not compensate for the $9,600 monthly revenue shortfall."
+        }
+      ],
+      "stakeholder_communication": "Based on our analysis of 48,000 historical travel-adjacent loan applications, I'm recommending a 660 FICO minimum for the United Airlines product. This threshold sits at the natural inflection point in our default rate curve — moving below 660 into the 640-659 band more than doubles the marginal default rate. At 660, our projected portfolio default rate is 2.0%, which keeps us 150 basis points inside our warehouse covenant and gives us headroom if the airline vertical performs slightly worse than our travel-adjacent historical data suggests. The 660 threshold approves approximately 59% of applicants, well above United's 18% qualification floor. I'd recommend we review after 90 days of live data and adjust if observed defaults diverge materially from the 2.0% projection.",
+      "key_takeaway": "A 660 FICO minimum on the United Airlines product maximizes monthly profit at $41,200 by maintaining a 2.0% default rate — 150 basis points inside our warehouse covenant ceiling and 41 percentage points above United's qualification rate floor.",
+      "next_lessons": ["m01_l02"]
+    }
+  ]
+}

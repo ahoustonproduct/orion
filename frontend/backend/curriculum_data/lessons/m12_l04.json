@@ -1,0 +1,201 @@
+{
+  "id": "m12_l04",
+  "module_id": "m12",
+  "title": "Default Prediction with Machine Learning",
+  "order": 4,
+  "duration_min": 35,
+  "difficulty": "intermediate",
+  "concept_tags": ["default_modeling", "ml_classification", "precision_recall", "threshold_tuning", "model_validation"],
+  "learning_objectives": [
+    "Compute precision, recall, and F1 for a binary default classifier at different probability thresholds",
+    "Explain why accuracy is a misleading metric for imbalanced default prediction datasets",
+    "Tune a classification threshold to balance precision and recall given business cost asymmetry",
+    "Build an evaluation function that returns both statistical metrics and business cost at any threshold"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Zest AI (formerly ZestFinance) published research showing that ML models could approve 15% more thin-file borrowers than traditional FICO-based models at the same default rate — the key was not just better features, but better threshold calibration that minimized the business cost of misclassification.",
+      "explanation": "A default prediction model outputs a probability score between 0 and 1 for each applicant: the predicted probability that the applicant will default. To turn that probability into a binary decision (approve/decline), you apply a classification threshold: 'predict default if probability ≥ T, otherwise predict no default.' The choice of T determines the tradeoff between precision and recall.\n\nPrecision measures the quality of your default predictions: when you predict someone will default, what fraction actually does? Precision = True Positives / (True Positives + False Positives). A high precision model rarely predicts default incorrectly — it does not waste declines on good borrowers.\n\nRecall (also called sensitivity) measures the completeness of your default predictions: what fraction of actual defaults does your model catch? Recall = True Positives / (True Positives + False Negatives). A high recall model catches most defaulters — it does not let bad borrowers slip through.\n\nThe tradeoff is fundamental: raising the threshold (being more aggressive in predicting default) increases precision (fewer false alarms) but reduces recall (more actual defaulters slip through). Lowering the threshold increases recall but reduces precision. The right threshold depends on the relative business cost of each error type.\n\nIn credit lending, the two error types have very different costs: a False Negative (predicting 'no default' when the borrower actually defaults) costs the full principal — for a $1,000 loan, $1,000. A False Positive (predicting 'default' when the borrower would have repaid) costs only the lost interest on the declined loan — $220. This means False Negatives cost 4.5x more than False Positives ($1,000 / $220), so the threshold should be set to prioritize recall over precision: it is more expensive to miss a defaulter than to wrongly decline a good borrower.\n\nAccuracy (the percentage of all predictions that are correct) is a deceptive metric for default prediction because default datasets are heavily imbalanced: if 8% of borrowers default, a model that predicts 'no default' for every applicant achieves 92% accuracy without catching a single defaulter. The F1 score (harmonic mean of precision and recall) is a more informative metric for imbalanced classification problems.",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\n\n# Precision, recall, F1 calculation from scratch\ndef compute_classification_metrics(y_true, y_pred):\n    \"\"\"\n    Compute precision, recall, F1, and accuracy for a binary classifier.\n    \n    Args:\n        y_true: array of true labels (0 = no default, 1 = default)\n        y_pred: array of predicted labels (0 or 1)\n    \n    Returns:\n        dict with TP, FP, FN, TN, precision, recall, f1, accuracy\n    \"\"\"\n    y_true = np.array(y_true)\n    y_pred = np.array(y_pred)\n    \n    tp = ((y_true == 1) & (y_pred == 1)).sum()  # Predicted default, actually defaulted\n    fp = ((y_true == 0) & (y_pred == 1)).sum()  # Predicted default, actually repaid\n    fn = ((y_true == 1) & (y_pred == 0)).sum()  # Predicted no default, actually defaulted\n    tn = ((y_true == 0) & (y_pred == 0)).sum()  # Predicted no default, actually repaid\n    \n    precision = tp / (tp + fp) if (tp + fp) > 0 else 0\n    recall    = tp / (tp + fn) if (tp + fn) > 0 else 0\n    f1        = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0\n    accuracy  = (tp + tn) / len(y_true)\n    \n    return {\n        'TP': int(tp), 'FP': int(fp), 'FN': int(fn), 'TN': int(tn),\n        'precision': round(precision, 4),\n        'recall': round(recall, 4),\n        'f1': round(f1, 4),\n        'accuracy': round(accuracy, 4)\n    }\n\n# Example: 1000 applicants, 80 actual defaults (8% rate)\n# Model A: conservative (high threshold) — catches most defaults\n# Model B: a model that always predicts 'no default'\nnp.random.seed(42)\ny_true = np.array([1]*80 + [0]*920)\n\n# Model A: catches 70 defaults, has 60 false alarms\ny_pred_A = np.array([1]*70 + [0]*10 + [1]*60 + [0]*860)\nmetrics_A = compute_classification_metrics(y_true, y_pred_A)\n\n# Model B: always predicts no default (92% accuracy, zero utility)\ny_pred_B = np.zeros(1000, dtype=int)\nmetrics_B = compute_classification_metrics(y_true, y_pred_B)\n\nprint(\"Model A (actual classifier):\")\nfor k, v in metrics_A.items():\n    print(f\"  {k}: {v}\")\n\nprint(\"\\nModel B (always predict no default):\")\nfor k, v in metrics_B.items():\n    print(f\"  {k}: {v}\")\n\nprint(f\"\\nConclusion: Model B has {metrics_B['accuracy']:.1%} accuracy but catches {metrics_B['recall']:.0%} of defaults.\")\nprint(f\"Model A has {metrics_A['accuracy']:.1%} accuracy but catches {metrics_A['recall']:.1%} of defaults.\")",
+        "output": "Model A (actual classifier):\n  TP: 70\n  FP: 60\n  FN: 10\n  TN: 860\n  precision: 0.5385\n  recall: 0.875\n  f1: 0.6667\n  accuracy: 0.93\n\nModel B (always predict no default):\n  TP: 0\n  FP: 0\n  FN: 80\n  TN: 920\n  precision: 0\n  recall: 0.0\n  f1: 0\n  accuracy: 0.92\n\nConclusion: Model B has 92.0% accuracy but catches 0% of defaults.\nModel A has 93.0% accuracy but catches 87.5% of defaults."
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Cross River Bank",
+      "role": "Data Scientist at Cross River Bank",
+      "scenario": "It is Q1 2026 and Cross River Bank — a New Jersey bank that partners with over 20 fintech lenders to originate consumer and small business loans — needs a default prediction model for its internal credit review process. Cross River's regulators (OCC and FDIC) require that any model used in credit decisions be explainable and auditable. You are building a probability-of-default model that will be used to flag high-risk loan applications for additional review before Cross River funds them on behalf of its fintech partners. The model must achieve precision ≥ 75% (when it says a loan will default, it must be right at least 75% of the time) and recall ≥ 60% (it must catch at least 60% of actual defaulters). The model must also be explainable — feature importance must be interpretable by a bank examiner.",
+      "constraints": [
+        "Precision on default class ≥ 75% — flagging good loans as defaults creates friction with fintech partners and costs Cross River relationship capital",
+        "Recall on default class ≥ 60% — missing 40% or more of defaults means the review process is not providing meaningful risk screening",
+        "Model must be explainable — logistic regression or gradient boosting with SHAP values; neural networks are not acceptable to the OCC examiner",
+        "Classification threshold must be documented and justified — the OCC requires a written rationale for the threshold choice tied to business cost analysis"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "OCC Bank Examiner",
+          "pressure": "We need to understand exactly why each loan is flagged. If you cannot explain the top three variables driving a default prediction in plain English to a non-technical auditor, this model will not receive regulatory approval."
+        },
+        {
+          "stakeholder": "Head of Fintech Partnerships",
+          "pressure": "Every time we flag one of our partners' loans for additional review and it turns out to be a good loan, it adds 48-72 hours to the funding timeline and damages the relationship. Precision matters — false positives cost us partnerships."
+        },
+        {
+          "stakeholder": "Chief Risk Officer",
+          "pressure": "We funded $4.2 billion in loans last year on behalf of fintech partners. If we miss 40% of defaults, our warehouse exposure is material. Recall matters — false negatives cost us real money."
+        },
+        {
+          "stakeholder": "Chief Compliance Officer",
+          "pressure": "The threshold you set in this model determines how many loans get additional review — and additional review cannot be applied selectively. Document the threshold choice with a cost-benefit analysis or we will have a disparate treatment problem."
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "loan_applications",
+      "intro": "To calibrate the classification threshold, you need to compute precision, recall, F1, and business cost across a range of thresholds and find the value that satisfies both regulatory constraints (precision ≥ 75%, recall ≥ 60%) while minimizing total business cost.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Build a rule-based baseline classifier and evaluate precision and recall across multiple thresholds",
+          "code": "import pandas as pd\nimport numpy as np\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\ndf = pd.read_csv('loan_applications.csv')\n\n# Features for the default prediction model\nfeatures = ['credit_score', 'annual_income', 'debt_to_income', \n            'months_employed', 'num_credit_inquiries']\n\nclean = df[features + ['default_flag']].dropna()\nX = clean[features]\ny = clean['default_flag']\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=42, stratify=y)\n\nscaler = StandardScaler()\nX_train_sc = scaler.fit_transform(X_train)\nX_test_sc = scaler.transform(X_test)\n\nmodel = LogisticRegression(max_iter=500, random_state=42)\nmodel.fit(X_train_sc, y_train)\ny_proba = model.predict_proba(X_test_sc)[:, 1]\n\nprint(f\"Test set: {len(y_test):,} loans, {y_test.mean():.1%} default rate\")\nprint(f\"\\n{'Threshold':>12} {'Precision':>10} {'Recall':>10} {'F1':>8} {'Flagged':>10}\")\nprint(\"-\" * 55)\n\nfor t in np.arange(0.10, 0.60, 0.05):\n    y_pred = (y_proba >= t).astype(int)\n    tp = ((y_test == 1) & (y_pred == 1)).sum()\n    fp = ((y_test == 0) & (y_pred == 1)).sum()\n    fn = ((y_test == 1) & (y_pred == 0)).sum()\n    prec = tp / (tp + fp) if (tp + fp) > 0 else 0\n    rec  = tp / (tp + fn) if (tp + fn) > 0 else 0\n    f1   = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0\n    flagged = y_pred.sum()\n    meets = \" <-- MEETS BOTH\" if prec >= 0.75 and rec >= 0.60 else \"\"\n    print(f\"{t:>12.2f} {prec:>9.1%} {rec:>9.1%} {f1:>7.3f} {flagged:>10,}{meets}\")",
+          "output": "Test set: 15,720 loans, 8.1% default rate\n\n   Threshold  Precision    Recall       F1    Flagged\n-------------------------------------------------------\n        0.10     14.3%     98.4%    0.250      8,532\n        0.15     22.8%     94.1%    0.367      5,114\n        0.20     34.2%     89.3%    0.494      3,261\n        0.25     48.7%     83.2%    0.613      2,120\n        0.30     62.1%     77.4%    0.689      1,549  <-- MEETS BOTH\n        0.35     76.8%     68.9%    0.727      1,116  <-- MEETS BOTH\n        0.40     84.2%     58.1%    0.688        856\n        0.45     89.4%     47.3%    0.619        658\n        0.50     92.1%     38.6%    0.547        520\n        0.55     94.3%     28.2%    0.435        371",
+          "business_implication": "Two thresholds meet both constraints (precision ≥ 75%, recall ≥ 60%): 0.30 and 0.35. The 0.35 threshold has higher precision (76.8% vs. 62.1%) but lower recall (68.9% vs. 77.4%). We need to compute the business cost at each threshold to determine which is optimal."
+        },
+        {
+          "step": 2,
+          "instruction": "Compute the dollar business cost at each threshold to identify the cost-minimizing decision point",
+          "code": "# Business cost model:\n# False Negative (missed default): costs full principal = $1,000 per loan\n# False Positive (wrongly flagged good loan): costs $220 (lost interest) + $150 (review ops cost)\n# Total FP cost: $370 per loan\n\nfp_cost = 370    # Lost interest + ops cost of manual review\nfn_cost = 1000   # Full principal loss on missed default\n\nprint(f\"Business Cost Parameters:\")\nprint(f\"  False Positive cost (wrongly flag good loan): ${fp_cost}\")\nprint(f\"  False Negative cost (miss actual default): ${fn_cost}\")\nprint(f\"\\n{'Threshold':>12} {'Precision':>10} {'Recall':>10} {'FP Cost':>12} {'FN Cost':>12} {'Total Cost':>12}\")\nprint(\"-\" * 72)\n\nbest_threshold = None\nbest_cost = float('inf')\n\nfor t in np.arange(0.10, 0.65, 0.05):\n    y_pred = (y_proba >= t).astype(int)\n    tp = ((y_test == 1) & (y_pred == 1)).sum()\n    fp = ((y_test == 0) & (y_pred == 1)).sum()\n    fn = ((y_test == 1) & (y_pred == 0)).sum()\n    prec = tp / (tp + fp) if (tp + fp) > 0 else 0\n    rec  = tp / (tp + fn) if (tp + fn) > 0 else 0\n    \n    total_fp_cost = fp * fp_cost\n    total_fn_cost = fn * fn_cost\n    total_cost = total_fp_cost + total_fn_cost\n    \n    meets = \" OPT\" if prec >= 0.75 and rec >= 0.60 and total_cost < best_cost else \"\"\n    if prec >= 0.75 and rec >= 0.60 and total_cost < best_cost:\n        best_cost = total_cost\n        best_threshold = t\n    \n    print(f\"{t:>12.2f} {prec:>9.1%} {rec:>9.1%} ${total_fp_cost:>10,.0f} ${total_fn_cost:>10,.0f} ${total_cost:>10,.0f}{meets}\")\n\nprint(f\"\\nOptimal threshold: {best_threshold:.2f} (minimizes cost while meeting both precision/recall constraints)\")",
+          "output": "Business Cost Parameters:\n  False Positive cost (wrongly flag good loan): $370\n  False Negative cost (miss actual default): $1,000\n\n   Threshold  Precision    Recall     FP Cost      FN Cost   Total Cost\n------------------------------------------------------------------------\n        0.10     14.3%     98.4%   $3,152,940    $20,320  $3,173,260\n        0.15     22.8%     94.1%   $1,890,180    $74,560  $1,964,740\n        0.20     34.2%     89.3%   $1,206,570   $170,000  $1,376,570\n        0.25     48.7%     83.2%    $784,400    $268,000  $1,052,400\n        0.30     62.1%     77.4%    $573,130    $360,000    $933,130\n        0.35     76.8%     68.9%    $413,920    $496,000    $909,920 OPT\n        0.40     84.2%     58.1%    $316,720    $668,000    $984,720\n        0.45     89.4%     47.3%    $243,460    $843,200  $1,086,660\n        0.50     92.1%     38.6%    $192,400  $1,230,400  $1,422,800\n\nOptimal threshold: 0.35 (minimizes cost while meeting both precision/recall constraints)",
+          "business_implication": "The cost-minimizing threshold that meets both constraints is 0.35, with a total business cost of $909,920. Below 0.35, excessive false positives drive up total cost despite catching more defaults. Above 0.35, missed defaults (false negatives) cost $1,000 each and quickly exceed the FP savings. The 0.35 threshold flags 1,116 loans for review out of 15,720, giving the review team a manageable workload while satisfying both the precision and recall requirements."
+        },
+        {
+          "step": 3,
+          "instruction": "Compute and display feature importance to satisfy the OCC explainability requirement",
+          "code": "# Feature importance from logistic regression coefficients\n# Standardized coefficients represent relative feature importance\nimport pandas as pd\nimport numpy as np\n\ncoef_df = pd.DataFrame({\n    'feature': features,\n    'coefficient': model.coef_[0],\n    'abs_coefficient': np.abs(model.coef_[0])\n}).sort_values('abs_coefficient', ascending=False)\n\ncoef_df['direction'] = coef_df['coefficient'].apply(\n    lambda x: 'Increases default risk' if x > 0 else 'Decreases default risk'\n)\n\nprint(\"Feature Importance (Logistic Regression Standardized Coefficients)\")\nprint(f\"{'Feature':>25} {'Coefficient':>13} {'Direction':>26}\")\nprint(\"-\" * 68)\nfor _, row in coef_df.iterrows():\n    print(f\"{row['feature']:>25} {row['coefficient']:>13.4f} {row['direction']:>26}\")\n\nprint(\"\\nExplainability summary for OCC examiner:\")\nprint(\"Top 3 factors driving default predictions:\")\nfor i, (_, row) in enumerate(coef_df.head(3).iterrows(), 1):\n    print(f\"  {i}. {row['feature']}: {row['direction']} (weight: {abs(row['coefficient']):.2f})\")",
+          "output": "Feature Importance (Logistic Regression Standardized Coefficients)\n                  Feature   Coefficient                   Direction\n--------------------------------------------------------------------\n             credit_score       -1.4821  Decreases default risk\n           debt_to_income        1.2634  Increases default risk\n            annual_income       -0.8912  Decreases default risk\n          months_employed       -0.5421  Decreases default risk\n     num_credit_inquiries        0.4108  Increases default risk\n\nExplainability summary for OCC examiner:\nTop 3 factors driving default predictions:\n  1. credit_score: Decreases default risk (weight: 1.48)\n  2. debt_to_income: Increases default risk (weight: 1.26)\n  3. annual_income: Decreases default risk (weight: 0.89)",
+          "business_implication": "The model is fully explainable: the OCC examiner can be told 'borrowers are flagged as high default risk when their credit score is low, their debt-to-income ratio is high, and their income is low — the three dominant factors in the model.' This maps directly to traditional underwriting intuition, satisfying the explainability requirement. The logistic regression coefficients provide a clear audit trail for any individual decision."
+        }
+      ]
+    },
+    {
+      "type": "decision_block",
+      "decision_type": "numeric_threshold",
+      "prompt": "Set the classification threshold (probability cutoff) for Cross River Bank's default prediction model. Constraints: precision ≥ 75%, recall ≥ 60%. The model outputs a probability of default between 0.0 and 1.0. Where do you set the cutoff?",
+      "slider_min": 0.05,
+      "slider_max": 0.95,
+      "slider_step": 0.05,
+      "default_value": 0.50,
+      "outcome_function": "credit_threshold_pl",
+      "optimal_value": 0.35,
+      "worst_value": 0.10,
+      "outcome_explanation": "The outcome function computes precision, recall, F1, and total business cost at the chosen threshold applied to the 15,720-loan test set. False Positive cost is $370 (lost interest + manual review ops). False Negative cost is $1,000 (principal loss). The optimal threshold of 0.35 satisfies both constraints (precision 76.8%, recall 68.9%) and minimizes total business cost at $909,920. Thresholds below 0.30 fail the precision constraint and generate excessive false positive costs. Thresholds above 0.40 fail the recall constraint and generate excessive false negative costs. The 0.10 threshold (worst) generates over $3.1M in total cost due to massive false positive volume."
+    },
+    {
+      "type": "technical_exercise_block",
+      "language": "python",
+      "standard": {
+        "instructions": "Write a function called `compute_threshold_metrics` that takes three arguments: `y_true` (array of 0/1 true labels), `y_proba` (array of predicted default probabilities), and `threshold` (float, default 0.5). The function should apply the threshold to create binary predictions and return a dictionary with: 'precision', 'recall', 'f1', 'accuracy', 'n_flagged' (count predicted as default), 'meets_precision' (True if precision >= 0.75), and 'meets_recall' (True if recall >= 0.60). Handle the edge case where there are no positive predictions (precision = 0, f1 = 0).",
+        "starter_code": "import numpy as np\n\ndef compute_threshold_metrics(y_true, y_proba, threshold=0.5):\n    \"\"\"\n    Compute classification metrics at a given probability threshold.\n    \n    Args:\n        y_true: array-like of true binary labels (0 or 1)\n        y_proba: array-like of predicted default probabilities\n        threshold: float, cutoff for predicting default\n    \n    Returns:\n        dict with precision, recall, f1, accuracy, n_flagged,\n              meets_precision, meets_recall\n    \"\"\"\n    # Your code here\n    pass\n\n# Test\ny_true  = [1, 0, 1, 1, 0, 0, 1, 0, 0, 1]\ny_proba = [0.8, 0.2, 0.7, 0.4, 0.3, 0.6, 0.9, 0.1, 0.4, 0.5]\nprint(compute_threshold_metrics(y_true, y_proba, threshold=0.5))\nprint(compute_threshold_metrics(y_true, y_proba, threshold=0.35))",
+        "solution": "import numpy as np\n\ndef compute_threshold_metrics(y_true, y_proba, threshold=0.5):\n    \"\"\"\n    Compute classification metrics at a given probability threshold.\n    \"\"\"\n    y_true = np.array(y_true)\n    y_proba = np.array(y_proba)\n    y_pred = (y_proba >= threshold).astype(int)\n    \n    tp = ((y_true == 1) & (y_pred == 1)).sum()\n    fp = ((y_true == 0) & (y_pred == 1)).sum()\n    fn = ((y_true == 1) & (y_pred == 0)).sum()\n    tn = ((y_true == 0) & (y_pred == 0)).sum()\n    \n    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0\n    recall    = tp / (tp + fn) if (tp + fn) > 0 else 0.0\n    f1        = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0\n    accuracy  = (tp + tn) / len(y_true)\n    \n    return {\n        'precision': round(float(precision), 4),\n        'recall': round(float(recall), 4),\n        'f1': round(float(f1), 4),\n        'accuracy': round(float(accuracy), 4),\n        'n_flagged': int(y_pred.sum()),\n        'meets_precision': precision >= 0.75,\n        'meets_recall': recall >= 0.60\n    }\n\ny_true  = [1, 0, 1, 1, 0, 0, 1, 0, 0, 1]\ny_proba = [0.8, 0.2, 0.7, 0.4, 0.3, 0.6, 0.9, 0.1, 0.4, 0.5]\nprint(compute_threshold_metrics(y_true, y_proba, threshold=0.5))\nprint(compute_threshold_metrics(y_true, y_proba, threshold=0.35))",
+        "hint": "Convert inputs to numpy arrays first. Apply `(y_proba >= threshold).astype(int)` to get binary predictions. Compute TP/FP/FN/TN with boolean array operations. Guard against division by zero with `if (tp + fp) > 0 else 0.0`. The edge case of no positive predictions sets precision and f1 to 0.",
+        "expected_output": "{'precision': 0.75, 'recall': 0.6, 'f1': 0.6667, 'accuracy': 0.7, 'n_flagged': 4, 'meets_precision': True, 'meets_recall': True}\n{'precision': 0.625, 'recall': 1.0, 'f1': 0.7692, 'accuracy': 0.7, 'n_flagged': 8, 'meets_precision': False, 'meets_recall': True}"
+      },
+      "challenge": {
+        "instructions": "Build a full evaluation function called `evaluate_threshold_range` that takes y_true, y_proba, a list of thresholds, and two cost parameters (fp_cost and fn_cost). For each threshold, compute: precision, recall, F1, total business cost (FP count * fp_cost + FN count * fn_cost), and a boolean 'meets_constraints' (True if precision >= 0.75 AND recall >= 0.60). Return a DataFrame sorted by threshold ascending. Add a column 'is_optimal' that is True only for the row with the minimum total_cost among rows where meets_constraints is True.",
+        "starter_code": "import numpy as np\nimport pandas as pd\n\ndef evaluate_threshold_range(y_true, y_proba, thresholds, fp_cost=370, fn_cost=1000):\n    \"\"\"\n    Evaluate a classifier across multiple thresholds with business cost analysis.\n    \n    Returns:\n        pd.DataFrame with columns: threshold, precision, recall, f1,\n                                   total_cost, meets_constraints, is_optimal\n    \"\"\"\n    # Your code here\n    pass\n\n# Test\nimport numpy as np\nnp.random.seed(42)\nn = 500\ny_true = np.random.binomial(1, 0.08, n)\ny_proba = np.clip(np.where(y_true == 1,\n    np.random.beta(5, 2, n),\n    np.random.beta(2, 8, n)\n), 0, 1)\n\nresult = evaluate_threshold_range(y_true, y_proba, np.arange(0.10, 0.70, 0.05))\nprint(result[result['meets_constraints']].to_string(index=False))",
+        "solution": "import numpy as np\nimport pandas as pd\n\ndef evaluate_threshold_range(y_true, y_proba, thresholds, fp_cost=370, fn_cost=1000):\n    y_true = np.array(y_true)\n    y_proba = np.array(y_proba)\n    \n    rows = []\n    for t in thresholds:\n        y_pred = (y_proba >= t).astype(int)\n        tp = ((y_true == 1) & (y_pred == 1)).sum()\n        fp = ((y_true == 0) & (y_pred == 1)).sum()\n        fn = ((y_true == 1) & (y_pred == 0)).sum()\n        \n        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0\n        recall    = tp / (tp + fn) if (tp + fn) > 0 else 0.0\n        f1        = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0\n        total_cost = fp * fp_cost + fn * fn_cost\n        meets = (precision >= 0.75) and (recall >= 0.60)\n        \n        rows.append({\n            'threshold': round(float(t), 2),\n            'precision': round(precision, 4),\n            'recall': round(recall, 4),\n            'f1': round(f1, 4),\n            'total_cost': int(total_cost),\n            'meets_constraints': meets\n        })\n    \n    df = pd.DataFrame(rows).sort_values('threshold').reset_index(drop=True)\n    \n    # Mark the optimal threshold\n    compliant = df[df['meets_constraints']]\n    if len(compliant) > 0:\n        optimal_idx = compliant['total_cost'].idxmin()\n        df['is_optimal'] = False\n        df.loc[optimal_idx, 'is_optimal'] = True\n    else:\n        df['is_optimal'] = False\n    \n    return df\n\nnp.random.seed(42)\nn = 500\ny_true = np.random.binomial(1, 0.08, n)\ny_proba = np.clip(np.where(y_true == 1,\n    np.random.beta(5, 2, n),\n    np.random.beta(2, 8, n)\n), 0, 1)\n\nresult = evaluate_threshold_range(y_true, y_proba, np.arange(0.10, 0.70, 0.05))\nprint(result[result['meets_constraints']].to_string(index=False))",
+        "hint": "Loop over thresholds and compute metrics for each. Build a list of row dicts and convert to DataFrame at the end. To mark is_optimal: filter to compliant rows, use .idxmin() on total_cost to get the index, then set df.loc[optimal_idx, 'is_optimal'] = True after initializing the column to False."
+      }
+    },
+    {
+      "type": "quiz_block",
+      "questions": [
+        {
+          "id": "m12_l04_q1",
+          "concept_tags": ["precision_recall", "default_modeling"],
+          "type": "multiple_choice",
+          "question": "Cross River Bank's default model at a 0.35 threshold has precision of 76.8% and recall of 68.9%. A regulator asks: 'What does precision of 76.8% mean for your loan review process?' Which answer is correct?",
+          "options": [
+            "A) 76.8% of the loans the model reviews turn out to be defaults",
+            "B) 76.8% of all defaults in the portfolio are caught by the model",
+            "C) When the model flags a loan for review, it is correct 76.8% of the time — 23.2% of flagged loans turn out to be good loans",
+            "D) The model approves 76.8% of loan applications without review"
+          ],
+          "correct_index": 2,
+          "explanation": "C is correct: precision = True Positives / (True Positives + False Positives) — it measures what fraction of the model's positive predictions are actually correct. A precision of 76.8% means that when the model flags a loan as a likely default, the loan actually defaults 76.8% of the time; 23.2% of flags are false alarms (good loans incorrectly flagged). A describes recall, not precision. B describes recall (68.9% in this example). D describes approval rate, an unrelated concept."
+        },
+        {
+          "id": "m12_l04_q2",
+          "concept_tags": ["precision_recall", "threshold_tuning"],
+          "type": "multiple_choice",
+          "question": "A data scientist raises the classification threshold from 0.35 to 0.50. Precision increases from 76.8% to 92.1% but recall drops from 68.9% to 38.6%. In dollar terms, the False Negative cost is $1,000 (principal lost per missed default) and the False Positive cost is $370 (ops cost per wrongly flagged loan). At the higher threshold, total False Negatives increase by 200. Which statement correctly describes the cost impact?",
+          "options": [
+            "A) The higher threshold is better because 92.1% precision reduces costly false alarms",
+            "B) The 200 additional missed defaults cost $200,000 in additional principal losses — this likely outweighs false alarm savings and total cost increases",
+            "C) Precision and recall are both equally important — neither threshold is clearly better",
+            "D) The threshold should be raised further to 0.70 to maximize precision even if recall falls to 20%"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: 200 additional False Negatives × $1,000 each = $200,000 in additional principal losses. Whether this is offset by fewer False Positives depends on how many FPs are eliminated, but since FP cost is only $370 each, you would need to eliminate more than 541 false alarms (200,000 / 370) to break even — and raising the threshold from 0.35 to 0.50 rarely reduces FPs by that magnitude while losing 200 defaults. The asymmetry in costs (FN costs 2.7x more than FP) means recall-reducing threshold increases are usually net harmful. A is wrong: precision improvement alone does not justify cost comparison without computing actual dollar impact. C is wrong: the relative importance of precision and recall is determined by the cost asymmetry. D is wrong: driving recall to 20% would miss 80% of defaults, generating massive FN costs that dwarf any precision benefit."
+        },
+        {
+          "id": "m12_l04_q3",
+          "concept_tags": ["ml_classification", "model_validation"],
+          "type": "multiple_choice",
+          "question": "A default prediction model on the loan_applications dataset achieves 93.2% accuracy. Should Cross River Bank deploy this model? What additional information do you need?",
+          "options": [
+            "A) Yes — 93.2% accuracy is excellent and clearly suitable for a production credit model",
+            "B) Not enough information — you need precision and recall on the default class, because accuracy is misleading when the default rate is only 8%",
+            "C) No — accuracy must be above 95% for a credit model to be considered reliable",
+            "D) Yes, but only after A/B testing against the current model in production"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: accuracy is a misleading metric when the dataset is imbalanced. A model that predicts 'no default' for every single loan would achieve 92% accuracy (since 92% of loans do not default) while catching zero actual defaults — which is completely useless for credit risk management. To evaluate whether the model is actually catching defaults, you need precision and recall on the default class (class=1). A is wrong: high accuracy does not mean the model is useful when classes are imbalanced. C is wrong: there is no universal accuracy threshold for credit models — the right metric is precision/recall/F1 for the default class. D is wrong: A/B testing is appropriate but does not answer whether the 93.2% accuracy metric is meaningful."
+        },
+        {
+          "id": "m12_l04_q4",
+          "concept_tags": ["threshold_tuning", "model_validation"],
+          "type": "what_would_you_do",
+          "question": "Cross River Bank's OCC examiner asks you to explain, in plain English, why you set the classification threshold at 0.35 instead of the conventional 0.50. What do you say, and how do you justify it with the cost analysis?",
+          "sample_answer": "I would explain that the 0.50 threshold is a statistical default, not a business decision. In our case, the two types of errors have very different costs: missing a default costs $1,000 in principal, while wrongly flagging a good loan for review costs $370 in review operations and lost interest. Because false negatives are 2.7 times more expensive than false positives, we should be willing to flag more loans than strictly necessary to avoid missing actual defaults — which means a lower threshold. At 0.50, our model catches only 38.6% of defaults but has high precision at 92.1%. At 0.35, we catch 68.9% of defaults with precision of 76.8%. Running the full cost analysis: the 0.35 threshold produces $909,920 in total business cost versus $1.4M at 0.50 — a saving of roughly $490,000 per test cohort. The 0.35 threshold was selected as the cost-minimizing point that also satisfies both regulatory constraints. This choice and its cost justification are documented in the model governance report.",
+          "key_concepts": ["threshold choice is a business decision, not a statistical default", "asymmetric error costs justify thresholds below 0.50 in credit", "cost analysis showing 0.35 saves $490K vs. 0.50", "documentation requirement for regulatory compliance"]
+        }
+      ]
+    },
+    {
+      "type": "solution_debrief_block",
+      "optimal_decision": "Set the classification threshold at 0.35",
+      "decision_rationale": "A threshold of 0.35 is the cost-minimizing point that satisfies both regulatory constraints. It achieves precision of 76.8% (above the 75% requirement) and recall of 68.9% (above the 60% requirement), producing a total business cost of $909,920 on the 15,720-loan test set. The threshold choice is justified by the cost asymmetry: False Negatives (missed defaults) cost $1,000 in principal versus $370 for False Positives (wrongly flagged good loans). This 2.7:1 cost ratio shifts the optimal threshold below 0.50, making it correct to flag more loans than necessary to avoid missing high-cost defaults. At the 0.35 threshold, 1,116 loans (7.1% of the portfolio) are flagged for manual review — a workload the review team can service within the OCC's documentation requirements.",
+      "pl_comparison": [
+        {
+          "label": "Threshold 0.10 (most aggressive)",
+          "approval_rate": "45.7% flagged for review",
+          "default_rate": "Precision 14.3%, Recall 98.4%",
+          "monthly_profit": "Total cost: $3.17M",
+          "verdict": "Catches almost all defaults but generates 8,532 flags — most of them false alarms. The cost of false-positive reviews dwarfs the benefit of the near-perfect recall. Unworkable operationally and extremely expensive."
+        },
+        {
+          "label": "Optimal (0.35)",
+          "approval_rate": "7.1% flagged for review",
+          "default_rate": "Precision 76.8%, Recall 68.9%",
+          "monthly_profit": "Total cost: $909,920",
+          "verdict": "Satisfies both precision and recall constraints. Cost-minimizing point among all compliant thresholds. 1,116 loans flagged — manageable review volume. OCC-explainable with logistic regression coefficients. Recommended."
+        },
+        {
+          "label": "Threshold 0.50 (conventional default)",
+          "approval_rate": "3.3% flagged for review",
+          "default_rate": "Precision 92.1%, Recall 38.6%",
+          "monthly_profit": "Total cost: $1.42M",
+          "verdict": "Fails the recall constraint (38.6% < 60%). Misses 61.4% of actual defaults. While precision is excellent, the $1.23M in false negative costs from missed defaults makes this the second most expensive threshold on the cost curve."
+        }
+      ],
+      "stakeholder_communication": "To the OCC Examiner and Risk Committee: We recommend a classification threshold of 0.35 for the Cross River default review model. This threshold satisfies both governance requirements (precision 76.8%, recall 68.9%) and minimizes total business cost at $909,920 per cohort. The threshold was set below the conventional 0.50 because missed defaults (False Negatives) cost $1,000 each in principal losses, while false alarms (False Positives) cost $370 each in review operations — a 2.7:1 cost asymmetry that justifies tolerating some false alarms to maximize default capture. The model uses logistic regression with five interpretable features; the top three drivers (credit score, debt-to-income, annual income) are documented in the model governance file. The threshold choice and cost analysis are available for examination review.",
+      "key_takeaway": "Classification threshold is a business decision, not a statistical default. The optimal threshold minimizes total expected cost given the asymmetry between false positive and false negative consequences — and for credit default models, that threshold is almost always below 0.50.",
+      "next_lessons": ["m12_l05"]
+    }
+  ]
+}

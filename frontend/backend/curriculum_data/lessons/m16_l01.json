@@ -1,0 +1,25 @@
+{
+  "id": "m16_l01",
+  "module_id": "m16",
+  "lesson_number": 1,
+  "title": "Due Diligence: Financial Modeling & Red Flags",
+  "duration_min": 25,
+  "status": "coming_soon",
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "When Apollo Global Management acquired ADT Security Services for $6.9 billion in 2016, their diligence team spent eight weeks building a detailed financial model before committing. The model revealed that ADT's subscriber attrition rate — the single most important driver of their recurring revenue — was accelerating. Apollo's team negotiated a $300 million price reduction based on this finding. The lesson: the quality of financial due diligence is not about catching fraud; it's about understanding a business well enough to know what you're actually buying, and at what price that makes sense.",
+      "explanation": "Financial due diligence (FDD) in PE is the process of independently verifying a target company's financial performance, understanding the quality of earnings, and building a forward-looking model that stress-tests the investment thesis. It's not auditing — FDD analysts are not checking for fraud. They're asking: are these earnings real and sustainable? What are the key business drivers? What could go wrong? FDD teams typically consist of deal team associates and dedicated accounting/advisory firms like EY, PwC, or Alvarez & Marsal.\n\nQuality of Earnings (QoE) analysis is the heart of FDD. The goal is to reconcile reported EBITDA to 'adjusted' or 'normalized' EBITDA — stripping out one-time items (a settlement payment that won't recur), non-cash items (stock compensation, depreciation), and accounting choices that inflate reported profitability (aggressive revenue recognition). A target reporting $50M in EBITDA might have $10M in one-time items, $5M in synergy adjustments, and $3M in pro-forma add-backs — leaving normalized EBITDA of $32M, which changes the valuation materially if you're paying 10x EBITDA.\n\nRed flags in FDD: rapidly growing accounts receivable relative to revenue (revenue being booked but not collected — often a sign of channel stuffing or aggressive recognition), customer concentration above 20% in a single customer (revenue at risk if that customer leaves), gross margin compression over time without explanation (competitive pressure or cost structure problems), high inventory levels in a manufacturing business (demand has slowed but management hasn't acknowledged it), and management turnover in the two years before the sale process (insiders leaving before the deal closes is a serious warning signal).",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\nimport numpy as np\n\n# Quality of Earnings bridge: walk from reported to normalized EBITDA\n# This is the core output of financial due diligence\n\nreported_ebitda = 52_400_000\n\nadjustments = [\n    ('Legal settlement (one-time)',          -4_800_000,  'remove non-recurring cost'),\n    ('CEO compensation above market',        -1_200_000,  'normalize to market rate'),\n    ('Owner personal expenses through P&L',  -650_000,    'non-business expenses'),\n    ('Pro-forma: acquired subsidiary',       +2_100_000,  'full-year run-rate'),\n    ('Revenue recognized early (adj.)',      -3_500_000,  'timing adjustment'),\n    ('Stock-based compensation (add back)',  +1_800_000,  'non-cash, add back'),\n    ('One-time IT migration cost',           -2_200_000,  'remove non-recurring'),\n]\n\nprint(f'Reported EBITDA:       ${reported_ebitda/1e6:.1f}M')\nprint('-' * 60)\nrunning = reported_ebitda\nfor item, amount, note in adjustments:\n    running += amount\n    sign = '+' if amount >= 0 else ''\n    print(f'  {item:38s} {sign}${amount/1e6:.2f}M  [{note}]')\n\nprint('-' * 60)\nnormalized_ebitda = running\nprint(f'Normalized EBITDA:     ${normalized_ebitda/1e6:.1f}M')\n\nebitda_delta_pct = (normalized_ebitda - reported_ebitda) / reported_ebitda\nprint(f'\\nAdjustment: {ebitda_delta_pct:.1%} — at 10x multiple, this changes deal price by ${(normalized_ebitda - reported_ebitda)*10/1e6:.0f}M')",
+        "output": "Reported EBITDA:       $52.4M\n------------------------------------------------------------\n  Legal settlement (one-time)           -$4.80M  [remove non-recurring cost]\n  CEO compensation above market         -$1.20M  [normalize to market rate]\n  Owner personal expenses through P&L   -$0.65M  [non-business expenses]\n  Pro-forma: acquired subsidiary        +$2.10M  [full-year run-rate]\n  Revenue recognized early (adj.)       -$3.50M  [timing adjustment]\n  Stock-based compensation (add back)   +$1.80M  [non-cash, add back]\n  One-time IT migration cost            -$2.20M  [remove non-recurring]\n------------------------------------------------------------\nNormalized EBITDA:     $43.9M\n\nAdjustment: -16.2% — at 10x multiple, this changes deal price by -$85M"
+      }
+    },
+    {
+      "type": "stub_notice",
+      "message": "Full lesson in development — check back soon",
+      "available_date": "Summer 2026"
+    }
+  ]
+}

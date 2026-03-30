@@ -1,0 +1,217 @@
+{
+  "id": "m12_l06",
+  "module_id": "m12",
+  "title": "Credit Portfolio Management",
+  "order": 6,
+  "duration_min": 35,
+  "difficulty": "intermediate",
+  "concept_tags": ["portfolio_management", "concentration_risk", "diversification", "credit_limits", "vintage_analysis"],
+  "learning_objectives": [
+    "Compute portfolio concentration by loan purpose and flag segments that exceed the 20% concentration limit",
+    "Build a vintage analysis that tracks running default rates by origination cohort over time",
+    "Explain how concentrated portfolios amplify loss severity during sector-specific downturns",
+    "Write a risk committee memo recommending portfolio adjustments based on data analysis"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "In 2022, Affirm's charge-off rate spiked to 4.3% after years of sub-2% performance. The culprit was portfolio concentration: a large share of Affirm's BNPL book was tied to discretionary retail categories — electronics, fitness equipment, home goods — that experienced simultaneous demand collapse as inflation hit consumer spending and pandemic-era purchasing patterns reversed. A more diversified portfolio would have dampened the shock.",
+      "explanation": "Credit portfolio management is the discipline of monitoring and controlling the composition of a loan portfolio to prevent any single risk factor from generating catastrophic losses. Two core concepts govern this discipline:\n\nConcentration risk is the exposure to loss when too large a portion of the portfolio is tied to a single borrower, industry, geography, or product type. The standard limit is that no single segment should exceed 20% of total portfolio exposure — a rule of thumb rooted in the observation that a segment experiencing a 50% default rate spike would translate to only a 10% portfolio-level loss if concentration is at 20%, versus a 25% portfolio-level loss if concentration is at 50%. Affirm's 2022 problem was exactly this: retail discretionary concentration exceeded 40% of their book, so when that segment turned, the impact was portfolio-defining rather than portfolio-diluting.\n\nVintage analysis is the practice of tracking loan performance by origination cohort — grouping loans by the quarter (or month) they were originated and measuring how their default rates evolve over time. A vintage analysis answers: are newer loans performing better or worse than older loans at the same age? If your Q1 2025 vintage's 90-day default rate is 8% and your Q1 2024 vintage's 90-day rate was 4%, you have a performance deterioration trend that likely signals tighter credit policy is needed. Vintage analysis is critical because aggregate default rates lag the problem: charge-offs happen 90-180 days after delinquency onset, so by the time you see charge-offs rising in the P&L, you already have several months of deteriorating loans in the pipeline.\n\nCredit limits — the maximum outstanding balance a lender will extend to a single borrower — are a third portfolio management tool. Aggregate concentration limits at the portfolio level and individual credit limits at the borrower level work together to cap loss severity and prevent individual defaults from having outsized portfolio impact.\n\nThe risk committee memo is the vehicle through which portfolio management insights reach the decision-makers who can act on them — the CEO, CFO, and board. A good memo translates data findings into specific action recommendations with quantified consequences of inaction.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\nimport numpy as np\n\n# Portfolio concentration analysis\ndef compute_concentration(df, segment_col, amount_col='loan_amount'):\n    \"\"\"\n    Compute portfolio concentration by segment and flag over-concentrated positions.\n    \n    Args:\n        df: DataFrame with loan portfolio data\n        segment_col: Column to group by (e.g. loan_purpose)\n        amount_col: Column with loan outstanding amounts\n    \n    Returns:\n        DataFrame with segment, total_exposure, pct_of_portfolio, concentration_flag\n    \"\"\"\n    total = df[amount_col].sum()\n    \n    by_segment = df.groupby(segment_col).agg(\n        loan_count=(amount_col, 'count'),\n        total_exposure=(amount_col, 'sum')\n    ).reset_index()\n    \n    by_segment['pct_of_portfolio'] = by_segment['total_exposure'] / total\n    by_segment['concentration_flag'] = by_segment['pct_of_portfolio'].apply(\n        lambda x: 'OVER-CONCENTRATED' if x > 0.20 else 'OK'\n    )\n    \n    return by_segment.sort_values('pct_of_portfolio', ascending=False)\n\n# Sample portfolio data\nnp.random.seed(42)\ndf = pd.DataFrame({\n    'loan_purpose': np.random.choice(\n        ['retail_electronics', 'home_improvement', 'auto', 'medical', 'travel', 'other'],\n        size=10000,\n        p=[0.35, 0.22, 0.18, 0.12, 0.08, 0.05]  # electronics is over-concentrated\n    ),\n    'loan_amount': np.random.uniform(500, 5000, 10000)\n})\n\nresult = compute_concentration(df, 'loan_purpose')\nprint(result.to_string(index=False))\nprint(f\"\\nOver-concentrated segments: {(result['concentration_flag'] == 'OVER-CONCENTRATED').sum()}\")",
+        "output": "       loan_purpose  loan_count  total_exposure  pct_of_portfolio concentration_flag\n  retail_electronics        3501     9,561,482.14             35.0%  OVER-CONCENTRATED\n    home_improvement        2188     5,974,211.82             21.9%  OVER-CONCENTRATED\n                auto        1803     4,929,847.51             18.1%                 OK\n             medical        1196     3,264,091.19             11.9%                 OK\n              travel         800     2,185,942.11              8.0%                 OK\n               other         512     1,396,312.23              5.1%                 OK\n\nOver-concentrated segments: 2"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Apex Lending",
+      "role": "Chief Risk Officer at Apex Lending",
+      "scenario": "It is Q3 2026 and Apex Lending, a $180M digital lending startup, is reviewing its Q3 portfolio performance in preparation for a risk committee meeting. Two issues have emerged from the data team's quarterly portfolio analysis. First, the loan_purpose distribution shows that 'home_improvement' loans have grown to 31% of total portfolio exposure, well above the 20% concentration limit established in the credit policy manual. Second, the vintage analysis shows that the Q2 2026 loan cohort is tracking at a 90-day delinquency rate of 9.8% versus the Q2 2025 cohort's 6.1% rate at the same age — a 60% deterioration in cohort performance year-over-year. As CRO, you must present a written risk committee memo recommending specific portfolio adjustments, backed by data from the quarterly analysis.",
+      "constraints": [
+        "No single loan purpose category may exceed 20% of total portfolio exposure per credit policy — the home_improvement segment is currently at 31%",
+        "Vintage default rates must not exceed 110% of initial model projections — Q2 2026 is tracking 61% above the Q2 2025 comparable vintage",
+        "The risk committee meets in 5 days — the memo must include specific action recommendations with timeline and quantified risk reduction",
+        "Any origination cap or halt requires board approval — the memo must frame the recommendation clearly enough for a non-technical board"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "CEO",
+          "pressure": "Home improvement is our fastest-growing channel — contractor partnerships are driving volume and the unit economics look strong. I need a very compelling data argument to reduce that segment, not just a policy citation."
+        },
+        {
+          "stakeholder": "CFO",
+          "pressure": "If Q2 2026 vintage defaults track to 9.8% at 180 days instead of the modeled 6.5%, that is an additional $2.8M in unplanned charge-offs on a $50M Q2 cohort. I need that quantified in the memo."
+        },
+        {
+          "stakeholder": "Head of Originations",
+          "pressure": "A home improvement cap will cost us $3-4M per month in volume from our contractor partners. We just signed three new partners. Can we at least wait until Q4 to implement?"
+        },
+        {
+          "stakeholder": "Board Risk Committee Chair",
+          "pressure": "After Affirm's 2022 situation, our board is very attuned to concentration risk. Present the data clearly. If we are at 31% in one segment, I want to know what a 50% default spike in that segment would cost us at current concentration versus at policy limit."
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "loan_applications",
+      "intro": "The quarterly portfolio review requires two analyses: a concentration analysis to measure and stress-test the home_improvement overweight, and a vintage analysis to quantify the performance deterioration in the Q2 2026 cohort and project its impact on the portfolio if left unaddressed.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Compute portfolio concentration by loan_purpose and stress-test the overconcentrated home_improvement segment",
+          "code": "import pandas as pd\nimport numpy as np\n\ndf = pd.read_csv('loan_applications.csv')\n\n# Compute concentration by loan purpose\ntotal_exposure = df['loan_amount'].sum()\nconcentration = df.groupby('loan_purpose').agg(\n    loan_count=('applicant_id', 'count'),\n    total_exposure=('loan_amount', 'sum'),\n    default_rate=('default_flag', 'mean')\n).reset_index()\n\nconcentration['pct_of_portfolio'] = concentration['total_exposure'] / total_exposure\nconcentration['flag'] = concentration['pct_of_portfolio'].apply(\n    lambda x: 'OVER-CONCENTRATED' if x > 0.20 else 'OK'\n)\nconcentration = concentration.sort_values('pct_of_portfolio', ascending=False)\n\nprint(\"Portfolio Concentration Analysis\")\nprint(f\"Total portfolio exposure: ${total_exposure:,.0f}\")\nprint()\nprint(concentration[['loan_purpose', 'loan_count', 'pct_of_portfolio', 'default_rate', 'flag']]\n      .to_string(index=False))\n\n# Stress test: impact of 50% default spike in home_improvement\nhi = concentration[concentration['loan_purpose'] == 'home_improvement'].iloc[0]\nhi_exposure = hi['total_exposure']\nbase_dr = hi['default_rate']\nstressed_dr = base_dr * 1.50\n\nadditional_losses_hi = hi_exposure * (stressed_dr - base_dr)\nif_at_policy_limit = total_exposure * 0.20  # if home_improvement were at 20%\nadditional_losses_policy = if_at_policy_limit * (stressed_dr - base_dr)\n\nprint(f\"\\nStress Test: Home Improvement segment, +50% default rate\")\nprint(f\"  Current concentration ({hi['pct_of_portfolio']:.1%}): additional losses ${additional_losses_hi:,.0f}\")\nprint(f\"  At policy limit (20%): additional losses ${additional_losses_policy:,.0f}\")\nprint(f\"  Cost of over-concentration: ${additional_losses_hi - additional_losses_policy:,.0f} in excess losses\")",
+          "output": "Portfolio Concentration Analysis\nTotal portfolio exposure: $180,420,000\n\n       loan_purpose  loan_count  pct_of_portfolio  default_rate              flag\n    home_improvement        6820             31.0%          7.2%  OVER-CONCENTRATED\n    retail_electronics       4120             18.4%          9.8%                OK\n               travel        3890             17.1%          6.1%                OK\n                 auto        3240             13.8%          4.3%                OK\n              medical        2880             12.2%          5.8%                OK\n                other        1850              7.5%          8.1%                OK\n\nStress Test: Home Improvement segment, +50% default rate\n  Current concentration (31.0%): additional losses $2,011,300\n  At policy limit (20%): additional losses $1,298,600\n  Cost of over-concentration: $712,700 in excess losses",
+          "business_implication": "The home_improvement segment at 31% concentration exposes the portfolio to $712,700 in excess losses versus a policy-compliant 20% concentration if defaults spike 50%. The CEO's question about whether the business case justifies maintaining the overweight is answered: no contractor partnership generates $712,700 in incremental annual profit on a $56M book, especially when the tail risk is correlated — home improvement demand is cyclical and likely to deteriorate simultaneously across all contractors during a housing slowdown."
+        },
+        {
+          "step": 2,
+          "instruction": "Build a vintage analysis grouping loans by origination quarter and tracking running default rates at each month-on-book",
+          "code": "# Vintage analysis: group loans by origination quarter, track default rate by months-on-book\n# Requires origination_date and first_default_month columns\n\ndf['origination_date'] = pd.to_datetime(df['origination_date'])\ndf['origination_quarter'] = df['origination_date'].dt.to_period('Q').astype(str)\n\n# Create months-on-book bands for each loan\n# For simplicity, compute the default occurrence at month 3 (90-day) and month 6 (180-day)\n# In practice this would use time-series loan-level performance data\n\nvintage_analysis = df.groupby('origination_quarter').agg(\n    cohort_size=('applicant_id', 'count'),\n    cohort_exposure=('loan_amount', 'sum'),\n    default_rate_90d=('default_flag', 'mean'),  # proxy for 90-day rate\n).reset_index()\n\n# Compute index vs. Q2 2025 benchmark\nbenchmark = vintage_analysis.loc[\n    vintage_analysis['origination_quarter'] == '2025Q2', 'default_rate_90d'\n].values[0]\n\nvintage_analysis['rate_vs_benchmark'] = vintage_analysis['default_rate_90d'] / benchmark\nvintage_analysis['vintage_flag'] = vintage_analysis['rate_vs_benchmark'].apply(\n    lambda x: 'EXCEEDS 110% PROJECTION' if x > 1.10 else 'WITHIN TOLERANCE'\n)\n\nprint(\"Vintage Analysis — 90-Day Default Rate by Origination Quarter\")\nprint(f\"Benchmark (Q2 2025): {benchmark:.1%}\")\nprint()\nprint(vintage_analysis[['origination_quarter', 'cohort_size', 'cohort_exposure',\n                          'default_rate_90d', 'rate_vs_benchmark', 'vintage_flag']]\n      .to_string(index=False))",
+          "output": "Vintage Analysis — 90-Day Default Rate by Origination Quarter\nBenchmark (Q2 2025): 6.1%\n\norigination_quarter  cohort_size  cohort_exposure  default_rate_90d  rate_vs_benchmark            vintage_flag\n             2024Q4         8120      $48,720,000              5.8%               0.95       WITHIN TOLERANCE\n             2025Q1         8340      $50,040,000              5.9%               0.97       WITHIN TOLERANCE\n             2025Q2         8580      $51,480,000              6.1%               1.00       WITHIN TOLERANCE\n             2025Q3         8720      $52,320,000              6.4%               1.05       WITHIN TOLERANCE\n             2025Q4         8960      $53,760,000              6.8%               1.11  EXCEEDS 110% PROJECTION\n             2026Q1         9280      $55,680,000              7.6%               1.25  EXCEEDS 110% PROJECTION\n             2026Q2         9540      $57,240,000              9.8%               1.61  EXCEEDS 110% PROJECTION",
+          "business_implication": "The vintage analysis reveals a clear trend: performance has been deteriorating steadily since Q3 2025 and has accelerated sharply in Q1 and Q2 2026. The Q2 2026 vintage at 9.8% 90-day default rate is 61% above the Q2 2025 benchmark — far exceeding the 110% tolerance. This is not statistical noise; it is a three-quarter trend. If Q2 2026 defaults track to 9.8% at 180 days, the CFO's $2.8M incremental charge-off projection is directionally correct."
+        },
+        {
+          "step": 3,
+          "instruction": "Quantify the projected additional charge-offs from the Q2 2026 vintage deterioration to support the risk committee memo",
+          "code": "# Quantify financial impact of vintage deterioration\nq2_2026 = vintage_analysis[vintage_analysis['origination_quarter'] == '2026Q2'].iloc[0]\n\ncohort_exposure = q2_2026['cohort_exposure']\ncurrent_90d_dr = q2_2026['default_rate_90d']\nmodeled_dr = 0.065  # Original model projection for this vintage\n\n# Projected additional charge-offs vs. modeled\nadditional_dr = current_90d_dr - modeled_dr\nadditional_losses = cohort_exposure * additional_dr\n\n# If trend continues: what would the Q3 2026 cohort look like?\ntrend_increase = 0.022  # Average quarter-over-quarter increase in Q2-Q3 2026\nprojected_q3_dr = current_90d_dr + trend_increase\nprojected_q3_exposure = 60_000_000  # Projected Q3 2026 cohort size\nprojected_q3_additional = projected_q3_exposure * (projected_q3_dr - modeled_dr)\n\nprint(\"Q2 2026 Vintage Financial Impact\")\nprint(f\"  Cohort exposure: ${cohort_exposure:,.0f}\")\nprint(f\"  Modeled 180-day default rate: {modeled_dr:.1%}\")\nprint(f\"  Current 90-day tracking rate: {current_90d_dr:.1%}\")\nprint(f\"  Additional default rate vs. model: {additional_dr:.1%}\")\nprint(f\"  Incremental charge-offs vs. model: ${additional_losses:,.0f}\")\nprint()\nprint(\"Q3 2026 Projected Impact (if trend continues)\")\nprint(f\"  Projected 90-day default rate: {projected_q3_dr:.1%}\")\nprint(f\"  Projected cohort exposure: ${projected_q3_exposure:,.0f}\")\nprint(f\"  Projected incremental charge-offs: ${projected_q3_additional:,.0f}\")\nprint()\nprint(f\"Two-quarter combined excess charge-off risk: ${additional_losses + projected_q3_additional:,.0f}\")",
+          "output": "Q2 2026 Vintage Financial Impact\n  Cohort exposure: $57,240,000\n  Modeled 180-day default rate: 6.5%\n  Current 90-day tracking rate: 9.8%\n  Additional default rate vs. model: 3.3%\n  Incremental charge-offs vs. model: $1,888,920\n\nQ3 2026 Projected Impact (if trend continues)\n  Projected 90-day default rate: 12.0%\n  Projected cohort exposure: $60,000,000\n  Projected incremental charge-offs: $3,300,000\n\nTwo-quarter combined excess charge-off risk: $5,188,920",
+          "business_implication": "If the Q2 2026 vintage performance trend continues into Q3 2026 without intervention, Apex faces $5.2M in excess charge-offs above model projections over two quarters. This is a material portfolio event for a $180M lender. Immediate action — tightening origination criteria and capping home_improvement concentration — is the only way to arrest the Q3 2026 cohort before it is originated at deteriorating credit quality."
+        }
+      ]
+    },
+    {
+      "type": "decision_block",
+      "decision_type": "written_justification",
+      "prompt": "As CRO of Apex Lending, you must write a risk committee memo recommending portfolio adjustments based on your Q3 analysis: (1) home_improvement concentration at 31%, exceeding the 20% policy limit; (2) Q2 2026 vintage tracking 61% above benchmark at 9.8% 90-day default rate; (3) projected $5.2M in excess charge-offs over two quarters if the trend continues. What do you recommend?",
+      "options": [
+        {
+          "id": "A",
+          "label": "Immediate Origination Halt on Home Improvement",
+          "description": "Immediately halt all new home_improvement originations until concentration drops to 20%. Cap lifted only after 90 days of stable vintage performance. Revenue impact: ~$3.5M/month in lost volume. Fastest risk reduction.",
+          "risk_level": "low"
+        },
+        {
+          "id": "B",
+          "label": "Gradual Cap with Tightened Underwriting",
+          "description": "Implement a monthly origination cap on home_improvement at 60% of current run-rate (reduces to ~$6M/month from ~$10M). Simultaneously raise minimum FICO for new home_improvement originations from 620 to 660. Concentration returns to policy limit in approximately 4 months. Tighter credit standards address vintage deterioration. Revenue impact: ~$4M/month.",
+          "risk_level": "medium"
+        },
+        {
+          "id": "C",
+          "label": "Monitor Only — Increase Reporting Frequency",
+          "description": "Increase vintage monitoring from quarterly to monthly. Do not change origination policy. Home_improvement concentration expected to self-correct as portfolio grows in other segments. No immediate revenue impact, but exposes portfolio to $5.2M+ in projected excess charge-offs.",
+          "risk_level": "high"
+        }
+      ],
+      "outcome_function": "portfolio_management_risk",
+      "optimal_option": "B",
+      "worst_option": "C",
+      "outcome_explanation": "Option B (gradual cap with tightened underwriting) is the optimal recommendation. It addresses both the concentration problem and the vintage deterioration simultaneously, without the full revenue disruption of an immediate halt. The 60% cap reduces monthly home_improvement originations from ~$10M to ~$6M, returning the segment to the 20% policy limit within 4 months. Raising the minimum FICO to 660 directly addresses the vintage deterioration — the Q2 2026 performance decline is most concentrated in the 620-640 FICO band within the home_improvement segment. The $4M monthly revenue impact is significant but quantifiable and preferable to the $5.2M in projected excess charge-offs. Option A is overly restrictive and risks the contractor partnerships that took 18+ months to build. Option C is not a risk management action — it is documentation of inaction while the risk compounds."
+    },
+    {
+      "type": "technical_exercise_block",
+      "language": "python",
+      "standard": {
+        "instructions": "Write a function called `compute_portfolio_concentration` that takes a DataFrame and two column names: a segment column (e.g. 'loan_purpose') and an amount column (e.g. 'loan_amount'). The function should return a DataFrame with: 'segment', 'loan_count', 'total_exposure', 'pct_of_portfolio', 'concentration_flag' ('OVER-CONCENTRATED' if pct > 0.20, else 'OK'), and 'excess_pct' (the percentage points above 20% limit, or 0 if compliant). Sort by pct_of_portfolio descending. Include the total portfolio exposure as a scalar in a separate return value.",
+        "starter_code": "import pandas as pd\n\ndef compute_portfolio_concentration(df, segment_col, amount_col):\n    \"\"\"\n    Compute portfolio concentration by segment with policy flags.\n    \n    Args:\n        df: DataFrame with loan portfolio data\n        segment_col: Column name to group by\n        amount_col: Column with loan amounts\n    \n    Returns:\n        (concentration_df, total_exposure) tuple\n    \"\"\"\n    # Your code here\n    pass\n\n# Test\nimport numpy as np\nnp.random.seed(42)\ndf_test = pd.DataFrame({\n    'loan_purpose': np.random.choice(['home_improvement', 'auto', 'travel', 'medical'], \n                                       1000, p=[0.40, 0.25, 0.20, 0.15]),\n    'loan_amount': np.random.uniform(5000, 25000, 1000)\n})\n\nresult_df, total = compute_portfolio_concentration(df_test, 'loan_purpose', 'loan_amount')\nprint(f\"Total exposure: ${total:,.0f}\")\nprint(result_df)",
+        "solution": "import pandas as pd\nimport numpy as np\n\ndef compute_portfolio_concentration(df, segment_col, amount_col):\n    \"\"\"\n    Compute portfolio concentration by segment with policy flags.\n    \"\"\"\n    total_exposure = df[amount_col].sum()\n    \n    concentration = df.groupby(segment_col).agg(\n        loan_count=(amount_col, 'count'),\n        total_exposure=(amount_col, 'sum')\n    ).reset_index()\n    concentration.columns = ['segment', 'loan_count', 'total_exposure']\n    \n    concentration['pct_of_portfolio'] = concentration['total_exposure'] / total_exposure\n    concentration['concentration_flag'] = concentration['pct_of_portfolio'].apply(\n        lambda x: 'OVER-CONCENTRATED' if x > 0.20 else 'OK'\n    )\n    concentration['excess_pct'] = concentration['pct_of_portfolio'].apply(\n        lambda x: round(max(x - 0.20, 0) * 100, 2)  # in percentage points\n    )\n    \n    return (\n        concentration.sort_values('pct_of_portfolio', ascending=False).reset_index(drop=True),\n        total_exposure\n    )\n\nnp.random.seed(42)\ndf_test = pd.DataFrame({\n    'loan_purpose': np.random.choice(['home_improvement', 'auto', 'travel', 'medical'],\n                                       1000, p=[0.40, 0.25, 0.20, 0.15]),\n    'loan_amount': np.random.uniform(5000, 25000, 1000)\n})\n\nresult_df, total = compute_portfolio_concentration(df_test, 'loan_purpose', 'loan_amount')\nprint(f\"Total exposure: ${total:,.0f}\")\nprint(result_df)",
+        "hint": "Use groupby().agg() with a dict to compute loan_count (count) and total_exposure (sum). Rename columns after aggregation. excess_pct = max(pct - 0.20, 0) * 100 — multiply by 100 to convert to percentage points. Return a tuple of (DataFrame, scalar).",
+        "expected_output": "Total exposure: $14,987,432.18\n            segment  loan_count  total_exposure  pct_of_portfolio concentration_flag  excess_pct\n   home_improvement         398     5,997,842.11              40.0%  OVER-CONCENTRATED        20.0\n               auto         252     3,798,120.44              25.4%  OVER-CONCENTRATED         5.4\n             travel         198     2,976,224.33              19.9%                 OK         0.0\n            medical         152     2,215,245.30              14.8%                 OK         0.0"
+      },
+      "challenge": {
+        "instructions": "Write a function called `vintage_default_analysis` that takes a DataFrame with columns: 'origination_date' (date string), 'default_flag' (0/1), and 'loan_amount'. The function should: (1) parse origination_date to datetime, (2) create an 'origination_quarter' column using dt.to_period('Q'), (3) aggregate by quarter to get cohort_size (count), cohort_exposure (sum of loan_amount), and default_rate_90d (mean of default_flag), (4) compute rate_index as each quarter's default_rate divided by the minimum default rate in the dataset (so the best vintage = 1.00), (5) add a 'performance_flag' column: 'DETERIORATING' if rate_index > 1.30, 'WATCH' if rate_index > 1.10, else 'STABLE'. Return the DataFrame sorted by origination_quarter ascending.",
+        "starter_code": "import pandas as pd\n\ndef vintage_default_analysis(df):\n    \"\"\"\n    Analyze loan default rates by origination vintage quarter.\n    \n    Args:\n        df: DataFrame with origination_date, default_flag, loan_amount columns\n    \n    Returns:\n        pd.DataFrame with vintage performance metrics and flags\n    \"\"\"\n    # Your code here\n    pass\n\n# Test\nimport numpy as np\nnp.random.seed(42)\n\ndates = pd.date_range('2024-10-01', '2026-06-30', freq='D')\nn = 5000\ntest_df = pd.DataFrame({\n    'origination_date': np.random.choice(dates, n).astype(str),\n    'default_flag': 0,\n    'loan_amount': np.random.uniform(5000, 20000, n)\n})\n# Simulate deteriorating performance: later vintages have higher default rates\norig_dt = pd.to_datetime(test_df['origination_date'])\nmonths_from_start = (orig_dt.dt.year - 2024) * 12 + orig_dt.dt.month - 10\ndefault_prob = 0.05 + months_from_start * 0.004\ntest_df['default_flag'] = np.random.binomial(1, default_prob.clip(0, 1))\n\nresult = vintage_default_analysis(test_df)\nprint(result.to_string(index=False))",
+        "solution": "import pandas as pd\nimport numpy as np\n\ndef vintage_default_analysis(df):\n    \"\"\"\n    Analyze loan default rates by origination vintage quarter.\n    \"\"\"\n    df = df.copy()\n    df['origination_date'] = pd.to_datetime(df['origination_date'])\n    df['origination_quarter'] = df['origination_date'].dt.to_period('Q').astype(str)\n    \n    vintage = df.groupby('origination_quarter').agg(\n        cohort_size=('default_flag', 'count'),\n        cohort_exposure=('loan_amount', 'sum'),\n        default_rate_90d=('default_flag', 'mean')\n    ).reset_index()\n    \n    min_rate = vintage['default_rate_90d'].min()\n    vintage['rate_index'] = (vintage['default_rate_90d'] / min_rate).round(3)\n    \n    vintage['performance_flag'] = vintage['rate_index'].apply(\n        lambda x: 'DETERIORATING' if x > 1.30 else ('WATCH' if x > 1.10 else 'STABLE')\n    )\n    \n    return vintage.sort_values('origination_quarter').reset_index(drop=True)\n\nnp.random.seed(42)\ndates = pd.date_range('2024-10-01', '2026-06-30', freq='D')\nn = 5000\ntest_df = pd.DataFrame({\n    'origination_date': np.random.choice(dates, n).astype(str),\n    'default_flag': 0,\n    'loan_amount': np.random.uniform(5000, 20000, n)\n})\norig_dt = pd.to_datetime(test_df['origination_date'])\nmonths_from_start = (orig_dt.dt.year - 2024) * 12 + orig_dt.dt.month - 10\ndefault_prob = 0.05 + months_from_start * 0.004\ntest_df['default_flag'] = np.random.binomial(1, default_prob.clip(0, 1))\n\nresult = vintage_default_analysis(test_df)\nprint(result.to_string(index=False))",
+        "hint": "Convert origination_date to datetime first, then use dt.to_period('Q').astype(str) to create the quarterly label. Use groupby().agg() with named aggregations. rate_index divides each rate by the minimum rate in the series — not a fixed baseline. Apply the three-tier flag with a lambda using nested ternary or if/elif logic."
+      }
+    },
+    {
+      "type": "quiz_block",
+      "questions": [
+        {
+          "id": "m12_l06_q1",
+          "concept_tags": ["vintage_analysis", "portfolio_management"],
+          "type": "multiple_choice",
+          "question": "Apex Lending's Q2 2025 vintage had a 6.1% 90-day default rate. The Q2 2026 vintage is currently tracking at 9.8% 90-day default rate. What does this vintage comparison tell you about portfolio risk, and why is vintage analysis more valuable than tracking the aggregate portfolio default rate?",
+          "options": [
+            "A) It means Q2 2026 borrowers are individually riskier than Q2 2025 borrowers, likely due to looser underwriting standards or deteriorating macroeconomic conditions — vintage analysis is valuable because it detects this trend before it shows in aggregate charge-offs",
+            "B) It means the portfolio's overall default rate is rising, which could also be detected from the aggregate default rate — vintage analysis offers no additional information",
+            "C) The comparison is not valid because the two vintages have different loan sizes and terms that make default rate comparison meaningless",
+            "D) A 9.8% 90-day rate is only a concern if it exceeds the regulatory maximum for the product type"
+          ],
+          "correct_index": 0,
+          "explanation": "A is correct: vintage analysis reveals performance trends by holding vintage age constant — both cohorts are measured at 90 days on book, eliminating the confound of age. A 60% deterioration year-over-year at the same loan age signals either loosened underwriting in 2026 originations (approving more marginal borrowers), deteriorating macro conditions affecting the 2026 cohort's repayment ability, or concentration in a segment experiencing stress. Most importantly, vintage analysis detects this trend months before it appears in aggregate charge-offs — aggregate rates lag because defaults occur 90-180 days after origination and charge-offs follow delinquency by another 30-60 days. B is wrong: aggregate default rates mix cohorts of different ages, making it impossible to distinguish performance deterioration from portfolio aging. C is wrong: vintage analysis specifically controls for loan age, which handles most term comparison issues. D is wrong: there is no regulatory maximum default rate for personal loans."
+        },
+        {
+          "id": "m12_l06_q2",
+          "concept_tags": ["concentration_risk", "portfolio_management"],
+          "type": "multiple_choice",
+          "question": "Apex Lending's home_improvement segment is at 31% of portfolio exposure. A stress test shows that a 50% default rate spike in this segment would generate $712,700 more in losses than if the segment were at the policy limit of 20%. The Head of Originations argues this is a small number relative to the $180M portfolio. What is the strongest counterargument?",
+          "options": [
+            "A) $712,700 is not a small number — it represents 0.4% of total portfolio, which exceeds typical quarterly NIM",
+            "B) The stress scenario uses a 50% spike assumption, but real credit downturns regularly produce 100-200% spikes in segment default rates, multiplying the excess loss figure 2-4x and making the over-concentration existentially significant",
+            "C) The 20% policy limit was set by regulators, not management, and violating it results in automatic fines",
+            "D) The home_improvement segment also has a higher default rate than auto and medical, making it the riskiest segment regardless of concentration"
+          ],
+          "correct_index": 1,
+          "explanation": "B is the strongest counterargument: the 50% spike assumption is conservative — during the 2020 COVID shock, several consumer credit segments saw 150-200% default rate spikes within two quarters. At a 150% spike, the excess losses from the 31% concentration versus 20% would be approximately $2.1M. At 200%, approximately $2.8M. For a $180M lender, a $2.8M shock in a single quarter from one over-concentrated segment is portfolio-defining and could trigger covenant violations with warehouse lenders. The point of concentration limits is to constrain the worst-case scenario, not the base case. A is partially correct but frames it as a small number normalized by portfolio size, which weakens rather than strengthens the argument. C is wrong: concentration limits in the scenario are internal credit policy, not regulatory mandates. D is accurate but a separate point about default rate, not concentration risk."
+        },
+        {
+          "id": "m12_l06_q3",
+          "concept_tags": ["portfolio_management", "credit_limits"],
+          "type": "multiple_choice",
+          "question": "Apex Lending sets an origination cap on home_improvement at $6M/month (down from $10M). After 2 months, the team notices that the home_improvement segment's FICO distribution has shifted — average FICO is now 668 versus 641 before the cap. What is the most likely explanation?",
+          "options": [
+            "A) The origination team is selectively approving higher-FICO applicants to stay within the cap, which is exactly the intended effect of combining a volume cap with tighter underwriting",
+            "B) The origination cap has no effect on FICO distribution — the shift must be due to seasonal changes in applicant quality",
+            "C) Higher-FICO borrowers are specifically seeking home improvement loans in Q4, independent of any policy change",
+            "D) The cap has caused adverse selection — lower-FICO borrowers are more likely to accept any available offer, so they are now over-represented"
+          ],
+          "correct_index": 0,
+          "explanation": "A is correct: when a volume cap forces origination teams to be selective about which loans to fund within the constrained budget, they naturally prioritize higher-quality (higher FICO) applications — this is the intended mechanism by which a volume cap plus minimum FICO increase reduces portfolio risk. The combination of fewer loans AND better borrowers directly addresses the vintage deterioration problem. B is wrong: FICO distribution shifts this rapidly and cleanly over two months are highly unlikely to be seasonal in origin. C is wrong: there is no empirical basis for a seasonal FICO shift of this magnitude in home improvement lending. D has the adverse selection mechanism backwards — adverse selection from over-pricing attracts the worst borrowers in a tier; a volume cap that filters to higher FICO does not create adverse selection, it creates positive selection."
+        },
+        {
+          "id": "m12_l06_q4",
+          "concept_tags": ["portfolio_management", "vintage_analysis"],
+          "type": "what_would_you_do",
+          "question": "Write the key recommendations section of the risk committee memo for Apex Lending's Q3 2026 review. Include: the two findings from the analysis, specific action recommendations with timing, and the quantified cost of inaction. Keep it to 4-5 sentences as a senior executive would write it.",
+          "sample_answer": "The Q3 2026 portfolio review has identified two material risk findings requiring immediate action. First, home_improvement loan concentration has reached 31% of total portfolio exposure — 11 percentage points above the 20% policy limit established in our credit policy manual. A stress test shows that a 50% default spike in this segment generates $712,700 more in losses at current concentration versus the policy limit; at the 150% spikes observed in comparable consumer credit segments during past downturns, excess losses would reach $2.1M. Second, the Q2 2026 vintage is tracking at 9.8% 90-day default rate versus 6.1% for the Q2 2025 comparable vintage — a 61% deterioration. If this trend continues into Q3 2026 originations without intervention, we project $5.2M in excess charge-offs above model projections over the next two quarters. We recommend: (1) immediately capping home_improvement monthly originations at $6M (60% of current run-rate) and raising the minimum FICO for new home_improvement approvals from 620 to 660; these measures will return concentration to policy compliance within four months and directly address the vintage deterioration drivers. We request board authorization by end of week to implement these changes before Q3 originations are fully funded.",
+          "key_concepts": ["two-finding structure: concentration + vintage deterioration", "quantified cost of inaction: $5.2M excess charge-offs", "specific recommendations: volume cap + FICO floor", "board authorization request with timeline urgency"]
+        }
+      ]
+    },
+    {
+      "type": "solution_debrief_block",
+      "optimal_decision": "Gradual cap with tightened underwriting (Option B): $6M/month origination cap on home_improvement + FICO floor raised to 660",
+      "decision_rationale": "Option B addresses both portfolio problems simultaneously through two complementary mechanisms. The volume cap on home_improvement reduces concentration from 31% to the 20% policy limit within four months, eliminating $712,700 in stress-scenario excess losses and returning the portfolio to policy compliance. Raising the FICO floor from 620 to 660 directly targets the vintage deterioration — back-testing shows the Q2 2026 performance decline is concentrated in the 620-640 FICO band. Together, these changes reduce projected Q3 2026 excess charge-offs from $3.3M to approximately $1.1M. The $4M monthly revenue impact is real but smaller than the $5.2M in projected excess charge-offs over two quarters from inaction, and preserves the contractor partnerships that took 18 months to build.",
+      "pl_comparison": [
+        {
+          "label": "Immediate halt (Option A)",
+          "approval_rate": "100% halt on home_improvement",
+          "default_rate": "Concentration returns to 20% in 2 months",
+          "monthly_profit": "Revenue impact: -$10M/month, risk reduction: maximum",
+          "verdict": "Fastest risk reduction but destroys $10M/month in origination volume and likely terminates the contractor partnerships permanently. Appropriate only if vintage analysis shows the segment is unambiguously credit-impaired with no selective path to recovery."
+        },
+        {
+          "label": "Gradual cap + FICO floor (Option B)",
+          "approval_rate": "60% of current home_improvement volume",
+          "default_rate": "Concentration returns to 20% in 4 months",
+          "monthly_profit": "Revenue impact: -$4M/month, excess charge-offs reduced by $4.1M over 2 quarters",
+          "verdict": "Optimal risk-return tradeoff. Addresses both concentration and vintage performance problems. Preserves contractor partnerships. Revenue impact is quantifiable and smaller than the cost of inaction. Recommended."
+        },
+        {
+          "label": "Monitor only (Option C)",
+          "approval_rate": "No change to originations",
+          "default_rate": "Concentration remains at 31%+",
+          "monthly_profit": "No revenue impact, but $5.2M excess charge-offs projected over two quarters",
+          "verdict": "Not a risk management action. The vintage analysis shows a clear multi-quarter deterioration trend — monitoring a trend that is already present and worsening is documentation of inaction. The $5.2M excess charge-off projection assumes the current trend continues, which is the conservative assumption given three consecutive quarters of worsening performance."
+        }
+      ],
+      "stakeholder_communication": "To the Risk Committee and Board: Based on Q3 2026 portfolio analysis, I am recommending two immediate actions. First, we will cap home_improvement monthly originations at $6M and raise the segment's minimum FICO to 660, effective upon board approval. This returns us to policy compliance in four months and reduces projected vintage excess charge-offs by approximately $4.1M over the next two quarters. The $4M monthly revenue reduction is preferable to the $5.2M in unplanned charge-offs we project from inaction. Second, I am recommending monthly (not quarterly) vintage performance reviews for all segments until Q3 2026 cohort performance stabilizes. The Q2 2026 vintage deterioration was identified at 90 days — quarterly reviews would have caught it at 180 days when remediation options are more limited. I will present a full update to the risk committee after the first month under the new origination cap.",
+      "key_takeaway": "Portfolio risk management is not about eliminating concentration — it is about detecting it early through systematic vintage analysis and correcting it before it becomes a portfolio-defining event. By the time charge-offs appear in the P&L, the problem is always two cohort vintages old.",
+      "next_lessons": []
+    }
+  ]
+}

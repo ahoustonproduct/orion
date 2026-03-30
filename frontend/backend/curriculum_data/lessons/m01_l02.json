@@ -1,0 +1,215 @@
+{
+  "id": "m01_l02",
+  "module_id": "m01",
+  "title": "Functions and Business Rules",
+  "order": 2,
+  "duration_min": 25,
+  "difficulty": "beginner",
+  "concept_tags": ["python_functions", "business_rules", "modularity"],
+  "learning_objectives": [
+    "Define Python functions with parameters, default arguments, and return values",
+    "Encapsulate a multi-step business rule inside a function that is testable and reusable",
+    "Explain why function modularity reduces operational risk in financial systems",
+    "Design a transaction classification system using nested functions and clear return types"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Chime's fraud detection system processes over 8 million transactions daily — each one passing through the same classify_transaction() function, which means a single bug in that function affects every single transaction until it's patched.",
+      "explanation": "A function is a reusable block of code that takes inputs and returns an output. In financial systems, functions are not just a convenience — they are a risk management tool. When Chime's engineers write business logic once as a function and call it everywhere, they gain three things: consistency (every transaction is evaluated by the exact same rules), testability (you can write automated tests against a function without running the entire payment stack), and auditability (when a regulator asks 'how do you classify a transaction as fraudulent?', you can point to a single function with a clear docstring).\n\nWithout functions, business logic gets copy-pasted across different parts of a codebase. When the fraud policy changes — say, the threshold for flagging large international transactions drops from $500 to $350 after a spike in card-not-present fraud — an engineer has to hunt down every place that threshold was hardcoded. In a 500,000-line codebase, they will miss one. That one missed update creates an inconsistency: the same transaction might be flagged by one part of the system and approved by another. At Chime's scale, that inconsistency could expose millions of dollars to fraud before it's caught.\n\nPython functions are defined with `def`, accept parameters (the inputs), and return values using `return`. Well-designed financial functions have: a descriptive name that reads like a policy statement (`classify_transaction`, not `ct`), typed parameters and return values where possible, a docstring explaining the business rule being implemented, and a single clear return value — either a string label, a boolean, or a structured dict. These practices make functions that non-engineers can understand, which matters enormously in regulated industries.",
+      "code_example": {
+        "language": "python",
+        "code": "# Chime-style transaction classification system\n# Each function handles exactly one classification concern\n\ndef is_high_velocity(transaction_count_24h, threshold=10):\n    \"\"\"\n    Flag accounts with unusually high transaction frequency.\n    Chime's fraud team observed that compromised accounts average\n    15+ transactions in 24h vs. 3.2 for normal accounts.\n    \"\"\"\n    return transaction_count_24h > threshold\n\n\ndef is_large_international(amount, is_international, large_threshold=350.0):\n    \"\"\"\n    Flag large cross-border transactions — highest-risk category\n    in card-not-present fraud. Threshold set at $350 after Q4 2025\n    fraud spike review.\n    \"\"\"\n    return is_international and amount > large_threshold\n\n\ndef classify_transaction(amount, is_international, txn_count_24h,\n                          merchant_category, is_new_device=False):\n    \"\"\"\n    Master classification function — returns a risk label and\n    recommended action for every transaction.\n    \n    Returns:\n        dict with keys: 'label', 'action', 'reason'\n    \"\"\"\n    # Check highest-risk conditions first\n    if is_large_international(amount, is_international) and is_new_device:\n        return {\n            'label': 'HIGH_RISK',\n            'action': 'BLOCK',\n            'reason': 'Large international transaction from unrecognized device'\n        }\n    \n    if is_high_velocity(txn_count_24h) and is_new_device:\n        return {\n            'label': 'HIGH_RISK',\n            'action': 'BLOCK',\n            'reason': 'High velocity on new device — possible account takeover'\n        }\n    \n    if is_large_international(amount, is_international):\n        return {\n            'label': 'MEDIUM_RISK',\n            'action': 'STEP_UP_AUTH',\n            'reason': 'Large international transaction — additional verification required'\n        }\n    \n    if is_high_velocity(txn_count_24h, threshold=15):\n        return {\n            'label': 'MEDIUM_RISK',\n            'action': 'STEP_UP_AUTH',\n            'reason': 'Elevated transaction velocity — sending SMS verification'\n        }\n    \n    # Default: normal transaction\n    return {\n        'label': 'LOW_RISK',\n        'action': 'APPROVE',\n        'reason': 'Transaction within normal parameters'\n    }\n\n\n# Example: evaluating a suspicious transaction\nresult = classify_transaction(\n    amount=420.00,\n    is_international=True,\n    txn_count_24h=4,\n    merchant_category='electronics',\n    is_new_device=True\n)\nprint(f\"Decision: {result['action']}\")\nprint(f\"Label: {result['label']}\")\nprint(f\"Reason: {result['reason']}\")",
+        "output": "Decision: BLOCK\nLabel: HIGH_RISK\nReason: Large international transaction from unrecognized device"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Chime",
+      "role": "Risk Analyst at Chime",
+      "scenario": "Chime is launching a new 'SpotMe' overdraft expansion — raising the overdraft limit from $200 to $500 for qualifying members. The risk team has asked you to design the transaction classification function that will handle the expanded limit. Currently, Chime's fraud system uses a simple two-tier rule: flag everything over $300 for manual review (STRICT policy), or only flag transactions over $500 and on new devices (LENIENT policy). The data team has proposed a third option: a TIERED policy that uses different thresholds based on a customer's account tenure and transaction history. Each policy has different false-positive rates, fraud loss exposure, and customer experience implications. The customer success team has been escalating complaints about false positives — legitimate large purchases being blocked creates significant churn. Your VP wants a recommendation before the SpotMe expansion goes live next month.",
+      "constraints": [
+        "Chime's acceptable fraud loss rate for the SpotMe product is under 2.5% of transaction volume",
+        "Customer success has a 48-hour SLA to resolve false-positive disputes — currently backlogged by 3 days",
+        "The transaction classification function must return a decision in under 50ms to not impact checkout experience",
+        "Any policy change must be documented and submitted to Chime's compliance team 30 days before deployment"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "VP of Risk",
+          "pressure": "We cannot exceed 2.5% fraud loss on SpotMe — if we do, we'll have to pull back the expansion and that's a $15M revenue opportunity we'd be leaving on the table"
+        },
+        {
+          "stakeholder": "Head of Customer Experience",
+          "pressure": "Our NPS dropped 8 points last quarter directly attributed to false fraud blocks. Every legitimate transaction we block costs us a customer — the lifetime value of a Chime member is over $1,200"
+        },
+        {
+          "stakeholder": "Engineering Lead",
+          "pressure": "The tiered policy adds 3x the code complexity. That's 3x the surface area for bugs, and with the SpotMe launch timeline, I'm not confident we can test it thoroughly enough"
+        },
+        {
+          "stakeholder": "CFO",
+          "pressure": "Show me the numbers on each policy. I need to see fraud loss vs. false-positive cost vs. implementation cost in a single table before I'll sign off"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "transactions",
+      "intro": "To recommend a fraud classification policy, we need to see how each policy performs on Chime's historical transaction data. We'll evaluate the strict, lenient, and tiered policies on three metrics: fraud capture rate (what share of actual fraud does it catch), false positive rate (what share of legitimate transactions does it wrongly flag), and estimated monthly fraud loss under each policy.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Load the transactions dataset and examine the distribution of flagged vs. actual fraud to understand the baseline",
+          "code": "import pandas as pd\n\ndf = pd.read_csv('transactions.csv')\n\nprint(f\"Total transactions: {len(df):,}\")\nprint(f\"\\nFraud distribution:\")\nprint(df['is_fraud'].value_counts().rename({0: 'Legitimate', 1: 'Fraudulent'}))\nprint(f\"\\nOverall fraud rate: {df['is_fraud'].mean():.2%}\")\nprint(f\"Average transaction amount: ${df['amount'].mean():.2f}\")\nprint(f\"\\nTransaction amount percentiles:\")\nprint(df['amount'].quantile([0.50, 0.75, 0.90, 0.95, 0.99]).rename(lambda x: f'{x:.0%}'))",
+          "output": "Total transactions: 124,850\n\nFraud distribution:\nLegitimate    122,213\nFraudulent      2,637\ndtype: int64\n\nOverall fraud rate: 2.11%\n\nAverage transaction amount: $87.42\n\nTransaction amount percentiles:\n50%     $52.00\n75%    $128.00\n90%    $285.00\n95%    $398.00\n99%    $642.00",
+          "business_implication": "The dataset has a 2.11% base fraud rate, just barely inside Chime's 2.5% tolerance. This is a razor-thin margin — any policy that misclassifies fraud will push the effective loss rate over the limit. Only 5% of transactions exceed $398, so aggressive high-dollar thresholds will flag a small fraction of transaction volume but may miss fraud in the long tail."
+        },
+        {
+          "step": 2,
+          "instruction": "Simulate each of the three policies on the historical data and compute fraud capture rate and false positive rate",
+          "code": "# Define the three policies as functions\ndef apply_strict_policy(row):\n    \"\"\"Flag all transactions over $300\"\"\"\n    return 1 if row['amount'] > 300 else 0\n\ndef apply_lenient_policy(row):\n    \"\"\"Flag only transactions over $500 AND on a new device\"\"\"\n    return 1 if (row['amount'] > 500 and row['is_new_device'] == 1) else 0\n\ndef apply_tiered_policy(row):\n    \"\"\"Flag based on account tenure: new accounts flagged at $200, established at $500\"\"\"\n    if row['account_age_days'] < 90:\n        return 1 if row['amount'] > 200 else 0\n    else:\n        return 1 if row['amount'] > 500 else 0\n\n# Apply each policy\ndf['flag_strict'] = df.apply(apply_strict_policy, axis=1)\ndf['flag_lenient'] = df.apply(apply_lenient_policy, axis=1)\ndf['flag_tiered'] = df.apply(apply_tiered_policy, axis=1)\n\n# Evaluate each policy\nfor policy_name, flag_col in [('Strict', 'flag_strict'), ('Lenient', 'flag_lenient'), ('Tiered', 'flag_tiered')]:\n    flagged = df[flag_col] == 1\n    fraud = df['is_fraud'] == 1\n    \n    fraud_captured = (df[flagged & fraud].shape[0]) / df[fraud].shape[0]\n    false_positive_rate = (df[flagged & ~fraud].shape[0]) / df[~fraud].shape[0]\n    flag_rate = flagged.mean()\n    \n    print(f\"\\n{policy_name} Policy:\")\n    print(f\"  Fraud capture rate:   {fraud_captured:.1%}\")\n    print(f\"  False positive rate:  {false_positive_rate:.1%}\")\n    print(f\"  Total transactions flagged: {flagged.sum():,} ({flag_rate:.1%} of total)\")",
+          "output": "Strict Policy:\n  Fraud capture rate:   84.3%\n  False positive rate:  11.2%\n  Total transactions flagged: 14,820 (11.9% of total)\n\nLenient Policy:\n  Fraud capture rate:   51.7%\n  False positive rate:  2.8%\n  Total transactions flagged: 4,490 (3.6% of total)\n\nTiered Policy:\n  Fraud capture rate:   78.6%\n  False positive rate:  5.1%\n  Total transactions flagged: 8,740 (7.0% of total)",
+          "business_implication": "The strict policy catches the most fraud (84%) but generates a 11.2% false positive rate — meaning 1 in 9 legitimate transactions gets flagged. At Chime's volume of 8 million daily transactions, that's 896,000 legitimate transactions blocked per day. The lenient policy creates far fewer false positives but misses nearly half of fraud. The tiered policy sits in the middle, offering a more intelligent segmentation that balances both concerns."
+        },
+        {
+          "step": 3,
+          "instruction": "Compute the dollar cost of each policy — both fraud losses AND the cost of false positives from customer churn",
+          "code": "# Estimate monthly dollar impact of each policy\n# Assumptions: 8M transactions/day * 30 days = 240M monthly transactions\n# Scale factor from our 124,850 sample to monthly volume:\nscale = (8_000_000 * 30) / len(df)\navg_fraud_amount = df[df['is_fraud'] == 1]['amount'].mean()\n\nprint(f\"Scale factor: {scale:.0f}x (sample to monthly volume)\")\nprint(f\"Average fraud transaction: ${avg_fraud_amount:.2f}\\n\")\n\nfor policy_name, flag_col in [('Strict', 'flag_strict'), ('Lenient', 'flag_lenient'), ('Tiered', 'flag_tiered')]:\n    flagged = df[flag_col] == 1\n    fraud = df['is_fraud'] == 1\n    \n    # Fraud that slips through (not flagged)\n    missed_fraud = df[~flagged & fraud]\n    monthly_fraud_loss = missed_fraud['amount'].sum() * scale\n    \n    # False positives = legitimate transactions blocked (customer churn risk)\n    # Chime estimates 0.5% of falsely blocked customers churn; LTV = $1,200\n    false_positives_monthly = df[flagged & ~fraud].shape[0] * scale\n    churn_cost = false_positives_monthly * 0.005 * 1200\n    \n    total_cost = monthly_fraud_loss + churn_cost\n    print(f\"{policy_name}: Fraud Loss ${monthly_fraud_loss/1e6:.2f}M | Churn Cost ${churn_cost/1e6:.2f}M | Total ${total_cost/1e6:.2f}M\")",
+          "output": "Scale factor: 1925x (sample to monthly volume)\nAverage fraud transaction: $183.40\n\nStrict: Fraud Loss $0.74M | Churn Cost $13.06M | Total $13.80M\nLenient: Fraud Loss $2.84M | Churn Cost $3.27M | Total $6.11M\nTiered: Fraud Loss $1.23M | Churn Cost $5.96M | Total $7.19M",
+          "business_implication": "The strict policy has the lowest fraud losses but the highest total cost by far — the customer churn from excessive false positives costs 17x more than the additional fraud losses from the lenient policy. The lenient policy produces the lowest total cost despite higher fraud losses, because the LTV-weighted cost of false positives dominates the calculation. This is a critical insight: optimizing purely for fraud capture rate is the wrong objective function."
+        }
+      ]
+    },
+    {
+      "type": "decision_block",
+      "decision_type": "policy_choice",
+      "prompt": "Based on your analysis of fraud capture rates, false positive rates, and monthly dollar costs, which transaction classification policy should Chime implement for the SpotMe expansion?",
+      "options": [
+        {
+          "id": "A",
+          "label": "Strict Policy",
+          "description": "Flag all transactions over $300. Fraud capture: 84.3%, False positive rate: 11.2%, Estimated monthly total cost: $13.8M.",
+          "risk_level": "low"
+        },
+        {
+          "id": "B",
+          "label": "Lenient Policy",
+          "description": "Flag only transactions over $500 AND on a new device. Fraud capture: 51.7%, False positive rate: 2.8%, Estimated monthly total cost: $6.1M.",
+          "risk_level": "high"
+        },
+        {
+          "id": "C",
+          "label": "Tiered Policy",
+          "description": "Flag new accounts (under 90 days) at $200 threshold, established accounts at $500. Fraud capture: 78.6%, False positive rate: 5.1%, Estimated monthly total cost: $7.2M.",
+          "risk_level": "medium"
+        }
+      ],
+      "outcome_function": "fraud_threshold_pl",
+      "optimal_option": "B",
+      "worst_option": "A",
+      "outcome_explanation": "The lenient policy produces the lowest total monthly cost ($6.1M) because, at Chime's scale, the customer churn cost of false positives ($1,200 LTV per churned member) vastly outweighs the incremental fraud losses. The strict policy captures more fraud but destroys $13M in monthly customer value through excessive friction — making it the most expensive policy overall. The tiered policy is analytically attractive but adds code complexity the engineering team flagged as a launch risk. The lenient policy's 51.7% fraud capture still keeps the overall fraud loss rate at 1.18% of transaction volume, inside Chime's 2.5% threshold. It also addresses the immediate customer experience crisis without adding engineering risk to a tight launch timeline."
+    },
+    {
+      "type": "technical_exercise_block",
+      "language": "python",
+      "standard": {
+        "instructions": "Write a function called `classify_transaction` that takes four arguments: `amount` (float), `is_international` (bool), `is_new_device` (bool), and `merchant_category` (str). The function should return a string: 'BLOCK', 'REVIEW', or 'APPROVE'. Apply these rules in order: (1) BLOCK if amount > 500 and is_international and is_new_device. (2) REVIEW if amount > 500 and is_international. (3) REVIEW if is_new_device and amount > 300. (4) BLOCK if merchant_category == 'crypto' and amount > 200. (5) APPROVE for all other transactions.",
+        "starter_code": "def classify_transaction(amount, is_international, is_new_device, merchant_category):\n    \"\"\"\n    Classify a transaction for fraud risk.\n    \n    Args:\n        amount (float): Transaction amount in dollars\n        is_international (bool): True if cross-border transaction\n        is_new_device (bool): True if transaction from unrecognized device\n        merchant_category (str): Merchant type (e.g. 'retail', 'crypto', 'travel')\n    \n    Returns:\n        str: 'BLOCK', 'REVIEW', or 'APPROVE'\n    \"\"\"\n    # Your code here\n    pass\n\n# Test cases\nprint(classify_transaction(600, True, True, 'electronics'))   # BLOCK\nprint(classify_transaction(600, True, False, 'electronics'))  # REVIEW\nprint(classify_transaction(350, False, True, 'retail'))       # REVIEW\nprint(classify_transaction(250, False, False, 'crypto'))      # BLOCK\nprint(classify_transaction(80, False, False, 'food'))         # APPROVE",
+        "solution": "def classify_transaction(amount, is_international, is_new_device, merchant_category):\n    \"\"\"\n    Classify a transaction for fraud risk.\n    \n    Args:\n        amount (float): Transaction amount in dollars\n        is_international (bool): True if cross-border transaction\n        is_new_device (bool): True if transaction from unrecognized device\n        merchant_category (str): Merchant type (e.g. 'retail', 'crypto', 'travel')\n    \n    Returns:\n        str: 'BLOCK', 'REVIEW', or 'APPROVE'\n    \"\"\"\n    # Rule 1: Highest-risk combination — block immediately\n    if amount > 500 and is_international and is_new_device:\n        return 'BLOCK'\n    \n    # Rule 2: Large international — needs additional review\n    if amount > 500 and is_international:\n        return 'REVIEW'\n    \n    # Rule 3: New device with moderately large amount\n    if is_new_device and amount > 300:\n        return 'REVIEW'\n    \n    # Rule 4: Crypto purchases above threshold are high-risk\n    if merchant_category == 'crypto' and amount > 200:\n        return 'BLOCK'\n    \n    # Rule 5: Default approval\n    return 'APPROVE'\n\n# Test cases\nprint(classify_transaction(600, True, True, 'electronics'))   # BLOCK\nprint(classify_transaction(600, True, False, 'electronics'))  # REVIEW\nprint(classify_transaction(350, False, True, 'retail'))       # REVIEW\nprint(classify_transaction(250, False, False, 'crypto'))      # BLOCK\nprint(classify_transaction(80, False, False, 'food'))         # APPROVE",
+        "hint": "Order matters in if/elif chains — Python evaluates conditions top to bottom and returns at the first match. Put the most restrictive (BLOCK) conditions first. The last line should be a bare `return 'APPROVE'` with no condition — it only executes if every condition above was False.",
+        "expected_output": "BLOCK\nREVIEW\nREVIEW\nBLOCK\nAPPROVE"
+      },
+      "challenge": {
+        "instructions": "Build a full transaction evaluation system with two functions: `compute_risk_score(transaction_dict)` that returns a float risk score between 0.0 and 1.0, and `classify_from_score(risk_score, customer_tier)` that converts the score to a decision. For `compute_risk_score`, use these weighted factors: amount over $300 adds 0.3 to score; is_international adds 0.25; is_new_device adds 0.3; merchant_category == 'crypto' adds 0.2; account_age_days < 30 adds 0.25. Cap the score at 1.0. For `classify_from_score`, apply: risk_score >= 0.7 returns BLOCK for all tiers; risk_score >= 0.4 returns BLOCK for 'basic' tier, REVIEW for 'plus' tier, APPROVE for 'premium' tier; below 0.4 always returns APPROVE.",
+        "starter_code": "def compute_risk_score(transaction_dict):\n    # transaction_dict keys: amount, is_international, is_new_device,\n    # merchant_category, account_age_days\n    pass\n\ndef classify_from_score(risk_score, customer_tier):\n    # customer_tier: 'basic', 'plus', or 'premium'\n    pass",
+        "solution": "def compute_risk_score(transaction_dict):\n    score = 0.0\n    \n    if transaction_dict['amount'] > 300:\n        score += 0.3\n    if transaction_dict['is_international']:\n        score += 0.25\n    if transaction_dict['is_new_device']:\n        score += 0.3\n    if transaction_dict['merchant_category'] == 'crypto':\n        score += 0.2\n    if transaction_dict['account_age_days'] < 30:\n        score += 0.25\n    \n    return min(score, 1.0)  # Cap at 1.0\n\ndef classify_from_score(risk_score, customer_tier):\n    if risk_score >= 0.7:\n        return 'BLOCK'\n    if risk_score >= 0.4:\n        if customer_tier == 'basic':\n            return 'BLOCK'\n        elif customer_tier == 'plus':\n            return 'REVIEW'\n        else:  # premium\n            return 'APPROVE'\n    return 'APPROVE'",
+        "hint": "In compute_risk_score, initialize score to 0.0 and add to it with += for each condition. Use min(score, 1.0) at the end to cap it. In classify_from_score, handle the universal BLOCK case first (score >= 0.7), then use if/elif/else on the tier string for the medium-risk band."
+      }
+    },
+    {
+      "type": "quiz_block",
+      "questions": [
+        {
+          "id": "m01_l02_q1",
+          "concept_tags": ["python_functions"],
+          "type": "multiple_choice",
+          "question": "A function `get_apr(credit_score)` is called with `get_apr(720)` but the function definition has no `return` statement — just a series of `if` blocks that compute a variable called `apr`. What does `get_apr(720)` return?",
+          "options": [
+            "A) It returns 0 as a default numeric value",
+            "B) It raises a NameError because `apr` was never returned",
+            "C) It returns None, which is Python's default return value when no return is specified",
+            "D) It raises a SyntaxError because functions must have a return statement"
+          ],
+          "correct_index": 2,
+          "explanation": "C is correct: in Python, every function implicitly returns None if it exits without hitting a return statement. This is a frequent bug in financial code — the function runs, computes the APR correctly, stores it in a local variable, and then silently returns None to the caller. The calling code might then try to do math on None and get a TypeError, or worse, store None in a database. A is wrong: Python has no concept of a default numeric return value — None is not 0. B is wrong: NameError would occur only if the calling code tried to use the returned value as if it were a name, not from the function itself. D is wrong: `return` statements are optional in Python function definitions."
+        },
+        {
+          "id": "m01_l02_q2",
+          "concept_tags": ["business_rules", "modularity"],
+          "type": "multiple_choice",
+          "question": "Chime's fraud system has the rule `if amount > 300: flag = True` written in 14 different files across the codebase. The risk team changes the threshold to $350. What is the most significant operational risk of this code architecture?",
+          "options": [
+            "A) The change will be too slow because Python must update 14 files simultaneously",
+            "B) Engineers may update the threshold in 13 of the 14 locations, leaving one file with the old $300 rule — creating inconsistent fraud classification",
+            "C) The threshold change will require a full database migration before it takes effect",
+            "D) Python will raise a conflict error when the same variable is defined in multiple files"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: this is the core operational risk of copy-pasted business logic — when a rule changes, every instance must be updated manually, and human error guarantees at least one will be missed. At Chime's scale, a single stale $300 threshold in one code path means some transactions are classified by a policy different from all the others. This inconsistency creates regulatory exposure (fair treatment requires consistent rule application) and potential fraud losses. A is wrong: Python does not 'update files simultaneously' — changes to files are made by engineers editing source code, not by the Python runtime. C is wrong: changing a threshold in code has nothing to do with database schema migrations. D is wrong: Python does not enforce cross-file variable uniqueness — having `threshold = 300` in 14 files raises no errors whatsoever."
+        },
+        {
+          "id": "m01_l02_q3",
+          "concept_tags": ["python_functions"],
+          "type": "short_answer",
+          "question": "What is a default argument in a Python function, and give a realistic example of why you would use one in a financial application?",
+          "accepted_answers": [
+            "A default argument is a parameter with a pre-assigned value used when the caller does not provide that argument. Example: def calculate_apr(credit_score, base_rate=0.08) so that the base rate defaults to 8% but can be overridden for different products.",
+            "A default argument is a fallback value for a function parameter. Example: def approve_loan(credit_score, is_existing_customer=False) so existing_customer defaults to False and you only need to pass it when it is True.",
+            "Default arguments let you define optional parameters. In finance, def compute_fee(amount, fee_rate=0.015) lets you call compute_fee(100) for standard transactions and compute_fee(100, 0.025) for premium processing."
+          ],
+          "explanation": "A strong answer must define what a default argument is (a parameter value used when the caller omits that argument) and provide an example where the default represents a sensible business baseline. In financial code, defaults are particularly useful for: optional flags that are False in the normal case (is_international, is_new_device), configurable thresholds that have a standard value but can be overridden for different product tiers, and rate parameters that change over time but have a current-standard value. A weak answer just says 'it's a value you set' without demonstrating understanding of when and why to use one."
+        },
+        {
+          "id": "m01_l02_q4",
+          "concept_tags": ["business_rules", "modularity"],
+          "type": "what_would_you_do",
+          "question": "You are reviewing a colleague's code at Chime. Their fraud detection function is 200 lines long, handles five different fraud scenarios in a single function, and uses comments like `# case 3` instead of descriptive names. Your VP asks you to explain the business risk of shipping this code to production. What do you say, and what would you refactor it to look like?",
+          "sample_answer": "The business risk of a monolithic 200-line function is threefold: first, it's nearly impossible to write automated tests that cover each fraud scenario independently, so bugs can hide in untested branches. Second, when the fraud policy changes for one scenario, any engineer modifying the function risks accidentally breaking the logic for another scenario — especially without descriptive names to guide them. Third, compliance audits require clear documentation of each fraud rule; a single opaque function cannot be mapped to a specific policy document. I would refactor it into five separate single-responsibility functions (one per fraud scenario) with descriptive names like `is_velocity_fraud()`, `is_account_takeover()`, and a master `classify_transaction()` function that calls each one in order. Each function gets a docstring referencing the policy document it implements.",
+          "key_concepts": ["single responsibility principle — one function, one job", "testability — each function can be unit tested independently", "maintainability — changing one fraud rule cannot break another", "compliance auditability — function names and docstrings serve as documentation"]
+        }
+      ]
+    },
+    {
+      "type": "solution_debrief_block",
+      "optimal_decision": "Implement the Lenient Policy (flag transactions over $500 AND on a new device)",
+      "decision_rationale": "The lenient policy produces the lowest total monthly cost at $6.1M despite having the highest raw fraud losses ($2.84M). The key insight is that at Chime's scale, false positives are more expensive than fraud. With 8 million daily transactions, a 11.2% false positive rate (strict policy) blocks 896,000 legitimate transactions per day. At Chime's 0.5% churn rate per blocked transaction and $1,200 LTV, that's $5.4M in daily customer value at risk. The lenient policy's 2.8% false positive rate reduces that exposure to $1.35M daily while keeping the overall fraud loss rate at 1.18% — well inside the 2.5% warehouse covenant limit.",
+      "pl_comparison": [
+        {
+          "label": "Strict (>$300 flag)",
+          "approval_rate": "88.1%",
+          "default_rate": "0.31% fraud loss rate",
+          "monthly_profit": "-$13.8M total cost",
+          "verdict": "Catches the most fraud but destroys customer value through excessive friction. The $13.06M monthly churn cost dwarfs the $0.74M fraud savings vs. lenient. Net worst option despite best fraud performance."
+        },
+        {
+          "label": "Lenient (>$500 + new device)",
+          "approval_rate": "96.4%",
+          "default_rate": "1.18% fraud loss rate",
+          "monthly_profit": "-$6.1M total cost",
+          "verdict": "Best total cost outcome. Fraud loss rate of 1.18% stays inside the 2.5% covenant. Minimal customer friction. Engineering-simple to implement before the SpotMe launch. Best net option."
+        },
+        {
+          "label": "Tiered (age-based thresholds)",
+          "approval_rate": "93.0%",
+          "default_rate": "0.51% fraud loss rate",
+          "monthly_profit": "-$7.2M total cost",
+          "verdict": "Analytically superior fraud segmentation but adds code complexity that engineering flagged as a launch risk. The $1.1M monthly cost premium over lenient is not justified by the incremental fraud reduction. Consider for Phase 2 after SpotMe stabilizes."
+        }
+      ],
+      "stakeholder_communication": "After modeling all three policies against 124,000 historical transactions scaled to our monthly volume, the lenient policy produces the lowest total cost at $6.1M per month — $7.7M less than strict and $1.1M less than tiered. The critical insight is that our false-positive churn cost ($1,200 LTV per churned customer) makes aggressive flagging far more expensive than the fraud it prevents. The lenient policy keeps our fraud loss rate at 1.18%, well inside our 2.5% threshold, while avoiding the NPS damage that's been our biggest issue this quarter. I recommend we launch SpotMe with the lenient policy and revisit the tiered approach in Q3 once we have post-launch data to calibrate new-account risk parameters.",
+      "key_takeaway": "At Chime's scale, optimizing fraud policy purely for capture rate is the wrong objective — the true cost function includes customer LTV, and a lenient policy with 51.7% fraud capture outperforms a strict policy with 84.3% capture by $7.7M per month because false positives destroy customer relationships worth $1,200 each.",
+      "next_lessons": ["m01_l03"]
+    }
+  ]
+}

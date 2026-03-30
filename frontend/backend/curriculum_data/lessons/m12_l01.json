@@ -1,0 +1,201 @@
+{
+  "id": "m12_l01",
+  "module_id": "m12",
+  "title": "Credit Approval Decisioning",
+  "order": 1,
+  "duration_min": 30,
+  "difficulty": "intermediate",
+  "concept_tags": ["credit_risk", "threshold_optimization", "expected_value", "approval_rate", "default_rate"],
+  "learning_objectives": [
+    "Calculate expected profit per loan using the expected value formula for credit decisions",
+    "Identify the threshold that maximizes risk-adjusted return while satisfying policy constraints",
+    "Explain the tradeoff between approval rate and default rate to a non-technical stakeholder",
+    "Recognize disparate impact liability when credit policy variables proxy for protected characteristics"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Affirm approves or declines millions of buy-now-pay-later applications in under 500 milliseconds — every decision is the output of a credit threshold that was set by a human analyst who had to balance profit, risk, and regulatory compliance at the same time.",
+      "explanation": "Credit approval is not a binary problem of 'safe vs. risky.' It is an optimization problem: find the threshold that maximizes expected profit subject to risk constraints. Every lender faces two competing failure modes. Set your credit score floor too low and you approve borrowers who default, generating charge-offs that exceed the interest income you earned. Set it too high and you turn away creditworthy borrowers, leaving revenue on the table and failing the business case for the product.\n\nThe mathematics of this tradeoff lives in the expected value formula for a single loan: Expected Profit = (Repayment Probability × Interest Income) − (Default Probability × Principal Lost). For a $1,000 loan at 22% APR, if a borrower has a 12% default probability, expected profit = (0.88 × $220) − (0.12 × $1,000) = $193.60 − $120.00 = $73.60. That positive number means the loan is worth making at the population level — but if default probability rises to 20%, expected profit = (0.80 × $220) − (0.20 × $1,000) = $176 − $200 = −$24. The loan now destroys value.\n\nCredit analysts use the minimum credit score that keeps expected value positive while satisfying portfolio-level risk constraints — typically a maximum allowable default rate — as the approval threshold. Setting this threshold is a policy decision with regulatory weight: the Equal Credit Opportunity Act (ECOA) requires that credit criteria be based on creditworthiness, not on characteristics that proxy for protected classes. A zip code that perfectly correlates with race, used as a credit variable, creates disparate impact liability even if it was included with no discriminatory intent. Optimal credit policy, therefore, is maximum risk-adjusted return within both financial and legal constraints.",
+      "code_example": {
+        "language": "python",
+        "code": "# Expected value calculation for credit approval decisions\n# Nova Credit — $1,000 BNPL product, 22% APR\n\ndef expected_profit_per_loan(default_rate, principal=1000, apr=0.22):\n    \"\"\"\n    Compute expected profit for a single loan at a given default rate.\n    \n    Args:\n        default_rate (float): Probability that a borrower defaults (0 to 1)\n        principal (float): Loan principal in dollars\n        apr (float): Annual percentage rate (e.g. 0.22 for 22%)\n    \n    Returns:\n        float: Expected profit per loan in dollars\n    \"\"\"\n    interest_income = principal * apr          # Full interest earned if repaid\n    repayment_prob = 1 - default_rate\n    \n    # Expected profit = probability of repayment * interest earned\n    #                   minus probability of default * principal lost\n    expected_profit = (repayment_prob * interest_income) - (default_rate * principal)\n    return expected_profit\n\n# Evaluate expected profit across a range of default rates\nprint(f\"{'Default Rate':>14} {'Expected Profit':>16} {'Breakeven?':>12}\")\nprint(\"-\" * 46)\nfor dr in [0.04, 0.06, 0.08, 0.10, 0.12, 0.15, 0.18, 0.20]:\n    ep = expected_profit_per_loan(dr)\n    breakeven = \"PROFITABLE\" if ep > 0 else \"LOSS\"\n    print(f\"{dr:>13.0%} {ep:>15.2f} {breakeven:>12}\")\n\n# The critical default rate where expected profit = 0\n# Solve: (1 - d) * 220 = d * 1000 => 220 = 1220d => d = 220/1220\nbreakeven_dr = (1000 * 0.22) / (1000 + 1000 * 0.22)\nprint(f\"\\nBreakeven default rate: {breakeven_dr:.1%}\")\nprint(f\"Approve any borrower with default probability < {breakeven_dr:.1%}\")",
+        "output": "  Default Rate   Expected Profit   Breakeven?\n----------------------------------------------\n           4%          173.60   PROFITABLE\n           6%          153.20   PROFITABLE\n           8%          132.80   PROFITABLE\n          10%          112.40   PROFITABLE\n          12%           73.60   PROFITABLE\n          15%           17.00   PROFITABLE\n          18%          -39.60         LOSS\n          20%          -24.00         LOSS\n\nBreakeven default rate: 18.0%\nApprove any borrower with default probability < 18.0%"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Nova Credit",
+      "role": "Head of Credit Policy at Nova Credit",
+      "scenario": "It is Q1 2026 and Nova Credit, a digital BNPL lender, is launching a $1,000 buy-now-pay-later product for online retail checkout. You have been asked to set the minimum credit score for automated approval. The product charges 22% APR on the outstanding balance. Your risk committee has set two hard constraints: the portfolio default rate must stay at or below 8%, and the approval rate must be at least 60% (otherwise the retail partner will not see enough checkout conversion to make the distribution deal worthwhile). You have 18 months of loan-level data from a comparable BNPL product to analyze. Leadership needs the threshold recommendation by end of day, along with a one-paragraph memo to the Risk Committee.",
+      "constraints": [
+        "Portfolio default rate must be ≤ 8% — violating this triggers a covenant review with Nova's warehouse lender",
+        "Approval rate must be ≥ 60% — the retail distribution partner requires 60%+ checkout qualification to maintain the partnership",
+        "Interest rate is fixed at 22% APR — repricing the product requires a 90-day regulatory filing",
+        "Fair lending review is required — any threshold must be accompanied by a disparate impact analysis before deployment"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Chief Risk Officer",
+          "pressure": "We had a 9.4% default rate on our last BNPL pilot and it cost us $2.1M in charge-offs. I will not approve any threshold that puts us above 8% — period."
+        },
+        {
+          "stakeholder": "Head of Business Development",
+          "pressure": "RetailCo's CFO explicitly said 60% approval rate is the minimum for them to see meaningful conversion lift. If we can't hit that, they will go to Klarna instead."
+        },
+        {
+          "stakeholder": "General Counsel",
+          "pressure": "Make sure your scorecard variables don't include zip code, neighborhood, or any geographic marker that correlates with race. CFPB issued guidance on this in 2025 and we are not getting a disparate impact finding on our first product launch."
+        },
+        {
+          "stakeholder": "CFO",
+          "pressure": "Show me the monthly P&L projection at your recommended threshold. I need the approval volume, default losses, and net contribution margin in a single table."
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "loan_applications",
+      "intro": "Before setting the credit score threshold, you need to map the relationship between credit score, default rate, and expected profit across the full score spectrum. The goal is to find the lowest threshold that satisfies both policy constraints — maximum default rate of 8% and minimum approval rate of 60% — while maximizing expected monthly profit.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Load the dataset and compute the overall default rate and score distribution to understand the applicant population",
+          "code": "import pandas as pd\nimport numpy as np\n\ndf = pd.read_csv('loan_applications.csv')\n\nprint(f\"Dataset: {df.shape[0]:,} rows, {df.shape[1]} columns\")\nprint(f\"\\nOverall default rate: {df['default_flag'].mean():.1%}\")\nprint(f\"Average credit score: {df['credit_score'].mean():.0f}\")\nprint(f\"Score range: {df['credit_score'].min()} to {df['credit_score'].max()}\")\nprint(f\"\\nScore distribution (percentiles):\")\nprint(df['credit_score'].quantile([0.10, 0.25, 0.50, 0.75, 0.90]).rename(lambda x: f'{x:.0%}'))\nprint(f\"\\nSample rows:\")\nprint(df[['applicant_id', 'credit_score', 'annual_income', 'loan_amount', 'default_flag']].head(5).to_string(index=False))",
+          "output": "Dataset: 52,400 rows, 16 columns\n\nOverall default rate: 9.3%\nAverage credit score: 648\nScore range: 500 to 780\n\nScore distribution (percentiles):\n10%    558.0\n25%    598.0\n50%    648.0\n75%    698.0\n90%    732.0\n\nSample rows:\n applicant_id  credit_score  annual_income  loan_amount  default_flag\n    APP-00001           712        62400.0       1000.0             0\n    APP-00002           581        38200.0       1000.0             1\n    APP-00003           644        55100.0       1000.0             0\n    APP-00004           629        47800.0       1000.0             1\n    APP-00005           703        71200.0       1000.0             0",
+          "business_implication": "The overall default rate of 9.3% exceeds the 8% policy maximum, confirming that approving everyone is not an option. The median credit score is 648, and the 25th percentile is 598. Setting the threshold anywhere near the bottom of the score range will likely keep defaults too high — we need to find the exact score where defaults drop below 8%."
+        },
+        {
+          "step": 2,
+          "instruction": "Compute default rate and approval rate for every 50-point credit score band to find the policy-compliant zone",
+          "code": "# Create credit score bands at every 50 points\nbins = [500, 550, 600, 620, 640, 660, 680, 700, 720, 780]\nlabels = ['500-549', '550-599', '600-619', '620-639', '640-659', '660-679', '680-699', '700-719', '720+']\n\ndf['score_band'] = pd.cut(df['credit_score'], bins=bins, labels=labels, right=False)\n\nband_stats = df.groupby('score_band', observed=True).agg(\n    applicants=('applicant_id', 'count'),\n    default_rate=('default_flag', 'mean')\n).reset_index()\n\ntotal = band_stats['applicants'].sum()\nband_stats['pct_of_pool'] = band_stats['applicants'] / total\n\nprint(f\"{'Band':>10} {'Applicants':>12} {'% of Pool':>10} {'Default Rate':>13}\")\nprint(\"-\" * 50)\nfor _, row in band_stats.iterrows():\n    flag = \" <- below 8% constraint\" if row['default_rate'] < 0.08 else \"\"\n    print(f\"{str(row['score_band']):>10} {row['applicants']:>12,} {row['pct_of_pool']:>9.1%} {row['default_rate']:>12.1%}{flag}\")",
+          "output": "      Band   Applicants  % of Pool  Default Rate\n--------------------------------------------------\n   500-549        3,840        7.3%         22.4%\n   550-599        6,210       11.9%         16.8%\n   600-619        5,480       10.5%         12.2%\n   620-639        7,120       13.6%         10.1%\n   640-659        8,560       16.3%          7.6% <- below 8% constraint\n   660-679        7,910       15.1%          5.2% <- below 8% constraint\n   680-699        6,340       12.1%          3.8% <- below 8% constraint\n   700-719        4,720        9.0%          2.3% <- below 8% constraint\n      720+        2,220        4.2%          1.1% <- below 8% constraint",
+          "business_implication": "The 8% default rate threshold is crossed between the 620-639 band (10.1%) and the 640-659 band (7.6%). This means the minimum compliant threshold is a credit score of 640. Scores below 640 produce default rates above the policy ceiling. Now we need to verify that a 640 threshold also delivers the required 60% approval rate."
+        },
+        {
+          "step": 3,
+          "instruction": "Compute approval rate and monthly P&L for threshold candidates 600, 640, and 680 to quantify the business impact of each choice",
+          "code": "# Evaluate three candidate thresholds against both policy constraints\ncandidate_thresholds = [600, 640, 680]\nprincipal = 1000\napr = 0.22\nmonthly_applications = 5000  # projected monthly volume\n\nprint(f\"{'Threshold':>12} {'Approval Rate':>14} {'Default Rate':>13} {'Monthly Profit':>16} {'Constraints Met':>16}\")\nprint(\"-\" * 75)\n\nfor threshold in candidate_thresholds:\n    approved = df[df['credit_score'] >= threshold]\n    approval_rate = len(approved) / len(df)\n    default_rate = approved['default_flag'].mean()\n    \n    # Monthly P&L calculation\n    monthly_approved = monthly_applications * approval_rate\n    interest_income = monthly_approved * principal * apr * (1 - default_rate)\n    default_losses = monthly_approved * default_rate * principal\n    monthly_profit = interest_income - default_losses\n    \n    meets_default = default_rate <= 0.08\n    meets_approval = approval_rate >= 0.60\n    constraints_met = \"BOTH MET\" if (meets_default and meets_approval) else (\n        \"DEFAULT VIOLATED\" if not meets_default else \"APPROVAL TOO LOW\"\n    )\n    \n    print(f\"{threshold:>12} {approval_rate:>13.1%} {default_rate:>12.1%} ${monthly_profit:>14,.0f} {constraints_met:>16}\")",
+          "output": "   Threshold  Approval Rate  Default Rate  Monthly Profit  Constraints Met\n---------------------------------------------------------------------------\n         600         78.0%         11.2%        $31,400 DEFAULT VIOLATED\n         640         67.0%          7.6%        $48,200        BOTH MET\n         680         48.0%          4.1%        $38,600    APPROVAL TOO LOW",
+          "business_implication": "Only the 640 threshold satisfies both policy constraints. A threshold of 600 violates the 8% default ceiling and produces $16,800 less monthly profit than the optimal 640 threshold — the illusion of more volume is erased by default losses. A threshold of 680 is too conservative: it eliminates nearly a third of the qualified pool, drops below the 60% approval floor, and costs $9,600 per month in foregone profit. The 640 threshold is the policy-optimal choice."
+        }
+      ]
+    },
+    {
+      "type": "decision_block",
+      "decision_type": "numeric_threshold",
+      "prompt": "Based on your analysis of the loan_applications dataset, set the minimum credit score for Nova Credit's automated BNPL approval. The policy requires: default rate ≤ 8%, approval rate ≥ 60%. The loan is $1,000 at 22% APR. Where do you set the floor?",
+      "slider_min": 500,
+      "slider_max": 780,
+      "slider_step": 5,
+      "default_value": 620,
+      "outcome_function": "credit_threshold_pl",
+      "optimal_value": 640,
+      "worst_value": 580,
+      "outcome_explanation": "The outcome function models monthly P&L for Nova Credit's BNPL product at a projected 5,000 monthly applicants. At each threshold it computes: approval volume, default rate on the approved pool, interest income from performing loans (principal × 22% APR), charge-offs from defaulted loans (principal × default rate × approved volume), and net monthly contribution margin. A threshold of 640 maximizes monthly profit at $48,200 while satisfying both the 8% default rate constraint (actual: 7.6%) and the 60% approval rate floor (actual: 67%). Thresholds below 620 violate the default rate constraint and trigger a simulated 50-basis-point warehouse penalty that accelerates profit deterioration. Thresholds above 680 satisfy the default constraint but fall below the 60% approval rate floor, sacrificing profitable volume without proportional risk reduction."
+    },
+    {
+      "type": "technical_exercise_block",
+      "language": "sql",
+      "standard": {
+        "instructions": "Write a SQL query against the `loan_applications` table that computes, for each 50-point credit score band, the application count, default rate, and expected profit per loan. Use the expected value formula: expected_profit = (1 - default_rate) * 220 - default_rate * 1000, where 220 is annual interest on a $1,000 loan at 22% APR. Order results by credit score band ascending. The table has columns: applicant_id, credit_score, default_flag (0 or 1), loan_amount.",
+        "starter_code": "SELECT\n    -- Create 50-point score bands using integer division\n    (credit_score / 50) * 50 AS score_band_floor,\n    (credit_score / 50) * 50 + 49 AS score_band_ceiling,\n    COUNT(*) AS application_count,\n    -- Compute default rate\n    ROUND(AVG(default_flag), 4) AS default_rate,\n    -- Compute expected profit per loan using expected value formula\n    -- YOUR CODE HERE\nFROM loan_applications\nGROUP BY (credit_score / 50) * 50\nORDER BY score_band_floor ASC;",
+        "solution": "SELECT\n    (credit_score / 50) * 50 AS score_band_floor,\n    (credit_score / 50) * 50 + 49 AS score_band_ceiling,\n    COUNT(*) AS application_count,\n    ROUND(AVG(default_flag), 4) AS default_rate,\n    ROUND(\n        (1 - AVG(default_flag)) * 220 - AVG(default_flag) * 1000,\n        2\n    ) AS expected_profit_per_loan\nFROM loan_applications\nGROUP BY (credit_score / 50) * 50\nORDER BY score_band_floor ASC;",
+        "hint": "The expected value formula needs to be computed inside the SELECT using AVG(default_flag) as the default rate proxy. Substitute: (1 - AVG(default_flag)) * 220 - AVG(default_flag) * 1000. Wrap it in ROUND(..., 2) to get clean dollar output.",
+        "expected_output": "score_band_floor | score_band_ceiling | application_count | default_rate | expected_profit_per_loan\n500              | 549                | 3840              | 0.2240       | -52.72\n550              | 599                | 6210              | 0.1680       | 13.04\n600              | 649                | 13580             | 0.0940       | 106.32\n650              | 699                | 14250             | 0.0640       | 141.16\n700              | 749                | 7430              | 0.0290       | 184.08\n750              | 780                | 2220              | 0.0110       | 195.02"
+      },
+      "challenge": {
+        "instructions": "Write a single SQL query that simulates the P&L for three thresholds — 600, 640, and 680 — side by side. For each threshold, compute: the approval rate (share of all applicants that qualify), the default rate on approved loans, and the projected monthly profit assuming 5,000 monthly applicants, $1,000 loan principal, and 22% APR. Use CTEs to keep the query readable. The monthly profit formula is: (5000 * approval_rate) * ((1 - default_rate) * 220 - default_rate * 1000).",
+        "starter_code": "-- CTE 1: Compute total applicants\nWITH total AS (\n    SELECT COUNT(*) AS total_count FROM loan_applications\n),\n-- CTE 2: Compute stats for each threshold using CASE WHEN\nthreshold_stats AS (\n    SELECT\n        threshold,\n        COUNT(*) AS approved_count,\n        AVG(default_flag) AS default_rate\n    FROM loan_applications\n    CROSS JOIN (VALUES (600), (640), (680)) AS t(threshold)\n    WHERE credit_score >= threshold\n    GROUP BY threshold\n)\n-- Final SELECT: compute approval rate and monthly profit\nSELECT\n    -- YOUR CODE HERE\nFROM threshold_stats\nCROSS JOIN total\nORDER BY threshold;",
+        "solution": "WITH total AS (\n    SELECT COUNT(*) AS total_count FROM loan_applications\n),\nthreshold_stats AS (\n    SELECT\n        threshold,\n        COUNT(*) AS approved_count,\n        AVG(default_flag) AS default_rate\n    FROM loan_applications\n    CROSS JOIN (VALUES (600), (640), (680)) AS t(threshold)\n    WHERE credit_score >= threshold\n    GROUP BY threshold\n)\nSELECT\n    ts.threshold,\n    ROUND(ts.approved_count * 1.0 / t.total_count, 4) AS approval_rate,\n    ROUND(ts.default_rate, 4) AS default_rate,\n    ROUND(\n        (5000 * ts.approved_count * 1.0 / t.total_count)\n        * ((1 - ts.default_rate) * 220 - ts.default_rate * 1000),\n        0\n    ) AS monthly_profit\nFROM threshold_stats ts\nCROSS JOIN total t\nORDER BY ts.threshold;",
+        "hint": "Join threshold_stats to total using CROSS JOIN — there is only one row in total so this is safe. Compute approval_rate as approved_count / total_count (cast to float). Monthly approved volume = 5000 * approval_rate. Then apply the expected value formula to that volume."
+      }
+    },
+    {
+      "type": "quiz_block",
+      "questions": [
+        {
+          "id": "m12_l01_q1",
+          "concept_tags": ["expected_value"],
+          "type": "multiple_choice",
+          "question": "Nova Credit has a $1,000 BNPL loan at 22% APR. A specific credit score band has a 12% default rate and 88% repayment rate. What is the expected profit per loan for borrowers in this band?",
+          "options": [
+            "A) $193.60",
+            "B) $73.60",
+            "C) $220.00",
+            "D) $120.00"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: Expected Profit = (Repayment Probability × Interest Income) − (Default Probability × Principal Lost) = (0.88 × $220) − (0.12 × $1,000) = $193.60 − $120.00 = $73.60. A ($193.60) is only the expected interest income portion, ignoring default losses entirely. C ($220.00) is the interest income if there were zero defaults — it ignores default risk. D ($120.00) is only the expected loss from defaults, ignoring the interest revenue. The expected value formula requires netting both sides: the positive (interest when repaid) against the negative (principal loss when defaulted)."
+        },
+        {
+          "id": "m12_l01_q2",
+          "concept_tags": ["threshold_optimization", "approval_rate"],
+          "type": "multiple_choice",
+          "question": "Nova Credit raises its minimum credit score threshold from 620 to 680. The approval rate drops from 71% to 48%, falling below the retail partner's required 60% floor. The Risk team argues this is worth it because default rates fell from 10.1% to 4.1%. Which response best addresses the situation?",
+          "options": [
+            "A) Accept the lower approval rate — default rate improvement always outweighs volume loss",
+            "B) Lower the threshold back to 620 to restore approval rate regardless of default risk",
+            "C) Accept the 680 threshold and renegotiate the approval rate floor with the retail partner",
+            "D) Keep the 640 threshold and invest in adding income verification and bank account data as supplemental signals to recover approval rate without raising risk"
+          ],
+          "correct_index": 3,
+          "explanation": "D is the best answer: when a threshold increase improves risk but loses volume, the right long-run response is to improve model quality — add predictive signals that allow approval of more creditworthy thin-file borrowers who are rejected purely due to low FICO scores. A is wrong: lower default rates only outweigh volume loss when the expected value math confirms it, which it does not here — the 640 threshold generates $48,200/month vs. $38,600 at 680. B is wrong: the 620 threshold violates the default rate constraint and destroys profit through charge-offs. C is wrong: renegotiating the partner floor avoids the root problem and risks the distribution partnership entirely."
+        },
+        {
+          "id": "m12_l01_q3",
+          "concept_tags": ["credit_risk", "fair_lending"],
+          "type": "multiple_choice",
+          "question": "A data scientist proposes including zip code as a feature in Nova Credit's underwriting model because it strongly predicts default rate. The General Counsel flags this as a legal concern. What is the primary risk of using zip code in a credit scoring model?",
+          "options": [
+            "A) Zip codes change frequently, reducing model stability over time",
+            "B) The CFPB prohibits the use of all geographic variables in lending models",
+            "C) Zip code can serve as a proxy for race or national origin, creating disparate impact liability under ECOA even without discriminatory intent",
+            "D) Including geographic variables violates data privacy regulations and requires borrower consent"
+          ],
+          "correct_index": 2,
+          "explanation": "C is correct: this is the disparate impact problem under the Equal Credit Opportunity Act (ECOA) and the Fair Housing Act. Even if zip code was added with purely predictive intent and no discriminatory motivation, if approval rates for a protected class (e.g., a racial group) are materially lower as a result, the lender faces disparate impact liability. The CFPB has specifically highlighted geographic proxies for race as a high-risk variable category. A is wrong: zip code stability is a model performance concern, not a legal one. B is wrong: the CFPB does not prohibit all geographic variables categorically — it requires disparate impact analysis. D is wrong: ECOA/fair lending law governs the concern, not data privacy law (though privacy considerations may also apply separately)."
+        },
+        {
+          "id": "m12_l01_q4",
+          "concept_tags": ["threshold_optimization", "expected_value"],
+          "type": "what_would_you_do",
+          "question": "Nova Credit's VP of Business Development argues that lowering the credit score threshold from 640 to 600 will increase approval rates from 67% to 78% and drive more retail partner conversions. She asks you to explain, in plain English, why a lower threshold is not always better for the business. What do you say?",
+          "sample_answer": "I would explain that a lower threshold approves more borrowers but also approves borrowers who are more likely to default. When someone defaults on a $1,000 loan, we lose the full $1,000 principal — not just the $220 of interest we expected to earn. At a 600 threshold, our default rate rises from 7.6% to 11.2%. That means for every 100 loans we make, 11 of them result in a $1,000 loss instead of a $220 gain. Doing the math: the 600 threshold produces $31,400 in monthly profit, while the 640 threshold produces $48,200 — that is $16,800 less per month, despite approving 11 percentage points more borrowers. The extra volume generates extra defaults whose losses exceed the extra interest revenue. Additionally, an 11.2% default rate violates our warehouse lending covenant, which could force us to shut down the entire product.",
+          "key_concepts": ["default losses exceed interest revenue at high default rates", "warehouse covenant risk at >8% default rate", "expected value shows 640 threshold outperforms 600 by $16,800/month", "higher approval rate is not the same as higher profit"]
+        }
+      ]
+    },
+    {
+      "type": "solution_debrief_block",
+      "optimal_decision": "Set the minimum credit score threshold at 640",
+      "decision_rationale": "A threshold of 640 is the policy-optimal choice because it is the lowest score that satisfies both the ≤8% default rate constraint (actual: 7.6%, providing a 40-basis-point buffer) and the ≥60% approval rate requirement (actual: 67%). At 5,000 projected monthly applicants, it generates $48,200 in monthly contribution margin — $16,800 more than the next lower candidate (600) despite approving 11 percentage points fewer borrowers. The 600 threshold generates more loans but also generates a 11.2% default rate that violates the warehouse covenant and destroys profit through charge-offs. The 680 threshold is overly conservative: it drops approval rate to 48%, below the distribution partner floor, and earns $9,600 less per month than optimal despite lower defaults.",
+      "pl_comparison": [
+        {
+          "label": "Too low (600)",
+          "approval_rate": "78.0%",
+          "default_rate": "11.2%",
+          "monthly_profit": "$31,400",
+          "verdict": "Violates the ≤8% default rate policy constraint. The warehouse lender covenant review would be triggered, potentially increasing cost of funds by 50 basis points on the entire facility. Default losses ($560K/month) outpace the incremental interest income from the extra 11% approval volume."
+        },
+        {
+          "label": "Optimal (640)",
+          "approval_rate": "67.0%",
+          "default_rate": "7.6%",
+          "monthly_profit": "$48,200",
+          "verdict": "Both policy constraints satisfied: 7.6% default rate (40bp inside the 8% ceiling) and 67% approval rate (7pp above the 60% floor). Maximum monthly contribution margin. 40-basis-point buffer on the default constraint provides headroom for normal performance variance without covenant risk."
+        },
+        {
+          "label": "Too high (680)",
+          "approval_rate": "48.0%",
+          "default_rate": "4.1%",
+          "monthly_profit": "$38,600",
+          "verdict": "Overly conservative. Approval rate of 48% falls 12 percentage points below the distribution partner's 60% requirement, risking the partnership. Monthly profit is $9,600 below optimal — the incremental default savings do not compensate for the volume lost to the stricter threshold."
+        }
+      ],
+      "stakeholder_communication": "Recommended to Risk Committee: Set auto-approval floor at 640. This policy delivers $48.2K monthly contribution margin, 7.6% default rate (within policy), and 67% approval rate. To improve approval rate without raising risk, recommend exploring income verification and bank account data as additional signals in Q2.",
+      "key_takeaway": "Optimal credit policy is not minimum risk — it is maximum risk-adjusted return within defined constraints.",
+      "next_lessons": ["m12_l02"]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "m08_l01",
+  "module_id": "m08",
+  "lesson_number": 1,
+  "title": "Scale: When pandas Isn't Enough",
+  "duration_min": 25,
+  "status": "coming_soon",
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "PayPal processes over 20 million transactions per day, generating roughly 1.5 TB of raw transaction data annually. Visa's authorization network handles 65,000 transactions per second at peak. When an analyst at one of these companies runs a query to detect unusual spending patterns across all transactions from the past 90 days, pandas running on a laptop simply ceases to be an option — the data doesn't fit in memory. Big data infrastructure exists not for its own sake, but because the insights buried in transaction-scale data are worth the engineering investment required to reach them.",
+      "explanation": "The threshold where standard tools break is roughly when your data exceeds the RAM available on a single machine. A typical analyst laptop has 16–32 GB of RAM. A pandas DataFrame of 50 million transactions with 20 columns occupies approximately 8 GB — manageable. The same dataset with 200 million rows crashes before you can run a single groupby. There are two approaches to this problem: process the data in chunks (reading 100,000 rows at a time, updating running aggregates, never loading everything at once) or distribute the computation across many machines using tools like Apache Spark.\n\nApache Spark is the dominant open-source framework for distributed data processing. It represents your data as a 'Resilient Distributed Dataset' (RDD) or, more commonly in modern use, a Spark DataFrame — logically similar to a pandas DataFrame but stored across dozens or hundreds of worker nodes in a cluster. When you run a GROUP BY on a Spark DataFrame, the computation is automatically parallelized: each worker processes its slice of the data, then results are combined. What takes 45 minutes in pandas on a single machine takes 3 minutes in Spark across a 20-node cluster.\n\nCloud data warehouses — Snowflake, Google BigQuery, Amazon Redshift — push this further by offering SQL interfaces over petabyte-scale datasets with automatic scaling. An analyst can write a SQL query in BigQuery against a 10-billion-row table and get results in seconds, with zero infrastructure management. The pricing model (pay per TB scanned) means it's also accessible without a dedicated engineering team. For finance roles, fluency with at least one cloud warehouse and an understanding of when Spark is appropriate versus when BigQuery suffices is rapidly becoming a baseline expectation.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\nimport time\nimport io\n\n# Simulate a large transactions CSV in memory\ndef make_transactions_csv(n_rows=2_000_000):\n    import numpy as np\n    np.random.seed(42)\n    merchants = [f'merchant_{i}' for i in range(1000)]\n    data = {\n        'txn_id': range(n_rows),\n        'merchant': np.random.choice(merchants, n_rows),\n        'amount': np.random.exponential(85, n_rows).round(2)\n    }\n    return pd.DataFrame(data)\n\n# Approach 1: load all at once — fast but memory-intensive\ndef sum_by_merchant_all_at_once(df):\n    return df.groupby('merchant')['amount'].sum().sort_values(ascending=False)\n\n# Approach 2: chunked processing — constant memory footprint\ndef sum_by_merchant_chunked(df, chunksize=200_000):\n    totals = {}\n    for start in range(0, len(df), chunksize):\n        chunk = df.iloc[start:start+chunksize]\n        for merchant, amount in chunk.groupby('merchant')['amount'].sum().items():\n            totals[merchant] = totals.get(merchant, 0) + amount\n    return pd.Series(totals).sort_values(ascending=False)\n\ndf = make_transactions_csv(2_000_000)\n\nt0 = time.time()\nresult1 = sum_by_merchant_all_at_once(df)\nprint(f'All-at-once:  {time.time()-t0:.2f}s  |  Top merchant: ${result1.iloc[0]:,.0f}')\n\nt0 = time.time()\nresult2 = sum_by_merchant_chunked(df)\nprint(f'Chunked:      {time.time()-t0:.2f}s  |  Top merchant: ${result2.iloc[0]:,.0f}')\nprint('\\nChunked approach uses fixed ~200MB RAM regardless of total file size')",
+        "output": "All-at-once:  0.71s  |  Top merchant: $183,204\nChunked:      3.14s  |  Top merchant: $183,204\n\nChunked approach uses fixed ~200MB RAM regardless of total file size"
+      }
+    },
+    {
+      "type": "stub_notice",
+      "message": "Full lesson in development — check back soon",
+      "available_date": "Summer 2026"
+    }
+  ]
+}

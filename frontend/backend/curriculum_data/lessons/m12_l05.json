@@ -1,0 +1,217 @@
+{
+  "id": "m12_l05",
+  "module_id": "m12",
+  "title": "Fair Lending and Model Compliance",
+  "order": 5,
+  "duration_min": 30,
+  "difficulty": "intermediate",
+  "concept_tags": ["fair_lending", "ecoa", "disparate_impact", "model_governance", "regulatory_compliance"],
+  "learning_objectives": [
+    "Apply the 80% rule to detect disparate impact in credit approval rates across demographic groups",
+    "Distinguish between disparate treatment (intentional discrimination) and disparate impact (neutral policy with discriminatory effect)",
+    "Identify credit model features with high disparate impact risk and propose less discriminatory alternatives",
+    "Design a model governance process that satisfies CFPB examination standards including adverse action notices"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "In 2023, the CFPB issued a $2.7 million supervisory action against Upstart, citing concerns that its AI credit model used variables that had disparate impact on protected classes — specifically that the model's non-traditional variables resulted in meaningfully different approval rates for certain demographic groups. Upstart agreed to conduct ongoing fair lending monitoring as a condition of continued operation.",
+      "explanation": "The Equal Credit Opportunity Act (ECOA) and the Fair Housing Act (FHA) prohibit discrimination in credit decisions on the basis of race, color, religion, national origin, sex, marital status, age, or receipt of public assistance. There are two distinct legal theories of discrimination under these laws:\n\nDisparate Treatment is intentional discrimination: a lender treats a member of a protected class differently from a similarly situated non-protected-class applicant. Example: approving a White applicant at 680 FICO and denying a Black applicant at the same 680 FICO for the same product. Disparate treatment is illegal regardless of whether it affects business outcomes.\n\nDisparate Impact is unintentional discrimination: a facially neutral policy produces materially different outcomes for protected classes. Example: using zip code as a credit variable, when certain zip codes are racially segregated, results in lower approval rates for minority applicants even though race is never directly used. Disparate impact is assessed using the '80% rule' (also called the four-fifths rule): if the selection rate (approval rate) for a protected group is less than 80% of the selection rate for the group with the highest selection rate, a prima facie case of disparate impact exists.\n\nFor AI-driven credit models, disparate impact is the primary fair lending risk. ML models can identify complex non-linear patterns that serve as proxies for protected characteristics — education level proxies for race and income, neighborhood proxies for national origin, zip code proxies for race. The CFPB's 2024 guidance explicitly states that algorithmic complexity does not insulate a lender from ECOA liability: if the model has disparate impact, the lender must either demonstrate business necessity (no less discriminatory alternative exists) or modify the model.\n\nAdverse action notices are required by ECOA whenever a lender denies credit or takes less favorable action. The notice must state the specific reasons for the adverse action — 'algorithmic score' is not sufficient; the lender must be able to provide the principal reasons (e.g., 'insufficient credit history', 'high debt-to-income ratio'). This is one reason regulators require explainable models: black-box outputs cannot satisfy the adverse action notice requirement.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\nimport numpy as np\n\n# 80% rule (four-fifths rule) implementation for disparate impact analysis\ndef compute_disparate_impact(df, group_col, approval_col):\n    \"\"\"\n    Compute disparate impact ratios using the 80% rule.\n    Compares approval rate of each group to the highest-approval group.\n    \n    Args:\n        df: DataFrame with applicant data\n        group_col: Column name for the demographic group variable\n        approval_col: Column name for binary approval indicator (0/1)\n    \n    Returns:\n        DataFrame with group, approval_rate, di_ratio, finding columns\n    \"\"\"\n    approval_by_group = df.groupby(group_col)[approval_col].agg(\n        approval_rate='mean',\n        n_applicants='count'\n    ).reset_index()\n    \n    max_rate = approval_by_group['approval_rate'].max()\n    approval_by_group['di_ratio'] = approval_by_group['approval_rate'] / max_rate\n    approval_by_group['finding'] = approval_by_group['di_ratio'].apply(\n        lambda x: 'DISPARATE IMPACT' if x < 0.80 else 'COMPLIANT'\n    )\n    approval_by_group['baseline_group'] = approval_by_group['approval_rate'] == max_rate\n    \n    return approval_by_group.sort_values('approval_rate', ascending=False)\n\n# Simulate approval rates by income quartile proxy\nnp.random.seed(42)\nn = 10000\ndf = pd.DataFrame({\n    'income_quartile': np.random.choice(['Q1_Low', 'Q2', 'Q3', 'Q4_High'], n, p=[0.25, 0.25, 0.25, 0.25]),\n    'approved': 0\n})\n# Simulate different approval rates per quartile\nrates = {'Q1_Low': 0.41, 'Q2': 0.56, 'Q3': 0.68, 'Q4_High': 0.74}\nfor q, rate in rates.items():\n    mask = df['income_quartile'] == q\n    df.loc[mask, 'approved'] = np.random.binomial(1, rate, mask.sum())\n\nresult = compute_disparate_impact(df, 'income_quartile', 'approved')\nprint(result.to_string(index=False))",
+        "output": "income_quartile  approval_rate  n_applicants  di_ratio          finding  baseline_group\n      Q4_High          0.742          2487    1.0000        COMPLIANT            True\n           Q3          0.681          2501    0.9177        COMPLIANT           False\n           Q2          0.558          2503    0.7521  DISPARATE IMPACT           False\n       Q1_Low          0.412          2509    0.5553  DISPARATE IMPACT           False"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Nexus Lending",
+      "role": "Head of Model Risk at Nexus Lending",
+      "scenario": "It is Q3 2026 and Nexus Lending, a digital personal loan platform, is 6 weeks away from a CFPB examination. The examiner has requested documentation of your credit model's fair lending analysis. An internal audit has flagged that two features in your current production model — education_level_score and zip_code_risk_tier — may be generating disparate impact on approval rates by income quartile (used as a proxy for race in the absence of direct demographic data). You must assess the disparate impact, decide how to respond, and prepare your model governance documentation before the examiner arrives. You have three governance options to choose from.",
+      "constraints": [
+        "Disparate impact ratio must be ≥ 0.80 for all groups or a business necessity justification must be filed with the CFPB within 30 days",
+        "Adverse action notices must provide at least 4 specific denial reasons per declined applicant — 'model score' is not acceptable",
+        "Model changes made within 60 days of an examination are subject to enhanced scrutiny — any modification must be documented with pre/post disparate impact analysis",
+        "All features used in the production model must have a documented business justification tying them to creditworthiness, not just predictive power"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "CFPB Examiner (anticipated)",
+          "pressure": "We will be requesting all model documentation including feature selection rationale, disparate impact testing results by race, sex, and national origin proxies, and a sample of 50 adverse action notices with stated reasons."
+        },
+        {
+          "stakeholder": "CEO",
+          "pressure": "The Upstart $2.7M supervisory action was embarrassing for the entire industry. I want us to be the cleanest shop in the examination — proactively fix any disparate impact findings before the examiner arrives, not after."
+        },
+        {
+          "stakeholder": "Chief Data Scientist",
+          "pressure": "Removing education_level_score will drop our Gini from 0.56 to 0.51. That is a meaningful reduction in model performance. Can we find a less discriminatory alternative that preserves predictive power?"
+        },
+        {
+          "stakeholder": "General Counsel",
+          "pressure": "If the examiner finds disparate impact and we cannot demonstrate business necessity — meaning there is no alternative feature with lower disparate impact that performs comparably — we face a consent order. That is existential for a company our size."
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "loan_applications",
+      "intro": "The fair lending analysis requires three steps: first, measure the current model's approval rates by income quartile to establish whether a disparate impact finding exists; second, identify which features drive the largest contribution to the disparate impact; third, test whether removing the problematic features allows the model to clear the 80% rule without material loss of predictive power.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Compute approval rates by income quartile under the current production model to establish the disparate impact finding",
+          "code": "import pandas as pd\nimport numpy as np\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.preprocessing import StandardScaler\n\ndf = pd.read_csv('loan_applications.csv')\n\n# Production model features (includes the flagged variables)\nproduction_features = [\n    'credit_score', 'annual_income', 'debt_to_income',\n    'months_employed', 'num_credit_inquiries',\n    'education_level_score', 'zip_code_risk_tier'\n]\n\nclean = df[production_features + ['default_flag', 'annual_income']].dropna()\n\n# Fit production model\nX = clean[production_features]\ny = clean['default_flag']\nscaler = StandardScaler()\nX_sc = scaler.fit_transform(X)\nmodel = LogisticRegression(max_iter=500, random_state=42)\nmodel.fit(X_sc, y)\n\n# Apply approval threshold (probability of default < 0.20 => approve)\nclean = clean.copy()\nclean['default_prob'] = model.predict_proba(X_sc)[:, 1]\nclean['approved'] = (clean['default_prob'] < 0.20).astype(int)\n\n# Create income quartile proxy groups\nclean['income_quartile'] = pd.qcut(\n    clean['annual_income'], q=4,\n    labels=['Q1 (Lowest Income)', 'Q2', 'Q3', 'Q4 (Highest Income)']\n)\n\n# 80% rule analysis\napproval_rates = clean.groupby('income_quartile', observed=True)['approved'].agg(\n    approval_rate='mean', n='count'\n).reset_index()\n\nmax_rate = approval_rates['approval_rate'].max()\napproval_rates['di_ratio'] = approval_rates['approval_rate'] / max_rate\napproval_rates['finding'] = approval_rates['di_ratio'].apply(\n    lambda x: 'DISPARATE IMPACT' if x < 0.80 else 'COMPLIANT'\n)\n\nprint(\"Production Model — Disparate Impact Analysis\")\nprint(f\"{'Income Group':>22} {'Approval Rate':>14} {'DI Ratio':>10} {'Finding':>18}\")\nprint(\"-\" * 68)\nfor _, row in approval_rates.iterrows():\n    print(f\"{str(row['income_quartile']):>22} {row['approval_rate']:>13.1%} {row['di_ratio']:>9.2f} {row['finding']:>18}\")",
+          "output": "Production Model — Disparate Impact Analysis\n            Income Group  Approval Rate   DI Ratio            Finding\n--------------------------------------------------------------------\n  Q4 (Highest Income)          71.3%       1.00        COMPLIANT\n                   Q3          64.8%       0.91        COMPLIANT\n                   Q2          52.1%       0.73  DISPARATE IMPACT\n    Q1 (Lowest Income)          38.4%       0.54  DISPARATE IMPACT",
+          "business_implication": "Two of four income quartile groups show disparate impact findings. Q2 has a DI ratio of 0.73 (below the 0.80 threshold) and Q1 has a DI ratio of 0.54 — the lowest-income group is approved at only 54% the rate of the highest-income group. These findings would be immediately flagged in a CFPB examination. The question is whether education_level_score and zip_code_risk_tier are the drivers, and whether removing them resolves the finding."
+        },
+        {
+          "step": 2,
+          "instruction": "Test a revised model without the two flagged features to see if disparate impact is resolved",
+          "code": "# Revised model: remove education_level_score and zip_code_risk_tier\nrevised_features = [\n    'credit_score', 'annual_income', 'debt_to_income',\n    'months_employed', 'num_credit_inquiries'\n]\n\nclean2 = df[revised_features + ['default_flag', 'annual_income']].dropna().copy()\n\nX2 = clean2[revised_features]\ny2 = clean2['default_flag']\nscaler2 = StandardScaler()\nX2_sc = scaler2.fit_transform(X2)\nmodel2 = LogisticRegression(max_iter=500, random_state=42)\nmodel2.fit(X2_sc, y2)\n\nclean2['default_prob'] = model2.predict_proba(X2_sc)[:, 1]\nclean2['approved'] = (clean2['default_prob'] < 0.20).astype(int)\nclean2['income_quartile'] = pd.qcut(\n    clean2['annual_income'], q=4,\n    labels=['Q1 (Lowest Income)', 'Q2', 'Q3', 'Q4 (Highest Income)']\n)\n\napproval_rates2 = clean2.groupby('income_quartile', observed=True)['approved'].agg(\n    approval_rate='mean'\n).reset_index()\nmax_rate2 = approval_rates2['approval_rate'].max()\napproval_rates2['di_ratio'] = approval_rates2['approval_rate'] / max_rate2\napproval_rates2['finding'] = approval_rates2['di_ratio'].apply(\n    lambda x: 'DISPARATE IMPACT' if x < 0.80 else 'COMPLIANT'\n)\n\nprint(\"Revised Model (education + zip removed) — Disparate Impact Analysis\")\nprint(f\"{'Income Group':>22} {'Approval Rate':>14} {'DI Ratio':>10} {'Finding':>18}\")\nprint(\"-\" * 68)\nfor _, row in approval_rates2.iterrows():\n    print(f\"{str(row['income_quartile']):>22} {row['approval_rate']:>13.1%} {row['di_ratio']:>9.2f} {row['finding']:>18}\")",
+          "output": "Revised Model (education + zip removed) — Disparate Impact Analysis\n            Income Group  Approval Rate   DI Ratio            Finding\n--------------------------------------------------------------------\n  Q4 (Highest Income)          68.9%       1.00        COMPLIANT\n                   Q3          63.2%       0.92        COMPLIANT\n                   Q2          59.4%       0.86        COMPLIANT\n    Q1 (Lowest Income)          55.1%       0.80        COMPLIANT",
+          "business_implication": "Removing education_level_score and zip_code_risk_tier resolves all four disparate impact findings. Q1 now has a DI ratio of exactly 0.80 — at the boundary of compliance. Every income group clears the 80% rule. Importantly, Q1 approval rate also improves from 38.4% to 55.1% — the flagged features were systematically disadvantaging lower-income applicants. The revised model expands access to credit for the most underserved group while eliminating the regulatory finding."
+        },
+        {
+          "step": 3,
+          "instruction": "Compare the Gini coefficient of the production model versus the revised model to quantify the predictive power tradeoff",
+          "code": "from sklearn.model_selection import train_test_split\nfrom sklearn.metrics import roc_auc_score\n\n# Compare Gini: production vs. revised model\nfor model_name, feat_cols, fitted_model, fitted_scaler, data in [\n    ('Production (7 features)', production_features, model, scaler, clean),\n    ('Revised (5 features)', revised_features, model2, scaler2, clean2)\n]:\n    d = df[feat_cols + ['default_flag']].dropna()\n    X_m = d[feat_cols]\n    y_m = d['default_flag']\n    \n    X_tr, X_te, y_tr, y_te = train_test_split(X_m, y_m, test_size=0.30, random_state=42, stratify=y_m)\n    sc = StandardScaler()\n    X_tr_sc = sc.fit_transform(X_tr)\n    X_te_sc = sc.transform(X_te)\n    \n    m = LogisticRegression(max_iter=500, random_state=42)\n    m.fit(X_tr_sc, y_tr)\n    auc = roc_auc_score(y_te, m.predict_proba(X_te_sc)[:, 1])\n    gini = 2 * auc - 1\n    \n    print(f\"{model_name}:\")\n    print(f\"  Validation Gini: {gini:.4f}\")\n    print(f\"  Meets 0.45 governance threshold: {'YES' if gini >= 0.45 else 'NO'}\")\n    print()",
+          "output": "Production (7 features):\n  Validation Gini: 0.5621\n  Meets 0.45 governance threshold: YES\n\nRevised (5 features):\n  Validation Gini: 0.5142\n  Meets 0.45 governance threshold: YES",
+          "business_implication": "The revised model's Gini drops from 0.56 to 0.51 — a 5-point reduction in discriminatory power. However, both models comfortably exceed the 0.45 governance minimum. The 5-point Gini reduction is a modest price for full disparate impact compliance, especially given that the alternative is a potential CFPB consent order. The Chief Data Scientist's concern about performance is valid but not disqualifying: 0.51 Gini is operationally sufficient, and the risk of regulatory action at 0.56 Gini with disparate impact findings far outweighs the model performance benefit."
+        }
+      ]
+    },
+    {
+      "type": "decision_block",
+      "decision_type": "policy_choice",
+      "prompt": "With a CFPB examination 6 weeks away, two features in the production model (education_level_score, zip_code_risk_tier) generate disparate impact findings. You must choose a model governance approach. Which do you recommend?",
+      "options": [
+        {
+          "id": "A",
+          "label": "Self-Audit Only — Document the Finding, File Business Necessity Justification",
+          "description": "Keep the production model unchanged. Document that education and zip code add 5 Gini points of predictive power (business necessity argument). File a business necessity justification with the CFPB before the exam. Risk: examiners may reject the justification and issue a consent order if they find a less discriminatory alternative exists.",
+          "risk_level": "high"
+        },
+        {
+          "id": "B",
+          "label": "Proactive Model Revision — Remove Flagged Features Before the Exam",
+          "description": "Remove education_level_score and zip_code_risk_tier from the model before the examination. Deploy revised model with full pre/post disparate impact documentation. Revised model Gini 0.51 (down from 0.56). All income quartile groups now clear the 80% rule. Present examiners with a completed remediation.",
+          "risk_level": "low"
+        },
+        {
+          "id": "C",
+          "label": "Third-Party Audit — Commission External Fair Lending Review",
+          "description": "Hire an external fair lending firm to audit the model before the examination. This is the most comprehensive approach but takes 8-10 weeks — longer than the 6-week window. The examination will proceed before the audit is complete. May demonstrate good faith but does not resolve the finding in time.",
+          "risk_level": "medium"
+        }
+      ],
+      "outcome_function": "model_governance_risk",
+      "optimal_option": "B",
+      "worst_option": "A",
+      "outcome_explanation": "Option B is the correct choice: proactively removing the flagged features and deploying the revised model before the examination is the clearest demonstration of compliance commitment. The revised model clears the 80% rule on all income quartile groups and retains a Gini of 0.51, well above the governance minimum. Presenting examiners with a completed remediation — including documentation of the pre-model disparate impact finding, the remediation steps, and the post-model clean analysis — is the strongest possible examination posture. Option A relies on the business necessity defense, which requires proving that no less discriminatory alternative achieves comparable performance. With a 5-feature model achieving Gini 0.51 and zero disparate impact findings, Option A's business necessity argument would likely fail. Option C is appropriate for ongoing governance but misses the examination timeline by 2-4 weeks."
+    },
+    {
+      "type": "technical_exercise_block",
+      "language": "python",
+      "standard": {
+        "instructions": "Write a function called `check_disparate_impact` that takes a DataFrame, a group column name, and an approval column name (binary 0/1). The function should compute approval rates by group, then compute the disparate impact ratio for each group relative to the highest-approval group. Return a DataFrame with columns: 'group', 'n_applicants', 'approval_rate', 'di_ratio', 'finding' (either 'COMPLIANT' or 'DISPARATE IMPACT' using the 0.80 threshold), and 'max_gap_pp' (the approval rate gap in percentage points vs. the highest group). Sort by approval_rate descending.",
+        "starter_code": "import pandas as pd\n\ndef check_disparate_impact(df, group_col, approval_col, threshold=0.80):\n    \"\"\"\n    Apply the 80% rule to detect disparate impact in approval rates.\n    \n    Args:\n        df: DataFrame with applicant data\n        group_col: Column name for the demographic group\n        approval_col: Column name for binary approval (0 or 1)\n        threshold: DI ratio threshold for a finding (default 0.80)\n    \n    Returns:\n        pd.DataFrame sorted by approval_rate descending\n    \"\"\"\n    # Your code here\n    pass\n\n# Test\nimport numpy as np\nnp.random.seed(42)\nn = 5000\ndf_test = pd.DataFrame({\n    'income_group': np.random.choice(['Low', 'Mid', 'High'], n),\n    'approved': 0\n})\nfor group, rate in [('Low', 0.40), ('Mid', 0.58), ('High', 0.72)]:\n    mask = df_test['income_group'] == group\n    df_test.loc[mask, 'approved'] = np.random.binomial(1, rate, mask.sum())\n\nresult = check_disparate_impact(df_test, 'income_group', 'approved')\nprint(result)",
+        "solution": "import pandas as pd\nimport numpy as np\n\ndef check_disparate_impact(df, group_col, approval_col, threshold=0.80):\n    \"\"\"\n    Apply the 80% rule to detect disparate impact in approval rates.\n    \"\"\"\n    stats = df.groupby(group_col)[approval_col].agg(\n        n_applicants='count',\n        approval_rate='mean'\n    ).reset_index()\n    stats.columns = ['group', 'n_applicants', 'approval_rate']\n    \n    max_rate = stats['approval_rate'].max()\n    stats['di_ratio'] = (stats['approval_rate'] / max_rate).round(4)\n    stats['finding'] = stats['di_ratio'].apply(\n        lambda x: 'DISPARATE IMPACT' if x < threshold else 'COMPLIANT'\n    )\n    stats['max_gap_pp'] = ((max_rate - stats['approval_rate']) * 100).round(1)\n    \n    return stats.sort_values('approval_rate', ascending=False).reset_index(drop=True)\n\nnp.random.seed(42)\nn = 5000\ndf_test = pd.DataFrame({\n    'income_group': np.random.choice(['Low', 'Mid', 'High'], n),\n    'approved': 0\n})\nfor group, rate in [('Low', 0.40), ('Mid', 0.58), ('High', 0.72)]:\n    mask = df_test['income_group'] == group\n    df_test.loc[mask, 'approved'] = np.random.binomial(1, rate, mask.sum())\n\nresult = check_disparate_impact(df_test, 'income_group', 'approved')\nprint(result)",
+        "hint": "Use groupby().agg() to compute count and mean in one step. Then use .apply() on the di_ratio column to assign 'DISPARATE IMPACT' or 'COMPLIANT'. The max_gap_pp column is (max_rate - approval_rate) * 100 — multiply by 100 to get percentage points.",
+        "expected_output": "  group  n_applicants  approval_rate  di_ratio          finding  max_gap_pp\n   High          1662         0.7222    1.0000        COMPLIANT         0.0\n    Mid          1682         0.5779    0.8003        COMPLIANT        14.4\n    Low          1656         0.4009    0.5551  DISPARATE IMPACT        32.1"
+      },
+      "challenge": {
+        "instructions": "Write a function called `find_high_impact_features` that takes a DataFrame, a list of feature column names, and a target column name (default_flag). For each feature, the function should: (1) compute whether the feature is likely a disparate impact risk by checking if it correlates with income quartile (proxy for protected class) with absolute correlation > 0.20. Use scipy.stats.pointbiserialr if the feature is binary, otherwise pearsonr between the feature and the annual_income column. (2) Return a DataFrame with columns: 'feature', 'income_correlation', 'di_risk' (High/Low/Medium based on absolute correlation thresholds: >0.30 = High, 0.20-0.30 = Medium, <0.20 = Low), and 'recommendation' ('Remove or replace' for High, 'Monitor' for Medium, 'Retain' for Low).",
+        "starter_code": "import pandas as pd\nimport numpy as np\nfrom scipy import stats\n\ndef find_high_impact_features(df, feature_cols, income_col='annual_income'):\n    \"\"\"\n    Identify features with high disparate impact risk based on income correlation.\n    \n    Returns:\n        pd.DataFrame sorted by abs(income_correlation) descending\n    \"\"\"\n    # Your code here\n    pass\n\n# Test\ndf = pd.read_csv('loan_applications.csv')\nresult = find_high_impact_features(\n    df,\n    ['credit_score', 'education_level_score', 'zip_code_risk_tier',\n     'debt_to_income', 'months_employed']\n)\nprint(result)",
+        "solution": "import pandas as pd\nimport numpy as np\nfrom scipy import stats\n\ndef find_high_impact_features(df, feature_cols, income_col='annual_income'):\n    \"\"\"\n    Identify features with high disparate impact risk based on income correlation.\n    \"\"\"\n    rows = []\n    for feature in feature_cols:\n        if feature not in df.columns or income_col not in df.columns:\n            continue\n        clean = df[[feature, income_col]].dropna()\n        \n        # Check if feature is binary (0/1) or continuous\n        unique_vals = clean[feature].nunique()\n        if unique_vals == 2:\n            corr, _ = stats.pointbiserialr(clean[feature], clean[income_col])\n        else:\n            corr, _ = stats.pearsonr(clean[feature], clean[income_col])\n        \n        abs_corr = abs(corr)\n        if abs_corr > 0.30:\n            di_risk = 'High'\n            recommendation = 'Remove or replace'\n        elif abs_corr > 0.20:\n            di_risk = 'Medium'\n            recommendation = 'Monitor'\n        else:\n            di_risk = 'Low'\n            recommendation = 'Retain'\n        \n        rows.append({\n            'feature': feature,\n            'income_correlation': round(corr, 4),\n            'abs_income_correlation': round(abs_corr, 4),\n            'di_risk': di_risk,\n            'recommendation': recommendation\n        })\n    \n    result = pd.DataFrame(rows).sort_values('abs_income_correlation', ascending=False)\n    return result[['feature', 'income_correlation', 'di_risk', 'recommendation']]\n\ndf = pd.read_csv('loan_applications.csv')\nresult = find_high_impact_features(\n    df,\n    ['credit_score', 'education_level_score', 'zip_code_risk_tier',\n     'debt_to_income', 'months_employed']\n)\nprint(result)",
+        "hint": "Check unique value count to distinguish binary from continuous features. Use abs() for the risk classification but store the signed correlation for interpretability. Sort by the absolute value but only include the signed version in the final output."
+      }
+    },
+    {
+      "type": "quiz_block",
+      "questions": [
+        {
+          "id": "m12_l05_q1",
+          "concept_tags": ["ecoa", "disparate_impact"],
+          "type": "multiple_choice",
+          "question": "Nexus Lending's credit model approves 72% of White applicants and 54% of Black applicants for the same loan product, despite no explicit use of race in the model. The model uses zip code and education level as variables. Under the 80% rule, is there a disparate impact finding?",
+          "options": [
+            "A) No — race is not a variable in the model, so ECOA cannot apply",
+            "B) Yes — the approval rate for Black applicants (54%) is 75% of the White approval rate (72%), which is below the 80% threshold, creating a prima facie disparate impact finding",
+            "C) No — a 54% to 72% gap is within normal statistical variation and does not trigger the 80% rule",
+            "D) Only if the model was intentionally designed to produce different outcomes by race"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: the 80% rule (four-fifths rule) is calculated as 54% / 72% = 0.75, which is below the 0.80 threshold. This creates a prima facie case of disparate impact regardless of intent — ECOA disparate impact liability does not require discriminatory intent. The fact that race is not explicitly in the model is irrelevant; what matters is the outcome. A is wrong: ECOA applies to outcomes, not just model inputs — proxies for race such as zip code and education can create disparate impact liability. C is wrong: the 80% rule is a specific regulatory threshold, not a 'normal variation' test. D is wrong: disparate impact is a distinct legal theory from disparate treatment; it applies to neutral policies with discriminatory effects regardless of intent."
+        },
+        {
+          "id": "m12_l05_q2",
+          "concept_tags": ["disparate_impact", "model_governance"],
+          "type": "multiple_choice",
+          "question": "A lender argues that education level is justified in its credit model because it adds 5 Gini points of predictive power and they need every bit of discrimination power they can get. The CFPB examiner responds that the 'business necessity' defense requires something more. What is the examiner most likely requiring?",
+          "options": [
+            "A) The model must achieve a Gini coefficient above 0.60 before business necessity can be argued",
+            "B) Business necessity requires demonstrating that no less discriminatory alternative feature achieves comparable predictive performance — if an alternative exists, the business necessity defense fails",
+            "C) Business necessity is not a valid defense under ECOA — any disparate impact finding must be remediated by feature removal",
+            "D) The lender must show that at least 80% of the model's Gini comes from the flagged feature"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: the business necessity defense under disparate impact law requires the lender to demonstrate that (1) the feature is genuinely necessary to achieve a substantial business objective (creditworthiness prediction), AND (2) there is no alternative feature that is comparably effective at predicting creditworthiness with lower disparate impact. If removing education level and substituting average monthly bank deposits achieves a similar Gini with no disparate impact finding, the business necessity defense for education fails. A is wrong: there is no Gini threshold in the business necessity analysis. C is wrong: business necessity is a valid defense under both ECOA and the Fair Housing Act — it is just a high bar to meet. D is wrong: there is no such '80% of Gini' standard in fair lending law."
+        },
+        {
+          "id": "m12_l05_q3",
+          "concept_tags": ["regulatory_compliance", "adverse_action"],
+          "type": "multiple_choice",
+          "question": "A CFPB examiner reviews 50 adverse action notices from Nexus Lending. All 50 state only: 'Your application was declined based on our proprietary credit model score.' The examiner flags all 50 as non-compliant. What ECOA requirement were these notices violating?",
+          "options": [
+            "A) ECOA requires adverse action notices to be sent within 30 days, and these were sent on day 31",
+            "B) ECOA requires adverse action notices to state the specific principal reasons for denial — 'proprietary model score' is not a specific reason",
+            "C) ECOA requires adverse action notices to include the applicant's credit score, which was omitted",
+            "D) ECOA requires adverse action notices to be sent via certified mail, not email"
+          ],
+          "correct_index": 1,
+          "explanation": "B is correct: ECOA requires adverse action notices to provide the specific principal reasons for denial (typically 3-5 reasons), such as 'insufficient credit history,' 'debt-to-income ratio too high,' or 'too many recent credit inquiries.' 'Proprietary model score' is not specific — it does not tell the applicant what they need to improve to qualify in the future, which is the notice's regulatory purpose. This is a key reason regulators require explainable models: if you cannot identify the principal factors driving a denial, you cannot provide a compliant adverse action notice. A is wrong: the timeline requirement is 30 days but that is not what is described here. C is wrong: while credit score disclosure is required under FCRA when a score is used, the scenario describes an ECOA adverse action notice violation. D is wrong: ECOA has no requirement for certified mail."
+        },
+        {
+          "id": "m12_l05_q4",
+          "concept_tags": ["disparate_impact", "model_governance"],
+          "type": "what_would_you_do",
+          "question": "The CEO of Nexus Lending asks you why you are recommending removing education level from the model before the CFPB exam rather than waiting to see if the examiner raises it. She argues that proactively removing a feature that adds 5 Gini points is 'leaving money on the table.' How do you respond?",
+          "sample_answer": "I would explain that 'leaving money on the table' frames this as a model performance decision when it is actually a legal risk and business continuity decision. The disparate impact finding is clear: the lowest income quartile is approved at only 54% the rate of the highest quartile, giving a DI ratio of 0.54 — well below the 0.80 threshold. If the examiner finds this finding during the exam, Nexus faces three outcomes: a consent order requiring model remediation plus a monetary penalty (Upstart's was $2.7M), mandatory ongoing monitoring and reporting, and reputational damage that affects funding relationships. The 5 Gini points we give up by removing education equates to marginal model performance — our revised model still achieves 0.51 Gini, well above the 0.45 governance minimum. The expected cost of inaction (regulatory penalty + consent order + reputational damage) almost certainly exceeds the expected profit from the incremental model performance over any reasonable time horizon. We should remediate proactively, present the examiner with a completed remediation package, and demonstrate the culture of compliance the CFPB looks for in exam preparation.",
+          "key_concepts": ["regulatory risk vs. model performance tradeoff", "expected cost of consent order exceeds incremental Gini benefit", "proactive remediation as examination strategy", "revised model still meets governance minimum at 0.51 Gini"]
+        }
+      ]
+    },
+    {
+      "type": "solution_debrief_block",
+      "optimal_decision": "Proactive Model Revision — remove education_level_score and zip_code_risk_tier before the CFPB examination",
+      "decision_rationale": "Option B (proactive model revision) is the only choice that resolves the disparate impact finding before the examination. The revised model clears the 80% rule on all income quartile groups, retains a Gini of 0.51 (well above the 0.45 governance minimum), and can be presented to the examiner as a completed remediation. This posture — discovering a fair lending issue, quantifying it rigorously, implementing a less discriminatory alternative, and documenting the full analysis — is the CFPB's stated standard for responsible model governance. The cost is a 5-point Gini reduction that does not meaningfully affect credit risk management. The benefit is elimination of consent order risk valued at $2.7M+ based on the Upstart precedent, plus preservation of Q1 income borrowers who see approval rates rise from 38.4% to 55.1%.",
+      "pl_comparison": [
+        {
+          "label": "Self-Audit Only (Option A)",
+          "approval_rate": "Q1: 38.4% approval rate",
+          "default_rate": "Gini 0.56, but DI findings unresolved",
+          "monthly_profit": "Risk: consent order, $2.7M+ penalty",
+          "verdict": "The business necessity defense is likely to fail because the revised 5-feature model demonstrates a less discriminatory alternative with comparable Gini (0.51). Once a less discriminatory alternative exists, business necessity cannot be argued. High regulatory risk."
+        },
+        {
+          "label": "Proactive Revision (Option B)",
+          "approval_rate": "Q1: 55.1% approval rate (improved)",
+          "default_rate": "Gini 0.51, all groups COMPLIANT",
+          "monthly_profit": "Optimal — regulatory risk eliminated",
+          "verdict": "All four income quartile groups clear the 80% rule. Gini remains above governance minimum. Q1 approval rate increases by 16.7pp, expanding credit access to the most underserved group. Demonstrates proactive compliance culture. Recommended for CFPB examination preparation."
+        },
+        {
+          "label": "Third-Party Audit (Option C)",
+          "approval_rate": "No model change before exam",
+          "default_rate": "Findings unresolved at examination date",
+          "monthly_profit": "Risk: finding discovered during exam",
+          "verdict": "A third-party audit is appropriate for ongoing governance but the 8-10 week timeline means the examination will occur before remediation. The CFPB will see the disparate impact findings. Good-faith effort may reduce the penalty but does not avoid a finding."
+        }
+      ],
+      "stakeholder_communication": "To the CEO and General Counsel: I recommend proactively removing education_level_score and zip_code_risk_tier from the production model before the CFPB examination. Our fair lending analysis shows DI ratios of 0.54 and 0.73 for Q1 and Q2 income quartiles — clear violations of the 80% rule that the examiner will identify. The revised 5-feature model achieves Gini 0.51 (above our 0.45 governance minimum) with all four income quartile groups fully compliant. We will present the examiner with a complete remediation package: the pre-model finding, our decision to remove the features, and the post-model clean analysis. This posture demonstrates exactly the compliance culture that the CFPB stated it wants to see in its 2025 examination guidance. Q1 borrower approval rates also improve from 38.4% to 55.1% — a business benefit, not just a compliance cost.",
+      "key_takeaway": "Fair lending compliance is not a post-hoc regulatory burden — it is a model design requirement. The cheapest time to fix disparate impact is before the examiner arrives, not after the consent order.",
+      "next_lessons": ["m12_l06"]
+    }
+  ]
+}
