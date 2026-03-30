@@ -1,0 +1,38 @@
+import os
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from models import create_tables
+from routes.curriculum import router as curriculum_router
+from routes.progress import router as progress_router
+from routes.ai import router as ai_router
+from routes.quiz import router as quiz_router
+
+app = FastAPI(title="Orion Code API", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(curriculum_router)
+app.include_router(progress_router)
+app.include_router(ai_router)
+app.include_router(quiz_router)
+
+
+@app.on_event("startup")
+def startup():
+    create_tables()
+
+
+@app.get("/")
+def root():
+    return {"message": "Orion Code API", "status": "running"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
