@@ -53,7 +53,7 @@ export default function LessonPage() {
 
   // Question state
   const [currentQ, setCurrentQ] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | number | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | number | boolean | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
 
@@ -92,7 +92,7 @@ export default function LessonPage() {
     setCompleted(true);
   };
 
-  const checkAnswer = (q: Question, answer: string | number) => {
+  const checkAnswer = (q: Question, answer: string | number | boolean) => {
     setSelectedAnswer(answer);
     setShowAnswer(true);
     const isCorrect = answer === q.answer;
