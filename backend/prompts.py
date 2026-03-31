@@ -27,7 +27,7 @@ Common past mistakes: {mistakes}
 Mastered concepts (can reference these for comparisons): {mastered}
 Analogies that worked for this student before: {analogies_str}
 Topics where student rated confidence low (1-2/5): {confidence_str}
-Learning goal: MS in Business Analytics & AI starting June 2026"""
+Learning goal: MS in Business Analytics & AI starting August 2026"""
 
 
 def explain_concept_prompt(lesson: dict, student_profile: dict) -> str:

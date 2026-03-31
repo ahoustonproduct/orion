@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
-  fetchLesson, saveProgress, saveConfidence,
-  type Lesson, type Question,
+  fetchLesson, saveProgress, saveConfidence, streamFeedback, fetchModules,
+  type Lesson, type Question, type Module
 } from "@/lib/api";
 import { getUserKey } from "@/lib/user";
 import {
   ArrowLeft, CheckCircle, XCircle, Lightbulb, Trophy, Code,
-  ChevronRight, BookOpen, HelpCircle, Star,
+  ChevronRight, BookOpen, HelpCircle, Star, Sparkles, Loader2
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import dynamic from "next/dynamic";
@@ -57,12 +57,16 @@ export default function LessonPage() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
 
-  // Challenge state
   const [challengeCode, setChallengeCode] = useState("");
   const [challengeResult, setChallengeResult] = useState<{ output?: string; error?: string } | null>(null);
   const [attempts, setAttempts] = useState(0);
   const [stars, setStars] = useState(0);
   const [confidence, setConfidence] = useState(0);
+  
+  // AI Feedback & Next Lesson state
+  const [aiFeedback, setAiFeedback] = useState("");
+  const [isThinking, setIsThinking] = useState(false);
+  const [nextLessonId, setNextLessonId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchLesson(lessonId)
@@ -90,6 +94,26 @@ export default function LessonPage() {
       }
     } catch {}
     setCompleted(true);
+    
+    // Dynamically calculate the next lesson
+    try {
+      const modules = await fetchModules();
+      let foundCurrent = false;
+      let nextId = null;
+      for (const m of modules) {
+        for (const l of m.lessons || []) {
+          if (foundCurrent) {
+            nextId = l.id;
+            break;
+          }
+          if (l.id === lessonId) foundCurrent = true;
+        }
+        if (nextId) break;
+      }
+      setNextLessonId(nextId);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const checkAnswer = (q: Question, answer: string | number | boolean) => {
@@ -147,11 +171,26 @@ export default function LessonPage() {
             Back to Curriculum
           </Link>
           <Link
-            href="/"
+            href="/curriculum"
             className="flex-1 py-3 glass-card border-white/5 border border-white/10 border-transparent hover:border-[var(--color-accent)] hover:shadow-[var(--color-accent)]/20 shadow-md text-white rounded-xl text-sm font-medium transition-all text-center"
           >
-            Dashboard
+            Curriculum
           </Link>
+          {nextLessonId ? (
+            <Link
+              href={`/learn/${nextLessonId}`}
+              className="flex-1 py-3 bg-[var(--color-accent)] shadow-lg shadow-[var(--color-accent)]/20 hover:bg-[var(--color-accent-hover)] text-white rounded-xl text-sm font-semibold transition-all text-center flex items-center justify-center gap-2"
+            >
+              Next Lesson <ChevronRight size={16} />
+            </Link>
+          ) : (
+            <Link
+              href="/"
+              className="flex-1 py-3 bg-[var(--color-accent)] shadow-lg shadow-[var(--color-accent)]/20 hover:bg-[var(--color-accent-hover)] text-white rounded-xl text-sm font-semibold transition-all text-center"
+            >
+              Dashboard
+            </Link>
+          )}
         </div>
       </div>
     );
@@ -394,6 +433,20 @@ export default function LessonPage() {
               )}
             </div>
           )}
+          
+          {(aiFeedback || isThinking) && (
+            <div className="mt-4 p-5 glass-card border border-accent/30 rounded-xl relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-[var(--color-accent)]"></div>
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={16} className="text-[var(--color-accent-light)]" />
+                <span className="text-sm font-bold text-[var(--color-accent-light)]">Orion AI Tutor</span>
+                {isThinking && <Loader2 size={14} className="animate-spin text-gray-400 ml-2" />}
+              </div>
+              <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+                {aiFeedback || "Analyzing your code..."}
+              </div>
+            </div>
+          )}
           {stars > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-400">Stars earned:</span>
@@ -408,14 +461,35 @@ export default function LessonPage() {
             <button
               onClick={async () => {
                 setAttempts((a) => a + 1);
-                // Simple evaluation: check if code runs without error
+                setAiFeedback("");
                 try {
                   const { executePython } = await import("@/lib/api");
                   const result = await executePython(challengeCode);
                   setChallengeResult({ output: result.output, error: result.error || undefined });
+                  
                   if (!result.error) {
                     const newStars = attempts === 0 ? 3 : attempts < 2 ? 2 : 1;
                     setStars(newStars);
+                  } else {
+                    // Start reasoning and streaming feedback automatically
+                    setIsThinking(true);
+                    setTimeout(async () => {
+                      try {
+                        await streamFeedback(
+                          userKey,
+                          lesson!,
+                          challengeCode,
+                          result.output || "",
+                          result.error || "",
+                          attempts + 1,
+                          (chunk) => setAiFeedback((prev) => prev + chunk)
+                        );
+                      } catch (e) {
+                        setAiFeedback("Orion encountered an error generating feedback. Please try again.");
+                      } finally {
+                        setIsThinking(false);
+                      }
+                    }, 600);
                   }
                 } catch (err: unknown) {
                   setChallengeResult({ error: String(err) });

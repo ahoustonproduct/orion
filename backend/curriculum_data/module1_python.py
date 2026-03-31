@@ -10,35 +10,44 @@ MODULE_1 = {
             "id": "m1-l1",
             "title": "What is Python? Your First Line of Code",
             "order": 1,
-            "duration_min": 15,
-            "concept": """Python is a programming language — a way to give instructions to a computer. It's one of the most popular languages in the world, especially for data science and AI.
+            "duration_min": 25,
+            "real_world_context": "In the MS in Business Analytics & AI program, Python acts as your universal translator. Whether you're pulling financial data from an API, cleaning a messy spreadsheet of retail transactions, or building predictive machine learning models, Python is the engine powering those decisions. Understanding how instructing the computer works structurally is the foundation of automating repetitive business logic.",
+            "concept": """Python is a programming language designed to be highly readable, almost mimicking plain English. At its core, programming is simply providing a computer with a sequence of precise instructions—like a cooking recipe—that it executes sequentially from top to bottom.
 
-When you write Python, you're writing a recipe for the computer to follow. The computer reads your code from top to bottom and does exactly what you tell it.
+When you run a Python script, the Python "interpreter" reads your first line, executes it, and moves to the second. If there is a typo or a grammatical error (a "syntax error"), the interpreter will stop immediately and complain. This strictness is what makes code reliable for processing millions of rows of data without human error.
 
-Your very first Python instruction is `print()`. It tells the computer to display something on the screen.
+**The `print()` Function**
+Your very first and most essential instruction is `print()`. It tells the computer to take raw data from memory and display it onto your screen so you can observe what's happening. Think of it as a window into the computer's brain. 
 
 ```python
 print("Hello, world!")
 ```
 
-This prints: `Hello, world!`
+The text inside the parentheses is the *argument* you are passing to the print command. When text is wrapped in either single `\'` or double `\"` quotation marks, Python considers it a **string**. A string is literally just a sequence of characters strung together.
 
-The text inside the quotes is called a **string** — any sequence of letters, numbers, or symbols wrapped in quotes.
+**Why is it important?**
+When you write an algorithm to predict customer churn, you need a way to see the result. You'll constantly use `print()` to debug your code, check the values of variables halfway through a script, and output your final predictive datasets.
 
-You can print anything:
+**Printing numbers and math:**
+Python distinguishes between text (strings) and actual numbers. Notice how numbers don't need quotes:
 ```python
 print("I'm going to be a data scientist!")
 print(42)
 print(3.14)
 ```
 
-**Why Python?**
-- Clear, readable syntax (it almost reads like English)
-- Industry standard for data analytics, machine learning, and AI
-- What your MS program is built on""",
+**Common Mistakes to Avoid:**
+- **Missing Quotes:** `print(Hello)` will cause an error because Python will look for a command or variable named `Hello`, rather than interpreting it as raw text.
+- **Mismatched Quotes:** `print("Hello')` will fail. You must open and close with the exact same type of quotation mark.
+- **Missing Parentheses:** In older versions of Python (Python 2), `print "Hello"` worked. In Python 3 (the modern standard), `print` is a function requiring parentheses: `print("Hello")`.""",
+            "worked_example": {
+                "description": "Let's trace exactly how Python executes multiple print statements sequentially.",
+                "code": 'print("Connecting to the database...")\nprint("Data retrieved successfully.")\nprint("Total records found:")\nprint(15420)',
+                "explanation": "1. Python sees the first `print()` command. It evaluates the string inside the quotes and outputs exactly `Connecting to the database...` to the console.\n2. It moves to line 2. It evaluates the second string and outputs `Data retrieved successfully.` right below the first line.\n3. It moves to line 3, outputting `Total records found:`.\n4. On line 4, it encounters a raw number (no quotes). It interprets the number `15420` as an integer and prints it to the console. The program reaches the end of the file and terminates cleanly."
+            },
             "reference": {
                 "key_syntax": ["print(value)", "print('text')", "print(42)"],
-                "notes": "Strings use single or double quotes — both work."
+                "notes": "Strings use single or double quotes — both work. Numbers do not need quotes."
             },
             "questions": [
                 {
@@ -68,7 +77,7 @@ print(3.14)
                 }
             ],
             "challenge": {
-                "instructions": 'Write code that prints your name on one line, then prints "Future Data Scientist" on the next line.',
+                "instructions": 'Write code that prints your name on one line, then prints "Future Data Scientist" on the next line. Remember to wrap text in quotes so Python knows it is a string!',
                 "starter_code": "# Write your code below\n",
                 "tests": [
                     {"type": "output_contains", "value": "Future Data Scientist"}
@@ -80,8 +89,11 @@ print(3.14)
             "id": "m1-l2",
             "title": "Variables — Giving Names to Data",
             "order": 2,
-            "duration_min": 15,
-            "concept": """A **variable** is a named container that stores data. Think of it like a labeled box — you put something in, give the box a name, and retrieve it later.
+            "duration_min": 25,
+            "real_world_context": "Consider an Excel workbook charting monthly revenue. A cell like 'B2' represents $45,000. In Python, variables serve the exact same purpose as those cell references, but you get to give them meaningful, mathematical names like 'monthly_revenue' rather than obscure grid locations. Variables allow analysts to hold on to thousands of calculations in memory dynamically, updating their values instantly whenever the raw data changes.",
+            "concept": """A **variable** is a named, reserved memory location used to store data. Think of it like a labeled filing cabinet drawer—you place a physical file (data) inside it, label the drawer, and whenever you need the file over the next thousand lines of code, you simply pull the drawer open by its label.
+
+In Python, creating a variable is incredibly clean. You do not need to announce what "type" of data you are creating in advance (unlike languages like C++).
 
 ```python
 name = "Alex"
@@ -90,27 +102,34 @@ gpa = 3.8
 is_student = True
 ```
 
-The `=` sign is the **assignment operator** — it stores the value on the right into the variable on the left.
+The `=` sign is the **assignment operator**. This is often confusing for beginners because in match, `=` means "equals." In Python, `=` means **"Assign the value on the right side to the label on the left side."** 
 
 **Rules for variable names:**
-- Must start with a letter or underscore (`_`)
-- Can contain letters, numbers, underscores
-- Case-sensitive (`Name` and `name` are different!)
-- No spaces — use `_` instead: `first_name = "Alex"`
+- Must start with a letter or underscore (`_`).
+- Can contain letters, numbers, and underscores (e.g. `revenue_2025`).
+- **Case-sensitive**: `Name`, `NAME`, and `name` are three completely different variables.
+- No spaces allowed! Python programmers use `snake_case` (words separated by underscores) instead: `first_name = "Alex"`
 
-**Python's main data types:**
-| Type | Example | What it is |
-|------|---------|------------|
-| `str` | `"hello"` | Text (string) |
-| `int` | `42` | Whole number |
-| `float` | `3.14` | Decimal number |
-| `bool` | `True` / `False` | Yes or no |
+**Python's core primitive data types:**
+When you put data into a variable, it possesses a specific "type" that defines what you can do with it. You can't mathematically multiply a word, but you can multiply an integer.
 
-You can use `type()` to check a variable's type:
+| Type | Formal Name | Example | Description |
+|------|-------------|---------|------------|
+| `str` | String | `"hello"` | Text, sentences, alphanumeric IDs. All wrapped in quotes. |
+| `int` | Integer | `42` | Whole numbers, used for counting and math indexing. |
+| `float` | Floating Point | `3.14` | Decimal numbers, used for precise financial output. |
+| `bool` | Boolean | `True` / `False` | Binary yes/no logic parameters. Note the capital T and F! |
+
+You can always use the built-in `type()` function to peek into a variable and see its underlying DNA:
 ```python
-print(type(name))   # <class 'str'>
-print(type(age))    # <class 'int'>
+print(type(name))   # Outputs: <class 'str'>
+print(type(age))    # Outputs: <class 'int'>
 ```""",
+            "worked_example": {
+                "description": "Let's see how a variable behaves dynamically when we assign it a new value.",
+                "code": 'account_balance = 1500.50\nprint(account_balance)\n\naccount_balance = 2000.00\nprint(account_balance)',
+                "explanation": "1. Python creates a `float` container labeled `account_balance` inside the computer's RAM, inserting `1500.50` into it.\n2. The print statement reads the container and outputs `1500.5`.\n3. Python hits line 4. Variables in Python are 'mutable' (changeable). It literally takes the `1500.50` out of the container, throws it away, and overwrites it with `2000.00`.\n4. When you print it again, the new value is output. The old value is permanently deleted from memory."
+            },
             "reference": {
                 "key_syntax": [
                     "variable_name = value",
@@ -155,10 +174,12 @@ print(type(age))    # <class 'int'>
             "id": "m1-l3",
             "title": "Strings — Working with Text",
             "order": 3,
-            "duration_min": 20,
-            "concept": """Strings are text — any characters inside quotes. Since data analytics deals with lots of text (names, categories, descriptions), strings are critical.
+            "duration_min": 30,
+            "real_world_context": "Business data is messy. When you pull a client's information from a CRM like Salesforce, you will often find names typed like ' jOhN sMiTh   '. As a data analyst, before you can join that table with their billing data, you map ' jOhN sMiTh ' into a clean 'John Smith' using Python string manipulation. Mastering strings allows you to clean text at scale instantly.",
+            "concept": """Strings are sequences of text characters wrapped in quotes. Since a massive percentage of the world's data is unstructured text—tweets, emails, product reviews, and names—knowing how to manipulate strings is a superpower.
 
-**Combining strings (concatenation):**
+**Combining Strings (Concatenation)**
+You can dynamically push strings together using the `+` operator. Notice how we have to manually add the space!
 ```python
 first = "Business"
 second = "Analytics"
@@ -166,49 +187,59 @@ full = first + " " + second
 print(full)  # Business Analytics
 ```
 
-**f-strings — the modern way to format text:**
+**f-Strings (The modern, powerful way)**
+As an analyst, you almost never use `+`. Instead, you use **f-strings** (formatted strings). By putting an `f` right before the first quote, you can inject variables directly into the text using curly brackets `{}`.
 ```python
 name = "Alex"
-score = 95
-print(f"Student: {name}, Score: {score}")
-# Student: Alex, Score: 95
-```
-The `f` before the quote makes it an f-string. Variables inside `{}` get inserted automatically.
-
-**Useful string methods:**
-```python
-text = "  hello world  "
-print(text.upper())      # HELLO WORLD
-print(text.lower())      # hello world
-print(text.strip())      # hello world (removes spaces)
-print(text.replace("world", "Python"))  # hello Python
-print(len("hello"))      # 5
+revenue = 45000
+print(f"Employee {name} generated ${revenue} this quarter.")
+# Output: Employee Alex generated $45000 this quarter.
 ```
 
-**Accessing characters:**
+**String Methods**
+Strings in Python come with built-in "methods"—mini-functions attached directly to the data that allow you to modify it on the fly using dot-notation.
 ```python
-word = "Python"
-print(word[0])   # P  (first character, index 0)
-print(word[-1])  # n  (last character)
-print(word[0:3]) # Pyt (slice from index 0 to 2)
+text = "  apple stock  "
+print(text.upper())      # APPLE STOCK
+print(text.title())      # Apple Stock (capitalizes first letters)
+print(text.strip())      # apple stock (removes leading/trailing spaces)
+print(text.replace("stock", "shares"))  #   apple shares  
+
+# Methods can be chained together!
+clean_text = text.strip().upper() 
+print(clean_text)        # APPLE STOCK
+```
+
+**Accessing Characters and Slicing**
+Strings operate like lists of letters. You can use square brackets `[]` to pull out specific characters. Programmers start counting from `0`.
+```python
+ticker = "AAPL"
+print(ticker[0])   # A (first character, index 0)
+print(ticker[-1])  # L (last character, negative numbers count backwards)
+print(ticker[0:2]) # AA (slice from index 0 UP TO but not including index 2)
 ```""",
+            "worked_example": {
+                "description": "Let's trace how we would automate the cleaning of a messy user input from a form.",
+                "code": 'raw_input = "  eLiZaBeTh  "\nclean_name = raw_input.strip()\nclean_name = clean_name.title()\nprint(f"Welcome to the portal, {clean_name}!")',
+                "explanation": "1. We store the raw, messy string into `raw_input`.\n2. In line 2, `raw_input.strip()` removes the spaces on both sides, transforming it to `\"eLiZaBeTh\"`. We overwrite it into a new variable called `clean_name`.\n3. In line 3, `clean_name.title()` capitalizes the first letter and lowercases the rest, yielding `\"Elizabeth\"`. We save it back into `clean_name`.\n4. Finally, we use an f-string to seamlessly inject the perfectly clean name into a friendly, professional sentence."
+            },
             "reference": {
                 "key_syntax": [
                     'f"text {variable}"',
-                    "str.upper() / .lower()",
+                    "str.upper() / .title() / .lower()",
                     "str.strip() / .replace(a, b)",
                     "len(str)",
                     "str[index] / str[start:end]"
                 ],
-                "notes": "String indices start at 0. Negative indices count from the end."
+                "notes": "String indices start at 0. Negative indices count from the end. f-strings are the standard for formatting."
             },
             "questions": [
                 {
                     "type": "multiple_choice",
-                    "question": 'What does "hello".upper() return?',
+                    "question": 'What does "hello".title() return?',
                     "options": ["hello", "Hello", "HELLO", "Error"],
-                    "answer": 2,
-                    "explanation": ".upper() converts all characters in a string to uppercase."
+                    "answer": 1,
+                    "explanation": ".title() capitalizes the first letter of each word."
                 },
                 {
                     "type": "fill_blank",
@@ -225,13 +256,13 @@ print(word[0:3]) # Pyt (slice from index 0 to 2)
                 }
             ],
             "challenge": {
-                "instructions": 'Given the variables below, use an f-string to print: "Hi, I\'m [name] and I\'m [age] years old. My program is [program]."',
-                "starter_code": 'name = "Alex"\nage = 28\nprogram = "Business Analytics"\n\n# Write your f-string print below\n',
+                "instructions": 'Given the variables below, use an f-string and the `.title()` and `.strip()` string methods directly inside the curly brackets (or on previous lines) to print perfectly formatted sentence: "Hi, I\'m Alex and my program is Business Analytics."',
+                "starter_code": 'name = " aleX "\nprogram = " business AnalYtics "\n\n# Clean the variables and write your f-string below\n',
                 "tests": [
                     {"type": "output_contains", "value": "Business Analytics"},
                     {"type": "code_contains", "value": "f\""}
                 ],
-                "solution": 'name = "Alex"\nage = 28\nprogram = "Business Analytics"\nprint(f"Hi, I\'m {name} and I\'m {age} years old. My program is {program}.")'
+                "solution": 'name = " aleX ".strip().title()\nprogram = " business AnalYtics ".strip().title()\nprint(f"Hi, I\'m {name} and my program is {program}.")'
             }
         },
         {
@@ -2568,7 +2599,7 @@ print(today.month)    # 3
 print(today.day)      # 18
 
 # A specific date
-start_date = date(2026, 6, 1)   # June 1, 2026
+start_date = date(2026, 8, 1)   # August 1, 2026
 print(start_date)     # 2026-06-01
 ```
 
@@ -2605,7 +2636,7 @@ print(parsed)           # 2026-06-15
 print(type(parsed))     # <class 'datetime.date'>
 
 # Parse a messy format
-messy = "June 15, 2026"
+messy = "August 15, 2026"
 clean = datetime.strptime(messy, "%B %d, %Y").date()
 ```
 
