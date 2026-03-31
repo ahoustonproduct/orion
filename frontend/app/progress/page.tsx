@@ -1,20 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchMastery, fetchProgress, type MasteryData, type ProgressData } from "@/lib/api";
+import { fetchProgress, type ProgressData } from "@/lib/api";
 import { getUserKey } from "@/lib/user";
-import MasteryHeatmap from "@/components/MasteryHeatmap";
-import { BarChart2, Target, Clock, AlertCircle } from "lucide-react";
+import { BarChart2, Target, Clock, AlertCircle, Star } from "lucide-react";
 
 export default function ProgressPage() {
   const userKey = getUserKey();
-  const [mastery, setMastery] = useState<MasteryData | null>(null);
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([fetchMastery(userKey), fetchProgress(userKey)])
-      .then(([m, p]) => { setMastery(m); setProgress(p); })
+    fetchProgress(userKey)
+      .then((p) => { setProgress(p); })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [userKey]);
@@ -22,7 +20,7 @@ export default function ProgressPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-sm text-[#9a8c80]">Loading progress data...</p>
+        <p className="text-sm text-gray-400">Loading progress data...</p>
       </div>
     );
   }
@@ -36,66 +34,35 @@ export default function ProgressPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
       <div className="flex items-center gap-2">
-        <BarChart2 size={18} className="text-[#a01c2c]" />
-        <h1 className="text-xl font-bold text-[#1c1410]">Progress & Diagnostics</h1>
+        <BarChart2 size={18} className="text-[var(--color-accent-light)]" />
+        <h1 className="text-xl font-bold text-white">Progress & Diagnostics</h1>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: "Lessons Done", value: completedLessons, icon: <Target size={15} />, color: "text-green-400" },
-          { label: "Study Minutes", value: Math.round(totalMinutes), icon: <Clock size={15} />, color: "text-[#a01c2c]" },
-          { label: "Avg Stars", value: avgStars, icon: <BarChart2 size={15} />, color: "text-yellow-400" },
+          { label: "Study Minutes", value: Math.round(totalMinutes), icon: <Clock size={15} />, color: "text-[var(--color-accent-light)]" },
+          { label: "Avg Stars", value: avgStars, icon: <Star size={15} />, color: "text-yellow-400" },
         ].map(({ label, value, icon, color }) => (
-          <div key={label} className="bg-[#ffffff] border border-[#e5ddd4] rounded-xl p-3 text-center">
+          <div key={label} className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-3 text-center">
             <div className={`flex items-center justify-center gap-1 ${color} mb-1`}>
               {icon}
-              <span className="text-lg font-bold text-[#1c1410]">{value}</span>
+              <span className="text-lg font-bold text-white">{value}</span>
             </div>
-            <p className="text-xs text-[#9a8c80]">{label}</p>
+            <p className="text-xs text-gray-400">{label}</p>
           </div>
         ))}
       </div>
 
-      {/* Focus Areas */}
-      {mastery && mastery.focus_areas.length > 0 && (
-        <div className="bg-[#ffffff] border border-[#e5ddd4] rounded-xl p-4 space-y-3">
+      {/* Weak Topics */}
+      {progress && progress.weak_topics.length > 0 && (
+        <div className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-2">
             <AlertCircle size={14} className="text-red-400" />
-            <h2 className="text-sm font-semibold text-[#1c1410]">Focus Areas</h2>
-            <span className="text-xs text-[#9a8c80]">— concepts below 70% mastery</span>
+            <h2 className="text-sm font-semibold text-white">Weak Topics</h2>
+            <span className="text-xs text-gray-400">— lessons with &lt; 3 stars</span>
           </div>
-          <div className="space-y-2">
-            {mastery.focus_areas.map(({ tag, mastery: score }) => (
-              <div key={tag} className="flex items-center gap-3">
-                <span className="text-xs text-[#1c1410] w-48 truncate">{tag.replace(/_/g, " ")}</span>
-                <div className="flex-1 h-1.5 bg-[#f5f0ea] rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-red-500 rounded-full"
-                    style={{ width: `${score}%` }}
-                  />
-                </div>
-                <span className="text-xs text-red-400 w-10 text-right">{score}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Mastery Heatmap */}
-      <div className="bg-[#ffffff] border border-[#e5ddd4] rounded-xl p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-[#1c1410]">Concept Mastery Map</h2>
-        {mastery ? (
-          <MasteryHeatmap data={mastery} />
-        ) : (
-          <p className="text-sm text-[#9a8c80]">No mastery data yet. Complete some quiz questions to build your map.</p>
-        )}
-      </div>
-
-      {/* Wrong Answer Log */}
-      {progress && progress.weak_topics.length > 0 && (
-        <div className="bg-[#ffffff] border border-[#e5ddd4] rounded-xl p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-[#1c1410]">Weak Topics</h2>
           <div className="flex flex-wrap gap-2">
             {progress.weak_topics.map((topic) => (
               <span key={topic} className="text-xs bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded-full">
@@ -106,28 +73,58 @@ export default function ProgressPage() {
         </div>
       )}
 
-      {/* Module scores */}
+      {/* Module Progress */}
       {progress && Object.keys(progress.module_status).length > 0 && (
-        <div className="bg-[#ffffff] border border-[#e5ddd4] rounded-xl p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-[#1c1410]">Module Progress</h2>
+        <div className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-white">Module Progress</h2>
           <div className="space-y-3">
             {Object.entries(progress.module_status).map(([modId, status]) => {
               const pct = status.total > 0 ? Math.round((status.completed_count / status.total) * 100) : 0;
               return (
                 <div key={modId} className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="text-[#1c1410] font-medium">{modId.toUpperCase()}</span>
-                    <span className="text-[#9a8c80]">{status.completed_count}/{status.total} · {pct}%</span>
+                    <span className="text-white font-medium">{modId.toUpperCase()}</span>
+                    <span className="text-gray-400">{status.completed_count}/{status.total} · {pct}%</span>
                   </div>
-                  <div className="h-1.5 bg-[#f5f0ea] rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-black/20 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-[#a01c2c] to-[#b8822a] rounded-full"
+                      className="h-full bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-hover)] rounded-full"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Mastered Concepts */}
+      {progress && progress.mastered_concepts.length > 0 && (
+        <div className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Star size={14} className="text-yellow-400" />
+            <h2 className="text-sm font-semibold text-white">Mastered Concepts</h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {progress.mastered_concepts.map((topic) => (
+              <span key={topic} className="text-xs bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-1 rounded-full">
+                {topic.replace(/_/g, " ")}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Streak */}
+      {progress && progress.streak > 0 && (
+        <div className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-4 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+            <span className="text-xl font-bold text-white">{progress.streak}</span>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">Study Streak</p>
+            <p className="text-xs text-gray-400">{progress.streak === 1 ? "1 day" : `${progress.streak} days in a row`}</p>
           </div>
         </div>
       )}
