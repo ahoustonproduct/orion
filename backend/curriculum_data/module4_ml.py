@@ -14,6 +14,13 @@ MODULE_4 = {
             "level": "Beginner to Intermediate",
             "free_audit": True,
             "description": "The canonical ML course. Supervised learning (regression, classification, decision trees, neural networks), unsupervised learning (clustering, anomaly detection), recommender systems, reinforcement learning. Updated 2022 with Python. 4.9★, 38K+ reviews.",
+            "syllabus": [
+                {"module": "1. Supervised Machine Learning: Regression and Classification", "topics": "Linear regression, gradient descent, logistic regression, regularization, model evaluation"},
+                {"module": "2. Advanced Learning Algorithms", "topics": "Neural networks, backpropagation, decision trees, ensemble methods (random forests, boosting), bias/variance, machine learning development process"},
+                {"module": "3. Unsupervised Learning, Recommenders, Reinforcement Learning", "topics": "K-means clustering, anomaly detection, collaborative filtering, content-based recommenders, reinforcement learning basics"},
+            ],
+            "tools": "Python, NumPy, scikit-learn, TensorFlow (optional), Jupyter",
+            "prerequisites": "Basic Python programming and some math (linear algebra, calculus) helpful but not required.",
         },
         {
             "title": "Applied Machine Learning in Python",
@@ -23,6 +30,14 @@ MODULE_4 = {
             "level": "Intermediate",
             "free_audit": True,
             "description": "Hands-on scikit-learn, supervised/unsupervised learning, classification, regression, decision trees, random forests, neural nets, feature engineering, model evaluation. Practical complement to Andrew Ng's theory.",
+            "syllabus": [
+                {"module": "1. Fundamentals of Machine Learning", "topics": "ML overview, scikit-learn basics, train/test split, cross-validation, overfitting, underfitting"},
+                {"module": "2. Supervised Learning", "topics": "Classification (k-NN, SVM, decision trees, random forests, logistic regression), regression (linear, ridge, lasso), model evaluation metrics"},
+                {"module": "3. Unsupervised Learning", "topics": "Clustering (k-means, DBSCAN), dimensionality reduction (PCA), feature engineering, text features"},
+                {"module": "4. Advanced Topics", "topics": "Neural networks, ensemble methods, model selection pipelines, real-world ML project workflow"},
+            ],
+            "tools": "Python, scikit-learn, Pandas, NumPy, matplotlib, Jupyter",
+            "prerequisites": "Intermediate Python and Pandas knowledge required.",
         },
         {
             "title": "Introduction to Artificial Intelligence (AI)",
@@ -32,6 +47,14 @@ MODULE_4 = {
             "level": "Beginner",
             "free_audit": True,
             "description": "AI concepts, applications, NLP, robotics, generative AI, responsible AI, AI ethics. Covers AI vs augmented intelligence, ML, deep learning, neural networks, LLMs, and career opportunities. Perfect starting point before diving into ML.",
+            "syllabus": [
+                {"module": "1. Introduction and Applications of AI", "topics": "AI vs augmented intelligence, evolution from traditional AI to generative AI, real-world use cases, AI chatbots, generative AI tools"},
+                {"module": "2. AI Concepts, Terminology, and Application Domains", "topics": "Cognitive computing, machine learning, deep learning, neural networks, generative AI models, LLMs, NLP, speech recognition, computer vision, self-driving cars, IoT/edge/cloud"},
+                {"module": "3. Business and Career Transformation Through AI", "topics": "AI agents, robotics, automation, generative AI for business, Retrieval-Augmented Generation (RAG), AI adoption frameworks, career opportunities"},
+                {"module": "4. Issues, Concerns, and Ethical Considerations", "topics": "AI ethics, fairness, transparency, accountability, hallucinations, AI governance, responsible AI practices, final project (design an ethical generative AI solution)"},
+            ],
+            "tools": "Generative AI (hands-on labs with IBM Watson)",
+            "prerequisites": "None — beginner level, suitable for everyone (students, professionals, enthusiasts).",
         },
     ],
     "concept_map": [

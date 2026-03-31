@@ -29,6 +29,9 @@ interface ModuleExtended extends Module {
     level: string;
     free_audit: boolean;
     description: string;
+    syllabus?: { module: string; topics: string }[];
+    tools?: string;
+    prerequisites?: string;
   }[];
 }
 
@@ -227,70 +230,66 @@ export default function ModulePage() {
 
       {/* Supplementary Courses */}
       {module.supplementary_courses && module.supplementary_courses.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <p className="text-xs font-semibold text-[#94a3b8] uppercase tracking-wider">Recommended Coursera Courses</p>
           {module.supplementary_courses.map((course) => (
-            <a
+            <div
               key={course.url}
-              href={course.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block bg-[#1a1a2e] border border-[#2d2d4a] rounded-xl p-4 hover:border-[#3b82f6] hover:bg-[#242438] transition-all"
+              className="bg-[#1a1a2e] border border-[#2d2d4a] rounded-xl overflow-hidden"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[#e2e8f0] mb-1">{course.title}</p>
-                  <p className="text-xs text-[#64748b] mb-2">{course.provider} · {course.duration} · {course.level}</p>
-                  <p className="text-xs text-[#94a3b8] leading-relaxed">{course.description}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    {course.free_audit && (
-                      <span className="text-[10px] bg-green-500/10 border border-green-500/30 text-green-400 px-2 py-0.5 rounded-full">
-                        Free to audit
+              <a
+                href={course.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block p-4 hover:bg-[#242438] transition-all"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-[#e2e8f0] mb-1">{course.title}</p>
+                    <p className="text-xs text-[#64748b] mb-2">{course.provider} · {course.duration} · {course.level}</p>
+                    <p className="text-xs text-[#94a3b8] leading-relaxed">{course.description}</p>
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {course.free_audit && (
+                        <span className="text-[10px] bg-green-500/10 border border-green-500/30 text-green-400 px-2 py-0.5 rounded-full">
+                          Free to audit
+                        </span>
+                      )}
+                      <span className="text-[10px] bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] px-2 py-0.5 rounded-full">
+                        Coursera
                       </span>
-                    )}
-                    <span className="text-[10px] bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] px-2 py-0.5 rounded-full">
-                      Coursera
-                    </span>
+                      {course.prerequisites && (
+                        <span className="text-[10px] bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 px-2 py-0.5 rounded-full">
+                          {course.prerequisites}
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  <ChevronRight size={16} className="text-[#64748b] shrink-0 mt-1" />
                 </div>
-                <ChevronRight size={16} className="text-[#64748b] shrink-0 mt-1" />
-              </div>
-            </a>
-          ))}
-        </div>
-      )}
-
-      {/* Supplementary Courses */}
-      {module.supplementary_courses && module.supplementary_courses.length > 0 && (
-        <div className="space-y-3">
-          <p className="text-xs font-semibold text-[#94a3b8] uppercase tracking-wider">Recommended Coursera Courses</p>
-          {module.supplementary_courses.map((course) => (
-            <a
-              key={course.url}
-              href={course.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block bg-[#1a1a2e] border border-[#2d2d4a] rounded-xl p-4 hover:border-[#3b82f6] hover:bg-[#242438] transition-all"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[#e2e8f0] mb-1">{course.title}</p>
-                  <p className="text-xs text-[#64748b] mb-2">{course.provider} · {course.duration} · {course.level}</p>
-                  <p className="text-xs text-[#94a3b8] leading-relaxed">{course.description}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    {course.free_audit && (
-                      <span className="text-[10px] bg-green-500/10 border border-green-500/30 text-green-400 px-2 py-0.5 rounded-full">
-                        Free to audit
-                      </span>
-                    )}
-                    <span className="text-[10px] bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] px-2 py-0.5 rounded-full">
-                      Coursera
-                    </span>
+              </a>
+              {/* Syllabus */}
+              {course.syllabus && course.syllabus.length > 0 && (
+                <div className="border-t border-[#2d2d4a] bg-[#0f0f1a] p-4">
+                  <p className="text-[10px] font-semibold text-[#64748b] uppercase tracking-wider mb-3">Syllabus</p>
+                  <div className="space-y-2">
+                    {course.syllabus.map((s: { module: string; topics: string }, i: number) => (
+                      <div key={i} className="flex gap-3">
+                        <span className="text-[10px] font-bold text-[#3b82f6] shrink-0 w-6 pt-0.5">{i + 1}</span>
+                        <div>
+                          <p className="text-xs font-medium text-[#e2e8f0]">{s.module}</p>
+                          <p className="text-[11px] text-[#64748b]">{s.topics}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                  {course.tools && (
+                    <p className="text-[10px] text-[#64748b] mt-3">
+                      <span className="font-medium text-[#94a3b8]">Tools:</span> {course.tools}
+                    </p>
+                  )}
                 </div>
-                <ChevronRight size={16} className="text-[#64748b] shrink-0 mt-1" />
-              </div>
-            </a>
+              )}
+            </div>
           ))}
         </div>
       )}

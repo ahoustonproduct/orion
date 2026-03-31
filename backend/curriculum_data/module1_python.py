@@ -14,6 +14,15 @@ MODULE_1 = {
             "level": "Beginner",
             "free_audit": True,
             "description": "Covers Python basics, data structures, working with real-world data, web scraping, APIs, and intro to NumPy/Pandas. Perfect companion to this module.",
+            "syllabus": [
+                {"module": "1. Python Basics", "topics": "Jupyter Notebooks, data types, expressions, variables, string operations"},
+                {"module": "2. Python Data Structures", "topics": "Lists, tuples, dictionaries, sets"},
+                {"module": "3. Python Programming Fundamentals", "topics": "Conditions/branching, loops, functions, exception handling, objects & classes (OOP)"},
+                {"module": "4. Working with Data in Python", "topics": "File I/O (text, CSV, JSON), Pandas (loading/manipulating data), NumPy (1D & 2D arrays)"},
+                {"module": "5. APIs and Data Collection", "topics": "REST APIs, HTTP requests, web scraping with BeautifulSoup, file formats, final exam"},
+            ],
+            "tools": "Python, Jupyter, Pandas, NumPy, REST APIs, JSON, BeautifulSoup",
+            "prerequisites": "None — beginner level, no prior programming experience required.",
         },
         {
             "title": "Introduction to Data Science in Python",
@@ -23,6 +32,15 @@ MODULE_1 = {
             "level": "Intermediate",
             "free_audit": True,
             "description": "Python fundamentals, lambdas, CSV manipulation, NumPy, Pandas (Series, DataFrame, groupby, merge, pivot tables), distributions, sampling, t-tests.",
+            "syllabus": [
+                {"module": "1. Python Fundamentals", "topics": "Lambda functions, reading CSV files, basic data manipulation"},
+                {"module": "2. Series and DataFrames", "topics": "Pandas Series, DataFrame indexing, merging, pivot tables"},
+                {"module": "3. Data Manipulation", "topics": "Groupby, aggregation, merging, joining, reshaping"},
+                {"module": "4. Answering Questions with Data", "topics": "Distributions, sampling, confidence intervals, t-tests, hypothesis testing"},
+                {"module": "5. Final Assignment", "topics": "Real-world data analysis project applying all concepts"},
+            ],
+            "tools": "Python, Pandas, NumPy, Jupyter",
+            "prerequisites": "Some Python/programming experience required.",
         },
     ],
     "lessons": [

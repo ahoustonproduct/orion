@@ -14,6 +14,14 @@ MODULE_2 = {
             "level": "Beginner",
             "free_audit": True,
             "description": "Covers data analytics fundamentals: structured vs unstructured data, spreadsheets for analytics, data visualization best practices, and the data analytics lifecycle. Perfect conceptual foundation before diving into Pandas.",
+            "syllabus": [
+                {"module": "1. Data and the Data Analyst Role", "topics": "What is data analytics, structured vs. unstructured data, big data, data ecosystems, data roles/careers, intro to LLMs and prompting"},
+                {"module": "2. Using Spreadsheets for Data Analytics", "topics": "Google Sheets fundamentals, importing/sorting/filtering data, summary stats (COUNTIF, SUMIF, AVERAGEIF, etc.), time series, moving averages, percent change"},
+                {"module": "3. Data Visualization in Spreadsheets", "topics": "Data storytelling, chart types (bar, column, scatter, line, stacked/grouped), best practices for effective visualization, using LLMs to interpret/create visualizations"},
+                {"module": "4. The Data Analytics Lifecycle", "topics": "Problem definition, data collection & preprocessing, analysis, identifying insights, sharing results, evaluating outcomes, stakeholder requirements, Rumsfeld Matrix, capstone project"},
+            ],
+            "tools": "Google Sheets, LLMs for data exploration",
+            "prerequisites": "None — beginner level, no prior experience required.",
         },
         {
             "title": "Applied Plotting, Charting & Data Representation in Python",
@@ -23,6 +31,15 @@ MODULE_2 = {
             "level": "Intermediate",
             "free_audit": True,
             "description": "Visualization best practices, matplotlib, basic chart types, scatter plots, histograms, interactive visualization. Complements this module's data analysis content.",
+            "syllabus": [
+                {"module": "1. Basic Plotting", "topics": "Matplotlib fundamentals, line charts, bar charts, pie charts, styling"},
+                {"module": "2. Charting Fundamentals", "topics": "Scatter plots, histograms, box plots, choosing the right chart type"},
+                {"module": "3. Applied Visualisation", "topics": "Subplots, multiple axes, color maps, 3D plotting, interactive visualization"},
+                {"module": "4. Specialized Plots", "topics": "Heat maps, word clouds, network visualizations, custom chart types"},
+                {"module": "5. Final Assignment", "topics": "Create a comprehensive data visualization dashboard from real datasets"},
+            ],
+            "tools": "Python, matplotlib, Jupyter",
+            "prerequisites": "Basic Python and Pandas knowledge required.",
         },
     ],
     "lessons": [
