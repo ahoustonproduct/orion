@@ -7,7 +7,7 @@ import {
   type Module, type ProgressData, type ReviewQueue, type MasteryData,
 } from "@/lib/api";
 import { getUserKey } from "@/lib/user";
-import { Flame, BookOpen, Star, Zap, ChevronRight, Lock, ArrowRight, RefreshCw, AlertCircle } from "lucide-react";
+import { Flame, BookOpen, Star, Zap, ChevronRight, Lock, ArrowRight, RefreshCw, AlertCircle, Activity, Box, Cpu } from "lucide-react";
 
 export default function Dashboard() {
   const [modules, setModules] = useState<Module[]>([]);
@@ -54,221 +54,295 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#a01c2c] to-[#b8822a] mx-auto flex items-center justify-center">
+        <div className="relative w-24 h-24 flex items-center justify-center">
+          <div className="absolute inset-0 border-t-2 border-r-2 border-rose-500 rounded-full animate-spin"></div>
+          <div className="absolute inset-2 border-b-2 border-l-2 border-yellow-500 rounded-full animate-[spin_1.5s_reverse_infinite]"></div>
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-600 to-yellow-600 flex items-center justify-center shadow-lg shadow-rose-500/30 animate-pulse">
             <span className="text-white font-bold text-xl">O</span>
           </div>
-          <p className="text-[#5c4f45] text-sm">Loading Orion Code...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#a01c2c] to-[#b8822a] flex items-center justify-center shadow-lg shadow-red-500/25">
-          <span className="text-white font-bold text-lg">O</span>
-        </div>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-[#a01c2c] to-[#b8822a] bg-clip-text text-transparent">
-            Orion Code
-          </h1>
-          <p className="text-[#5c4f45] text-xs">Your WashU FinTech Analytics prep companion</p>
-        </div>
-        {/* Countdown */}
-        <div className="text-right">
-          <p className="text-lg font-bold text-[#1c1410]">{daysUntilStart}</p>
-          <p className="text-[10px] text-[#9a8c80] leading-tight">days to<br/>program</p>
-        </div>
-      </div>
-
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { icon: <Flame size={16} />, value: progress?.streak ?? 0, label: "Day Streak", color: "text-yellow-500" },
-          { icon: <BookOpen size={16} />, value: completedLessons, label: "Lessons Done", color: "text-green-400" },
-          { icon: <Star size={16} />, value: totalStars, label: "Stars Earned", color: "text-yellow-400" },
-        ].map(({ icon, value, label, color }) => (
-          <div key={label} className="bg-[#ffffff] border border-[#e5ddd4] rounded-xl p-3 text-center">
-            <div className={`flex items-center justify-center gap-1 ${color} mb-1`}>
-              {icon}
-              <span className="text-lg font-bold text-[#1c1410]">{value}</span>
+    <div className="max-w-4xl mx-auto px-6 py-10 space-y-8 pb-20">
+      {/* Header Profile Section */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>
+        <div className="flex items-center gap-5">
+          <div className="relative">
+            <div className="absolute -inset-1 bg-gradient-to-r from-rose-500 to-yellow-500 rounded-2xl blur opacity-30 animate-glow-pulse" />
+            <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 flex items-center justify-center overflow-hidden">
+               <span className="text-transparent bg-clip-text bg-gradient-to-br from-rose-400 to-yellow-400 font-bold text-3xl">O</span>
             </div>
-            <p className="text-[#9a8c80] text-xs">{label}</p>
           </div>
-        ))}
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-white mb-1">
+              Welcome Back
+            </h1>
+            <p className="text-slate-400 text-sm font-medium">Orion / WashU FinTech Analytics Prep</p>
+          </div>
+        </div>
+        
+        {/* Countdown Badge */}
+        <div className="glass-card px-5 py-3 rounded-2xl flex items-center gap-4">
+           <div className="flex flex-col">
+              <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-yellow-400">
+                {daysUntilStart}
+              </span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Days to Start</span>
+           </div>
+           <div className="w-10 h-10 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
+              <Activity size={18} />
+           </div>
+        </div>
       </div>
 
-      {/* Overall progress */}
-      <div className="bg-[#ffffff] border border-[#e5ddd4] rounded-xl p-4 space-y-2">
-        <div className="flex justify-between text-sm">
-          <span className="text-[#5c4f45]">Overall Progress</span>
-          <span className="text-[#a01c2c] font-medium">{completedLessons} / {totalLessons} lessons · {overallPct}%</span>
+      {/* Main Grid: Stats & What's Next */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 animate-slide-up" style={{ animationDelay: "0.2s" }}>
+        
+        {/* Left Column: Stats Cards */}
+        <div className="md:col-span-5 grid grid-cols-2 gap-4">
+          {[
+            { icon: <Flame size={20} />, value: progress?.streak ?? 0, label: "Day Streak", gradient: "from-orange-500/20 to-rose-500/5", color: "text-orange-400", border: "border-orange-500/20" },
+            { icon: <BookOpen size={20} />, value: completedLessons, label: "Lessons Done", gradient: "from-emerald-500/20 to-teal-500/5", color: "text-emerald-400", border: "border-emerald-500/20" },
+            { icon: <Star size={20} />, value: totalStars, label: "Total Stars", gradient: "from-yellow-500/20 to-amber-500/5", color: "text-yellow-400", border: "border-yellow-500/20", colSpan: "col-span-2" },
+          ].map(({ icon, value, label, gradient, color, border, colSpan }) => (
+            <div key={label} className={`glass-card p-5 rounded-2xl relative overflow-hidden ${colSpan || ""}`}>
+              <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${gradient} rounded-full blur-2xl -translate-y-10 translate-x-10`} />
+              <div className="relative z-10 flex flex-col gap-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${border} bg-white/5 ${color}`}>
+                  {icon}
+                </div>
+                <div>
+                  <div className="text-3xl font-black text-white">{value}</div>
+                  <div className="text-xs font-medium text-slate-400 mt-1 uppercase tracking-wider">{label}</div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-        <div className="h-2 bg-[#f5f0ea] rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-[#a01c2c] to-[#b8822a] rounded-full transition-all duration-500"
-            style={{ width: `${overallPct}%` }}
-          />
+
+        {/* Right Column: AI Assistant Context */}
+        <div className="md:col-span-7 glass-card rounded-2xl p-6 relative overflow-hidden flex flex-col">
+          <div className="absolute -inset-2 bg-gradient-to-br from-rose-500/10 via-transparent to-yellow-500/5 z-0 pointer-events-none blur-xl" />
+          
+          <div className="relative z-10 flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 rounded-full bg-rose-500/20 border border-rose-500/30 flex items-center justify-center">
+              <Cpu size={14} className="text-rose-400" />
+            </div>
+            <h2 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Orion Intelligence</h2>
+          </div>
+          
+          <div className="flex-1 flex flex-col justify-center">
+            {whatNextLoading && !whatNext ? (
+              <div className="space-y-3">
+                <div className="h-4 bg-slate-800 rounded animate-pulse w-full" />
+                <div className="h-4 bg-slate-800 rounded animate-pulse w-5/6" />
+                <div className="h-4 bg-slate-800 rounded animate-pulse w-4/6" />
+              </div>
+            ) : whatNext ? (
+              <div className="text-slate-300 leading-relaxed text-lg font-medium">
+                <p className="border-l-2 border-rose-500/50 pl-4 py-1">{whatNext}</p>
+              </div>
+            ) : (
+              <p className="text-slate-400 italic">Analyzing your recent performance to determine the optimal next steps...</p>
+            )}
+          </div>
+          
+          <div className="mt-6 pt-5 border-t border-slate-700/50 flex justify-between items-center">
+            <div className="w-full">
+              <div className="flex justify-between items-end mb-2">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Curriculum Mastery</span>
+                <span className="text-sm font-bold text-white">{overallPct}% <span className="text-slate-500 font-normal">/ 100%</span></span>
+              </div>
+              <div className="h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
+                <div
+                  className="h-full bg-gradient-to-r from-rose-500 to-yellow-500 rounded-full transition-all duration-1000 ease-out"
+                  style={{ width: `${overallPct}%` }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* What's Next */}
-      <div className="bg-[#f8eaec] border border-[#a01c2c]/30 rounded-xl p-4 space-y-2">
-        <p className="text-xs font-semibold text-[#a01c2c] uppercase tracking-wider">What's Next</p>
-        {whatNextLoading && !whatNext ? (
-          <div className="space-y-1.5">
-            <div className="h-3 bg-[#ffffff] rounded animate-pulse w-4/5" />
-            <div className="h-3 bg-[#ffffff] rounded animate-pulse w-3/5" />
+      {/* Dynamic Alerts row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-slide-up" style={{ animationDelay: "0.3s" }}>
+        {/* Due for Review Alert */}
+        {reviewQueue && reviewQueue.total_due > 0 && (
+          <Link
+            href="/review-queue"
+            className="group glass-card !border-rose-500/30 p-5 rounded-2xl flex items-center justify-between overflow-hidden relative"
+          >
+            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-rose-500/10 to-transparent pointer-events-none group-hover:from-rose-500/20 transition-all" />
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+                <RefreshCw size={20} className="text-rose-400" />
+              </div>
+              <div>
+                <p className="font-bold text-white mb-0.5">{reviewQueue.total_due} Review{reviewQueue.total_due !== 1 ? "s" : ""} Due</p>
+                <p className="text-xs text-rose-300/80 font-medium">Spaced repetition queue requires attention</p>
+              </div>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-rose-500/10 flex items-center justify-center group-hover:bg-rose-500 transition-colors relative z-10">
+              <ArrowRight size={14} className="text-rose-500 group-hover:text-white" />
+            </div>
+          </Link>
+        )}
+
+        {/* Focus Areas Mini widget */}
+        {mastery && mastery.focus_areas.length > 0 && (
+          <div className="glass-card p-5 rounded-2xl flex flex-col justify-center">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={14} className="text-yellow-500" />
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">Focus Areas</span>
+              </div>
+              <Link href="/progress" className="text-xs font-semibold text-rose-400 hover:text-rose-300 uppercase tracking-wider">Metrics →</Link>
+            </div>
+            <div className="space-y-3">
+              {mastery.focus_areas.slice(0, 2).map(({ tag, mastery: score }) => (
+                <div key={tag} className="flex items-center gap-4">
+                  <span className="text-sm font-medium text-slate-300 w-1/3 truncate capitalize">{tag.replace(/_/g, " ")}</span>
+                  <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                    <div className="h-full bg-rose-500 rounded-full" style={{ width: `${score}%` }} />
+                  </div>
+                  <span className="text-xs font-mono text-rose-400 w-10 text-right">{score}%</span>
+                </div>
+              ))}
+            </div>
           </div>
-        ) : whatNext ? (
-          <p className="text-sm text-[#5c4f45] leading-relaxed">{whatNext}</p>
-        ) : (
-          <p className="text-sm text-[#9a8c80]">Pick up where you left off.</p>
         )}
       </div>
 
-      {/* Due for Review */}
-      {reviewQueue && reviewQueue.total_due > 0 && (
-        <Link
-          href="/review-queue"
-          className="flex items-center justify-between bg-red-500/10 border border-red-500/30 rounded-xl p-4 hover:border-red-500/50 transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <RefreshCw size={18} className="text-red-400" />
-            <div>
-              <p className="text-sm font-semibold text-[#1c1410]">{reviewQueue.total_due} Review{reviewQueue.total_due !== 1 ? "s" : ""} Due</p>
-              <p className="text-xs text-[#5c4f45]">Questions you got wrong — spaced repetition</p>
-            </div>
-          </div>
-          <span className="text-xs text-red-400 font-medium">Start →</span>
-        </Link>
-      )}
-
-      {/* Focus Areas */}
-      {mastery && mastery.focus_areas.length > 0 && (
-        <div className="bg-[#ffffff] border border-[#e5ddd4] rounded-xl p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AlertCircle size={14} className="text-yellow-500" />
-              <span className="text-xs font-semibold text-[#5c4f45] uppercase tracking-wider">Focus Areas</span>
-            </div>
-            <Link href="/progress" className="text-xs text-[#a01c2c] hover:underline">View all →</Link>
-          </div>
-          <div className="space-y-2">
-            {mastery.focus_areas.slice(0, 3).map(({ tag, mastery: score }) => (
-              <div key={tag} className="flex items-center gap-3">
-                <span className="text-xs text-[#1c1410] flex-1 truncate">{tag.replace(/_/g, " ")}</span>
-                <div className="w-24 h-1.5 bg-[#f5f0ea] rounded-full overflow-hidden">
-                  <div className="h-full bg-red-500 rounded-full" style={{ width: `${score}%` }} />
-                </div>
-                <span className="text-xs text-red-400 w-8 text-right">{score}%</span>
-              </div>
-            ))}
-          </div>
+      {/* Modules List */}
+      <div className="animate-slide-up" style={{ animationDelay: "0.4s" }}>
+        <div className="flex items-center gap-3 mb-6">
+          <Box size={20} className="text-slate-400" />
+          <h2 className="text-xl font-bold text-white">Learning Curriculum</h2>
         </div>
-      )}
 
-      {/* Module skill map */}
-      <div>
-        <h2 className="text-xs font-semibold text-[#5c4f45] uppercase tracking-wider mb-3">Learning Path</h2>
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {modules.map((module, idx) => {
             const status = progress?.module_status[module.id];
             const unlocked = status?.unlocked ?? idx === 0;
             const completedInMod = status?.completed_count ?? 0;
             const masteryPct = status?.mastery_pct ?? 0;
             const pct = module.lesson_count ? (completedInMod / module.lesson_count) * 100 : 0;
+            const isCompleted = pct === 100;
 
             return (
-              <div key={module.id} className="relative">
-                {idx < modules.length - 1 && (
-                  <div className="absolute left-5 top-full w-px h-2 bg-[#e5ddd4] z-10" />
-                )}
-                <Link
-                  href={unlocked ? `/curriculum/${module.id}` : "#"}
-                  className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
-                    unlocked
-                      ? "bg-[#ffffff] border-[#e5ddd4] hover:border-[#a01c2c] hover:bg-[#f5f0ea] cursor-pointer"
-                      : "bg-[#ffffff]/40 border-[#e5ddd4]/40 cursor-not-allowed opacity-50"
-                  }`}
-                >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm ${
-                    pct === 100 ? "bg-green-500/20 text-green-400" :
-                    unlocked ? "bg-[#a01c2c]/20 text-[#a01c2c]" :
-                    "bg-[#e5ddd4]/50 text-[#9a8c80]"
-                  }`}>
-                    {unlocked ? (pct === 100 ? "✓" : module.order) : <Lock size={14} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-0.5">
-                      <p className="font-medium text-sm text-[#1c1410] truncate">{module.title}</p>
-                      {unlocked && (
-                        <span className="text-xs text-[#a01c2c] font-medium shrink-0">
-                          {completedInMod}/{module.lesson_count}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-[#9a8c80] truncate">{module.course}</p>
-                    {unlocked && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="flex-1 h-1 bg-[#f5f0ea] rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-[#a01c2c] to-[#b8822a] rounded-full transition-all"
-                            style={{ width: `${pct}%` }}
-                          />
+              <Link
+                href={unlocked ? `/curriculum/${module.id}` : "#"}
+                key={module.id}
+                className={`group relative overflow-hidden rounded-2xl transition-all duration-300 ${
+                  unlocked
+                    ? "glass-card hover:-translate-y-1 hover:shadow-2xl hover:shadow-rose-500/10 cursor-pointer p-[1px] bg-gradient-to-b from-slate-700 to-slate-800 block"
+                    : "opacity-60 bg-slate-800/40 border border-slate-800 cursor-not-allowed block p-[1px]"
+                }`}
+              >
+                 <div className="bg-slate-900/90 w-full h-full rounded-2xl p-6 relative z-10 backdrop-blur-md">
+                   {/* Top header row */}
+                   <div className="flex justify-between items-start mb-4">
+                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-inner
+                        ${isCompleted ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" :
+                          unlocked ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" :
+                          "bg-slate-800 text-slate-600 border border-slate-700"
+                        }`}
+                     >
+                       {unlocked ? (isCompleted ? "✓" : module.order) : <Lock size={14} />}
+                     </div>
+                     
+                     {unlocked && (
+                        <div className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 flex gap-1 items-center shadow-inner">
+                          <span>{completedInMod}</span>
+                          <span className="text-slate-500">/</span>
+                          <span className="text-slate-500">{module.lesson_count}</span>
                         </div>
-                        {masteryPct > 0 && (
-                          <span className="text-[10px] text-yellow-400 shrink-0">{masteryPct}% mastery</span>
-                        )}
+                     )}
+                   </div>
+                   
+                   {/* Content body */}
+                   <div className="space-y-1 mb-5">
+                      <h3 className={`font-bold text-lg truncate ${unlocked ? "text-white group-hover:text-rose-100 transition-colors" : "text-slate-500"}`}>
+                        {module.title}
+                      </h3>
+                      <p className="text-sm text-slate-500 font-medium truncate">{module.course}</p>
+                   </div>
+                   
+                   {/* Progress footer */}
+                   {unlocked ? (
+                     <div className="flex items-center gap-3">
+                       <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
+                         <div
+                           className={`h-full rounded-full transition-all duration-700 ${isCompleted ? 'bg-emerald-500' : 'bg-gradient-to-r from-rose-500 to-yellow-500'}`}
+                           style={{ width: `${pct}%` }}
+                         />
+                       </div>
+                       {masteryPct > 0 && (
+                         <span className="text-xs font-mono font-medium text-yellow-500/80">{masteryPct}% <span className="text-[10px] text-slate-600">MR</span></span>
+                       )}
+                     </div>
+                   ) : (
+                      <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700/50 relative">
+                         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0wIDQwbDQwLTQwSDB6IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDUpIi8+Cjwvc3ZnPg==')] opacity-20"></div>
                       </div>
-                    )}
-                  </div>
-                  {unlocked && <ChevronRight size={16} className="text-[#9a8c80] shrink-0" />}
-                </Link>
-              </div>
+                   )}
+                 </div>
+                 
+                 {/* Hover effect gradient */}
+                 {unlocked && (
+                   <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 via-transparent to-yellow-500/5 opacity-0 group-hover:opacity-100 transition-opacity z-0 pointer-events-none" />
+                 )}
+              </Link>
             );
           })}
         </div>
       </div>
 
-      {/* Quick actions */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Action Footer */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 animate-slide-up" style={{ animationDelay: "0.5s" }}>
         <Link
           href="/quiz"
-          className="flex items-center gap-3 bg-[#ffffff] border border-[#e5ddd4] rounded-xl p-4 hover:border-yellow-500/50 hover:bg-yellow-500/5 transition-all"
+          className="glass-card p-5 rounded-2xl flex items-center gap-4 group hover:bg-slate-800/80"
         >
-          <Flame size={20} className="text-yellow-500" />
+          <div className="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+            <Flame size={20} className="text-orange-500" />
+          </div>
           <div>
-            <p className="text-sm font-medium text-[#1c1410]">Daily Quiz</p>
-            <p className="text-xs text-[#9a8c80]">Review weak spots</p>
+            <p className="font-bold text-white text-sm group-hover:text-amber-300 transition-colors">Daily Quiz</p>
+            <p className="text-xs text-slate-400">Review specific weak spots</p>
           </div>
         </Link>
+        
         <Link
           href="/glossary"
-          className="flex items-center gap-3 bg-[#ffffff] border border-[#e5ddd4] rounded-xl p-4 hover:border-[#b8822a]/50 hover:bg-[#b8822a]/5 transition-all"
+          className="glass-card p-5 rounded-2xl flex items-center gap-4 group hover:bg-slate-800/80"
         >
-          <Zap size={20} className="text-[#b8822a]" />
+          <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
+            <Zap size={20} className="text-cyan-500" />
+          </div>
           <div>
-            <p className="text-sm font-medium text-[#1c1410]">Glossary</p>
-            <p className="text-xs text-[#9a8c80]">Look up terms</p>
+            <p className="font-bold text-white text-sm group-hover:text-cyan-300 transition-colors">Term Glossary</p>
+            <p className="text-xs text-slate-400">Search technical vocabulary</p>
+          </div>
+        </Link>
+
+        <Link
+          href="/week-review"
+          className="glass-card p-5 rounded-2xl flex items-center justify-between group hover:bg-slate-800/80"
+        >
+          <div>
+            <p className="font-bold text-white text-sm group-hover:text-rose-300 transition-colors">Week in Review</p>
+            <p className="text-xs text-slate-400">Read AI summary of progress</p>
+          </div>
+          <div className="w-8 h-8 rounded-full border border-slate-600 bg-slate-800 flex items-center justify-center group-hover:bg-rose-500 transition-colors group-hover:border-rose-500">
+             <ArrowRight size={14} className="text-slate-400 group-hover:text-white" />
           </div>
         </Link>
       </div>
-
-      {/* Week in Review link */}
-      <Link
-        href="/week-review"
-        className="flex items-center justify-between bg-[#ffffff] border border-[#e5ddd4] rounded-xl p-4 hover:border-[#a01c2c]/40 transition-all"
-      >
-        <div>
-          <p className="text-sm font-medium text-[#1c1410]">Week in Review</p>
-          <p className="text-xs text-[#9a8c80]">See what you learned this week</p>
-        </div>
-        <ArrowRight size={16} className="text-[#9a8c80]" />
-      </Link>
+      
     </div>
   );
 }

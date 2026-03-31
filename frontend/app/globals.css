@@ -1,42 +1,47 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #f2ece3;
-  --color-surface: #ffffff;
-  --color-surface-2: #f5f0ea;
-  --color-border: #e5ddd4;
-  --color-accent: #a01c2c;
-  --color-accent-hover: #821624;
-  --color-accent-light: #c97a84;
-  --color-cyan: #b8822a;
-  --color-cyan-light: #67e8f9;
-  --color-text-primary: #1c1410;
-  --color-text-secondary: #5c4f45;
-  --color-text-muted: #9a8c80;
-  --color-star: #f59e0b;
-  --color-success: #a01c2c;
+  --color-background: #0f1115;
+  --color-surface: #1a1d24;
+  --color-surface-2: #242933;
+  --color-border: #313846;
+  --color-accent: #e11d48;
+  --color-accent-hover: #be123c;
+  --color-accent-light: #f43f5e;
+  --color-cyan: #eab308;
+  --color-cyan-light: #fef08a;
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+  --color-star: #fbbf24;
+  --color-success: #10b981;
   --color-error: #ef4444;
   --color-warning: #f59e0b;
 
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-sans: "Inter", "Outfit", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
-  --animate-fade-in: fadeIn 0.3s ease-in-out;
-  --animate-slide-up: slideUp 0.3s ease-out;
-  --animate-star-pop: starPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --animate-fade-in: fadeIn 0.4s ease-in-out forwards;
+  --animate-slide-up: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-star-pop: starPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --animate-glow-pulse: glowPulse 3s infinite alternate;
 
   @keyframes fadeIn {
     0% { opacity: 0; }
     100% { opacity: 1; }
   }
   @keyframes slideUp {
-    0% { opacity: 0; transform: translateY(10px); }
+    0% { opacity: 0; transform: translateY(20px); }
     100% { opacity: 1; transform: translateY(0); }
   }
   @keyframes starPop {
-    0% { transform: scale(0); }
-    60% { transform: scale(1.3); }
-    100% { transform: scale(1); }
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.4); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes glowPulse {
+    0% { box-shadow: 0 0 10px rgba(225, 29, 72, 0.1); }
+    100% { box-shadow: 0 0 25px rgba(225, 29, 72, 0.3); }
   }
 }
 
@@ -52,91 +57,132 @@
   }
 
   body {
-    background-color: #f2ece3;
-    color: #1c1410;
-    font-family: "Inter", system-ui, sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
+    background-image: radial-gradient(circle at top right, rgba(225, 29, 72, 0.05), transparent 40%),
+                      radial-gradient(circle at bottom left, rgba(234, 179, 8, 0.03), transparent 40%);
+    background-attachment: fixed;
   }
 
   pre, code {
-    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    font-family: var(--font-mono);
   }
 
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #faf7f3;
+    background: var(--color-background);
   }
   ::-webkit-scrollbar-thumb {
-    background: #e5ddd4;
-    border-radius: 3px;
+    background: var(--color-border);
+    border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #a01c2c;
+    background: var(--color-text-muted);
   }
 }
 
 @layer utilities {
   .glass {
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(26, 29, 36, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  }
+
+  .glass-card {
+    background: linear-gradient(145deg, rgba(36, 41, 51, 0.8), rgba(26, 29, 36, 0.4));
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(229, 221, 212, 0.6);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  
+  .glass-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.6), 0 0 15px rgba(225, 29, 72, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .glow-blue {
-    box-shadow: 0 0 20px rgba(160, 28, 44, 0.3);
+    box-shadow: 0 0 20px rgba(225, 29, 72, 0.4);
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, #a01c2c, #b8822a);
+    background: linear-gradient(135deg, #f43f5e, #eab308);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .orion-prose h1, .orion-prose h2, .orion-prose h3 {
-    color: #a01c2c;
-    margin: 1rem 0 0.5rem;
-    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 1.5rem 0 0.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
+  
+  .orion-prose h2 {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.5rem;
+  }
+  
   .orion-prose p {
-    margin: 0.5rem 0;
+    margin: 0.75rem 0;
     line-height: 1.7;
-    color: #1c1410;
+    color: var(--color-text-secondary);
   }
+  
   .orion-prose strong {
-    color: #821624;
+    color: var(--color-text-primary);
     font-weight: 600;
   }
+  
   .orion-prose code {
-    background: #f5f0ea;
-    color: #a01c2c;
-    padding: 0.1rem 0.4rem;
-    border-radius: 4px;
-    font-size: 0.875em;
+    background: rgba(225, 29, 72, 0.1);
+    color: #f43f5e;
+    padding: 0.2rem 0.4rem;
+    border-radius: 6px;
+    font-size: 0.85em;
+    border: 1px solid rgba(225, 29, 72, 0.2);
   }
+  
   .orion-prose pre {
-    background: #f2ece3;
-    border: 1px solid #e5ddd4;
-    border-radius: 8px;
-    padding: 1rem;
+    background: #0d0f12;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 1.25rem;
     overflow-x: auto;
-    margin: 0.75rem 0;
+    margin: 1rem 0;
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
   }
+  
   .orion-prose pre code {
     background: none;
     padding: 0;
-    color: #1c1410;
+    color: var(--color-text-primary);
+    border: none;
   }
+  
   .orion-prose ul, .orion-prose ol {
     padding-left: 1.5rem;
-    margin: 0.5rem 0;
+    margin: 0.75rem 0;
   }
+  
   .orion-prose li {
-    margin: 0.25rem 0;
-    color: #1c1410;
+    margin: 0.35rem 0;
+    color: var(--color-text-secondary);
+  }
+  
+  .orion-prose li::marker {
+    color: var(--color-accent);
   }
 }
