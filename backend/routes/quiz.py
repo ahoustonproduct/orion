@@ -4,14 +4,15 @@ import json
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-import anthropic
+from openai import OpenAI
 from models import get_db, UserProgress, LearningProfile
 from curriculum_data import ALL_MODULES
 from prompts import quiz_question_prompt
 
 router = APIRouter(prefix="/quiz", tags=["quiz"])
-client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-MODEL = "claude-sonnet-4-6"
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5-coder:7b")
+client = OpenAI(base_url=OLLAMA_BASE_URL, api_key="ollama")
 
 QUESTION_TYPES = ["multiple_choice", "true_false", "fill_blank"]
 
@@ -65,23 +66,43 @@ class GenerateQuizRequest(BaseModel):
     lesson_ids: list[str]
 
 
+def get_profile(user_key: str, db: Session) -> dict:
+    profile = db.query(LearningProfile).filter(LearningProfile.user_key == user_key).first()
+    if not profile:
+        return {
+            "weak_topics": [],
+            "common_mistakes": [],
+            "mastered_concepts": [],
+            "preferred_analogies": {},
+            "topic_confidence": {},
+        }
+    return {
+        "weak_topics": profile.weak_topics or [],
+        "common_mistakes": profile.common_mistakes or [],
+        "mastered_concepts": profile.mastered_concepts or [],
+        "preferred_analogies": profile.preferred_analogies or {},
+        "topic_confidence": profile.topic_confidence or {},
+    }
+
+
 @router.post("/generate")
 def generate_ai_quiz(req: GenerateQuizRequest, db: Session = Depends(get_db)):
     """Generate fresh AI quiz questions for given lesson IDs."""
+    profile = get_profile(req.user_key, db)
     questions = []
     for lesson_id in req.lesson_ids[:5]:
         lesson = get_lesson_by_id(lesson_id)
         if not lesson:
             continue
         q_type = random.choice(QUESTION_TYPES)
-        prompt = quiz_question_prompt(lesson, q_type, {})
-        response = client.messages.create(
+        prompt = quiz_question_prompt(lesson, q_type, profile)
+        response = client.chat.completions.create(
             model=MODEL,
             max_tokens=512,
             messages=[{"role": "user", "content": prompt}]
         )
         try:
-            text = response.content[0].text
+            text = response.choices[0].message.content
             # Extract JSON from response
             start = text.find("{")
             end = text.rfind("}") + 1

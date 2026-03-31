@@ -2,4 +2,4 @@
 cd "$(dirname "$0")"
 source venv/bin/activate
 export $(cat .env | xargs)
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8001

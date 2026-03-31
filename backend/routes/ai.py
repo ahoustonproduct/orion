@@ -4,7 +4,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
-import anthropic
+from openai import OpenAI
 from models import get_db, LearningProfile
 from prompts import (
     explain_concept_prompt, code_feedback_prompt,
@@ -16,8 +16,9 @@ from curriculum_data import ALL_MODULES
 
 router = APIRouter(prefix="/orion", tags=["orion"])
 
-client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-MODEL = "claude-sonnet-4-6"
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5-coder:7b")
+client = OpenAI(base_url=OLLAMA_BASE_URL, api_key="ollama")
 
 
 def get_profile(user_key: str, db: Session) -> dict:
@@ -40,15 +41,17 @@ def get_profile(user_key: str, db: Session) -> dict:
 
 
 def stream_response(prompt: str, max_tokens: int = 1500):
-    """Stream Claude's response token by token."""
+    """Stream Ollama's response token by token."""
     def generate():
-        with client.messages.stream(
+        stream = client.chat.completions.create(
             model=MODEL,
             max_tokens=max_tokens,
             messages=[{"role": "user", "content": prompt}],
-        ) as stream:
-            for text in stream.text_stream:
-                yield text
+            stream=True,
+        )
+        for chunk in stream:
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
 
     return StreamingResponse(generate(), media_type="text/plain")
 
@@ -166,6 +169,10 @@ def generate_study_plan(req: StudyPlanRequest, db: Session = Depends(get_db)):
     """Generate a personalized weekly study plan."""
     profile = get_profile(req.user_key, db)
     prompt = study_plan_prompt(profile, req.progress_data, req.days_until_start)
+    db_profile = db.query(LearningProfile).filter(LearningProfile.user_key == req.user_key).first()
+    if db_profile:
+        db_profile.study_plan = req.progress_data
+        db.commit()
     return stream_response(prompt, max_tokens=800)
 
 

@@ -83,7 +83,7 @@ export default function ModulePage() {
             <p className="text-sm text-[#94a3b8]">{module.description}</p>
           </div>
           <a
-            href={`http://localhost:8000/curriculum/modules/${moduleId}/export`}
+            href={`/api/curriculum/modules/${moduleId}/export`}
             download
             title="Download study packet for NotebookLM"
             className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#242438] border border-[#2d2d4a] hover:border-[#3b82f6] hover:bg-[#3b82f6]/10 text-[#94a3b8] hover:text-[#3b82f6] text-xs font-medium transition-all"

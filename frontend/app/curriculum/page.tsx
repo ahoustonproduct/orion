@@ -20,7 +20,7 @@ export default function CurriculumPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
       <h1 className="text-xl font-bold text-[#1c1410]">Curriculum</h1>
-      <p className="text-sm text-[#5c4f45]">19 modules across 4 levels — WashU MS Business Analytics, FinTech concentration.</p>
+      <p className="text-sm text-[#5c4f45]">4 modules — Python, Data Analytics, SQL, Machine Learning.</p>
 
       <div className="space-y-3">
         {modules.map((module, idx) => {

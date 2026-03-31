@@ -114,9 +114,9 @@ export default function SettingsPage() {
         <h2 className="text-sm font-semibold text-[#1c1410]">About Orion Code</h2>
         <div className="space-y-1 text-xs text-[#5c4f45]">
           <p>Version: 1.0.0</p>
-          <p>AI Tutor: Claude claude-sonnet-4-6 (Anthropic)</p>
-          <p>Built for: WashU MS Business Analytics — FinTech concentration</p>
-          <p>Curriculum covers: 19 modules across 4 levels</p>
+          <p>AI Tutor: qwen2.5-coder:7b (Ollama — local)</p>
+          <p>Built for: MS Business Analytics & AI</p>
+          <p>Curriculum covers: 4 modules — Python, Data Analytics, SQL, Machine Learning</p>
         </div>
       </div>
     </div>
