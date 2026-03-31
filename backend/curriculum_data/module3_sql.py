@@ -5,6 +5,17 @@ MODULE_3 = {
     "course": "MSBX 5405 · Structured Data & SQL",
     "order": 3,
     "locked": False,
+    "supplementary_courses": [
+        {
+            "title": "Databases and SQL for Data Science with Python",
+            "provider": "IBM",
+            "url": "https://www.coursera.org/learn/sql-data-science",
+            "duration": "~2 weeks at 10 hrs/week",
+            "level": "Beginner",
+            "free_audit": True,
+            "description": "SQL basics, querying, filtering, sorting, aggregating, joins, subqueries, and accessing databases from Python. Covers SELECT, INSERT, UPDATE, DELETE, GROUP BY, and real-world datasets with IBM Db2.",
+        },
+    ],
     "concept_map": [
         {"id": "m3-l1",  "label": "What is a Database?",           "connects_to": ["m3-l2"]},
         {"id": "m3-l2",  "label": "Tables, Rows & Columns",        "connects_to": ["m3-l3"]},

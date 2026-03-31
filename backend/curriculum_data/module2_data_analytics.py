@@ -5,6 +5,26 @@ MODULE_2 = {
     "course": "MSBX 5415 · Data Analytics w/AI",
     "order": 2,
     "locked": False,
+    "supplementary_courses": [
+        {
+            "title": "Data Analytics Foundations",
+            "provider": "DeepLearning.AI",
+            "url": "https://www.coursera.org/learn/data-analytics-foundations",
+            "duration": "~3 weeks at 10 hrs/week",
+            "level": "Beginner",
+            "free_audit": True,
+            "description": "Covers data analytics fundamentals: structured vs unstructured data, spreadsheets for analytics, data visualization best practices, and the data analytics lifecycle. Perfect conceptual foundation before diving into Pandas.",
+        },
+        {
+            "title": "Applied Plotting, Charting & Data Representation in Python",
+            "provider": "University of Michigan",
+            "url": "https://www.coursera.org/learn/python-plotting",
+            "duration": "~24 hours",
+            "level": "Intermediate",
+            "free_audit": True,
+            "description": "Visualization best practices, matplotlib, basic chart types, scatter plots, histograms, interactive visualization. Complements this module's data analysis content.",
+        },
+    ],
     "lessons": [
         {
             "id": "m2-l1",

@@ -21,6 +21,15 @@ interface LessonSummaryExtended extends LessonSummary {
 interface ModuleExtended extends Module {
   concept_map?: { id: string; label: string; connects_to?: string[] }[];
   lessons?: LessonSummaryExtended[];
+  supplementary_courses?: {
+    title: string;
+    provider: string;
+    url: string;
+    duration: string;
+    level: string;
+    free_audit: boolean;
+    description: string;
+  }[];
 }
 
 export default function ModulePage() {
@@ -213,6 +222,76 @@ export default function ModulePage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Supplementary Courses */}
+      {module.supplementary_courses && module.supplementary_courses.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-[#94a3b8] uppercase tracking-wider">Recommended Coursera Courses</p>
+          {module.supplementary_courses.map((course) => (
+            <a
+              key={course.url}
+              href={course.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block bg-[#1a1a2e] border border-[#2d2d4a] rounded-xl p-4 hover:border-[#3b82f6] hover:bg-[#242438] transition-all"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[#e2e8f0] mb-1">{course.title}</p>
+                  <p className="text-xs text-[#64748b] mb-2">{course.provider} · {course.duration} · {course.level}</p>
+                  <p className="text-xs text-[#94a3b8] leading-relaxed">{course.description}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    {course.free_audit && (
+                      <span className="text-[10px] bg-green-500/10 border border-green-500/30 text-green-400 px-2 py-0.5 rounded-full">
+                        Free to audit
+                      </span>
+                    )}
+                    <span className="text-[10px] bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] px-2 py-0.5 rounded-full">
+                      Coursera
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-[#64748b] shrink-0 mt-1" />
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* Supplementary Courses */}
+      {module.supplementary_courses && module.supplementary_courses.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-[#94a3b8] uppercase tracking-wider">Recommended Coursera Courses</p>
+          {module.supplementary_courses.map((course) => (
+            <a
+              key={course.url}
+              href={course.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block bg-[#1a1a2e] border border-[#2d2d4a] rounded-xl p-4 hover:border-[#3b82f6] hover:bg-[#242438] transition-all"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[#e2e8f0] mb-1">{course.title}</p>
+                  <p className="text-xs text-[#64748b] mb-2">{course.provider} · {course.duration} · {course.level}</p>
+                  <p className="text-xs text-[#94a3b8] leading-relaxed">{course.description}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    {course.free_audit && (
+                      <span className="text-[10px] bg-green-500/10 border border-green-500/30 text-green-400 px-2 py-0.5 rounded-full">
+                        Free to audit
+                      </span>
+                    )}
+                    <span className="text-[10px] bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#3b82f6] px-2 py-0.5 rounded-full">
+                      Coursera
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-[#64748b] shrink-0 mt-1" />
+              </div>
+            </a>
+          ))}
         </div>
       )}
 

@@ -5,6 +5,26 @@ MODULE_1 = {
     "course": "MSBC 5070 · Python Bootcamp",
     "order": 1,
     "locked": False,
+    "supplementary_courses": [
+        {
+            "title": "Python for Data Science, AI & Development",
+            "provider": "IBM",
+            "url": "https://www.coursera.org/learn/python-for-applied-data-science-ai",
+            "duration": "~3 weeks at 10 hrs/week",
+            "level": "Beginner",
+            "free_audit": True,
+            "description": "Covers Python basics, data structures, working with real-world data, web scraping, APIs, and intro to NumPy/Pandas. Perfect companion to this module.",
+        },
+        {
+            "title": "Introduction to Data Science in Python",
+            "provider": "University of Michigan",
+            "url": "https://www.coursera.org/learn/python-data-analysis",
+            "duration": "~30 hours",
+            "level": "Intermediate",
+            "free_audit": True,
+            "description": "Python fundamentals, lambdas, CSV manipulation, NumPy, Pandas (Series, DataFrame, groupby, merge, pivot tables), distributions, sampling, t-tests.",
+        },
+    ],
     "lessons": [
         {
             "id": "m1-l1",
