@@ -4,7 +4,7 @@ MODULE_3 = {
     "description": "Learn to speak the language of databases. SQL is the universal tool for querying, analyzing, and managing structured data — used by every data analyst on the planet.",
     "course": "MSBX 5405 · Structured Data & SQL",
     "order": 3,
-    "locked": True,
+    "locked": False,
     "concept_map": [
         {"id": "m3-l1",  "label": "What is a Database?",           "connects_to": ["m3-l2"]},
         {"id": "m3-l2",  "label": "Tables, Rows & Columns",        "connects_to": ["m3-l3"]},

@@ -4,7 +4,7 @@ MODULE_5 = {
     "description": "Understand how technology works by building it from scratch. You'll recreate web servers, databases, search engines, and more — using only Python.",
     "course": "Self-Directed · Build Your Own X",
     "order": 5,
-    "locked": True,
+    "locked": False,
     "lessons": [
         {
             "id": "m5-l1",

@@ -4,7 +4,7 @@ MODULE_2 = {
     "description": "Learn to work with real data using NumPy and Pandas — the core libraries of every data scientist's toolkit.",
     "course": "MSBX 5415 · Data Analytics w/AI",
     "order": 2,
-    "locked": True,
+    "locked": False,
     "lessons": [
         {
             "id": "m2-l1",

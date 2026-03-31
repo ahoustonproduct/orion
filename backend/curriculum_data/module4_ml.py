@@ -4,7 +4,7 @@ MODULE_4 = {
     "description": "Build models that learn from data and make predictions. Machine learning is the engine behind AI — and scikit-learn makes it accessible to every analyst.",
     "course": "MSBC 5180 · Machine Learning",
     "order": 4,
-    "locked": True,
+    "locked": False,
     "concept_map": [
         {"id": "m4-l1",  "label": "What is ML?",               "connects_to": ["m4-l2"]},
         {"id": "m4-l2",  "label": "ML Workflow",               "connects_to": ["m4-l3"]},
