@@ -8,28 +8,26 @@ This section contains standing rules and hard-won lessons about this codebase. R
 
 ### 1. Visual Theme — The Non-Negotiable Design System
 
-The entire application uses a **"Night Mode Digital Reader"** aesthetic — a warm, textbook-like dark interface with charcoal browns and amber gold. It is intentionally calm and print-like, not flashy. It must never look like a gaming app, a neon dashboard, or a generic "dark mode" site.
+The entire application uses a **"Classic Academic"** aesthetic — a premium, textbook-like light interface with cream/parchment tones and deep ink typography. It is intentionally clean, high-end, and academic. It must never look like a gaming app, a neon dashboard, or a generic "dark mode" site.
 
 **The golden rule: NEVER hardcode color values.** Every color must come from the CSS variables defined in `frontend/app/globals.css`. Using raw hex codes, Tailwind color classes like `slate-*`, `gray-*`, `rose-*`, `blue-*`, or any other specific color name will break the theme.
 
 **Always use these CSS variables:**
 
 ```
-var(--color-background)     →  #1C1917  — deep warm charcoal (page background)
-var(--color-surface)        →  #292524  — card/panel background
-var(--color-surface-2)      →  #35312C  — raised/nested surfaces
-var(--color-border)         →  #44403C  — all borders and dividers
-var(--color-accent)         →  #D97706  — primary amber (buttons, icons, links)
-var(--color-accent-hover)   →  #B45309  — darker amber for hover states
-var(--color-accent-light)   →  #F59E0B  — lighter amber for highlights
-var(--color-text-primary)   →  #E7E5E4  — main body text
-var(--color-text-secondary) →  #A8A29E  — supporting/caption text
+var(--color-background)     →  #F8F5F2  — cream/eggshell (page background)
+var(--color-surface)        →  #FFFFFF  — pure white card/panel background
+var(--color-surface-2)      →  #F1EFE9  — light parchment for nested surfaces
+var(--color-border)         →  #D1CEC7  — subtle tan/grey for dividers
+var(--color-accent)         →  #292524  — primary deep charcoal (buttons, icons)
+var(--color-text-primary)   →  #1C1917  — main ink body text
+var(--color-text-secondary) →  #44403C  — supporting stone text
 var(--color-text-muted)     →  #78716C  — labels, placeholders, metadata
-var(--color-success)        →  #65A30D  — success states (green)
-var(--color-error)          →  #DC2626  — error states (red)
+var(--color-success)        →  #166534  — deep success green
+var(--color-error)          →  #991B1B  — deep error red
 ```
 
-**Lesson learned the hard way:** A previous AI added `AIChatSidebar.tsx`, `QuickLookCard.tsx`, and `MultiFileEditor.tsx` using hardcoded cold navy hex values (`#0f0f1a`, `#1a1a2e`, `#2d2d4a`) and neon cyan (`#06b6d4`). This broke the warm, textbook aesthetic entirely and had to be manually corrected. Do not repeat this mistake.
+**Typography:** Headings (`h1`, `h2`, `h3`) should use **Serif** fonts (e.g., `var(--font-serif)`) for a classic textbook feel. Body text uses a clean Sans-serif (`var(--font-sans)`).
 
 ### 2. Backend Stability — Python Syntax Rules
 
