@@ -305,40 +305,40 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 animate-slide-up" style={{ animationDelay: "0.5s" }}>
         <Link
           href="/quiz"
-          className="glass-card p-5 rounded-2xl flex items-center gap-4 group hover:bg-slate-800/80"
+          className="bg-[var(--color-surface)] border border-[var(--color-border)] p-5 rounded-2xl flex items-center gap-4 group hover:bg-[var(--color-surface-2)]"
         >
-          <div className="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
-            <Flame size={20} className="text-orange-500" />
+          <div className="w-12 h-12 rounded-xl bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 flex items-center justify-center shrink-0">
+            <Flame size={20} className="text-[var(--color-accent)]" />
           </div>
           <div>
-            <p className="font-bold text-white text-sm group-hover:text-amber-300 transition-colors">Daily Quiz</p>
-            <p className="text-xs text-slate-400">Review specific weak spots</p>
+            <p className="font-bold text-[var(--color-text-primary)] text-sm group-hover:text-[var(--color-accent)] transition-colors">Daily Quiz</p>
+            <p className="text-xs text-[var(--color-text-muted)]">Review specific weak spots</p>
           </div>
         </Link>
         
         <Link
           href="/glossary"
-          className="glass-card p-5 rounded-2xl flex items-center gap-4 group hover:bg-slate-800/80"
+          className="bg-[var(--color-surface)] border border-[var(--color-border)] p-5 rounded-2xl flex items-center gap-4 group hover:bg-[var(--color-surface-2)]"
         >
-          <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
-            <Zap size={20} className="text-cyan-500" />
+          <div className="w-12 h-12 rounded-xl bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 flex items-center justify-center shrink-0">
+            <Zap size={20} className="text-[var(--color-accent)]" />
           </div>
           <div>
-            <p className="font-bold text-white text-sm group-hover:text-cyan-300 transition-colors">Term Glossary</p>
-            <p className="text-xs text-slate-400">Search technical vocabulary</p>
+            <p className="font-bold text-[var(--color-text-primary)] text-sm group-hover:text-[var(--color-accent)] transition-colors">Term Glossary</p>
+            <p className="text-xs text-[var(--color-text-muted)]">Search technical vocabulary</p>
           </div>
         </Link>
 
         <Link
           href="/week-review"
-          className="glass-card p-5 rounded-2xl flex items-center justify-between group hover:bg-slate-800/80"
+          className="bg-[var(--color-surface)] border border-[var(--color-border)] p-5 rounded-2xl flex items-center justify-between group hover:bg-[var(--color-surface-2)]"
         >
           <div>
-            <p className="font-bold text-white text-sm group-hover:text-rose-300 transition-colors">Week in Review</p>
-            <p className="text-xs text-slate-400">Read AI summary of progress</p>
+            <p className="font-bold text-[var(--color-text-primary)] text-sm group-hover:text-[var(--color-accent)] transition-colors">Week in Review</p>
+            <p className="text-xs text-[var(--color-text-muted)]">Read AI summary of progress</p>
           </div>
-          <div className="w-8 h-8 rounded-full border border-slate-600 bg-slate-800 flex items-center justify-center group-hover:bg-rose-500 transition-colors group-hover:border-rose-500">
-             <ArrowRight size={14} className="text-slate-400 group-hover:text-white" />
+          <div className="w-8 h-8 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-2)] flex items-center justify-center group-hover:bg-[var(--color-accent)] transition-colors group-hover:border-[var(--color-accent)]">
+             <ArrowRight size={14} className="text-[var(--color-text-muted)] group-hover:text-white" />
           </div>
         </Link>
       </div>
