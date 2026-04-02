@@ -108,15 +108,15 @@ export default function Dashboard() {
             { icon: <BookOpen size={20} />, value: completedLessons, label: "Lessons Done", gradient: "from-emerald-500/20 to-teal-500/5", color: "text-emerald-400", border: "border-emerald-500/20" },
             { icon: <Star size={20} />, value: totalStars, label: "Total Stars", gradient: "from-yellow-500/20 to-amber-500/5", color: "text-yellow-400", border: "border-yellow-500/20", colSpan: "col-span-2" },
           ].map(({ icon, value, label, gradient, color, border, colSpan }) => (
-            <div key={label} className={`glass-card p-5 rounded-2xl relative overflow-hidden ${colSpan || ""}`}>
+            <div key={label} className={`bg-[var(--color-surface)] border border-[var(--color-border)] p-5 rounded-2xl relative overflow-hidden ${colSpan || ""}`}>
               <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${gradient} rounded-full blur-2xl -translate-y-10 translate-x-10`} />
               <div className="relative z-10 flex flex-col gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${border} bg-white/5 ${color}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${border} bg-[var(--color-surface-2)]/50 ${color}`}>
                   {icon}
                 </div>
                 <div>
-                  <div className="text-3xl font-black text-white">{value}</div>
-                  <div className="text-xs font-medium text-slate-400 mt-1 uppercase tracking-wider">{label}</div>
+                  <div className="text-3xl font-black text-[var(--color-text-primary)]">{value}</div>
+                  <div className="text-xs font-medium text-[var(--color-text-muted)] mt-1 uppercase tracking-wider">{label}</div>
                 </div>
               </div>
             </div>
@@ -124,41 +124,41 @@ export default function Dashboard() {
         </div>
 
         {/* Right Column: AI Assistant Context */}
-        <div className="md:col-span-7 glass-card rounded-2xl p-6 relative overflow-hidden flex flex-col">
-          <div className="absolute -inset-2 bg-gradient-to-br from-rose-500/10 via-transparent to-yellow-500/5 z-0 pointer-events-none blur-xl" />
+        <div className="md:col-span-7 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-6 relative overflow-hidden flex flex-col">
+          <div className="absolute -inset-2 bg-gradient-to-br from-[var(--color-accent)]/10 via-transparent to-[var(--color-accent-light)]/5 z-0 pointer-events-none blur-xl" />
           
           <div className="relative z-10 flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-full bg-rose-500/20 border border-rose-500/30 flex items-center justify-center">
-              <Cpu size={14} className="text-rose-400" />
+            <div className="w-8 h-8 rounded-full bg-[var(--color-accent)]/20 border border-[var(--color-accent)]/30 flex items-center justify-center">
+              <Cpu size={14} className="text-[var(--color-accent)]" />
             </div>
-            <h2 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Orion Intelligence</h2>
+            <h2 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-widest">Orion Intelligence</h2>
           </div>
           
           <div className="flex-1 flex flex-col justify-center">
             {whatNextLoading && !whatNext ? (
               <div className="space-y-3">
-                <div className="h-4 bg-slate-800 rounded animate-pulse w-full" />
-                <div className="h-4 bg-slate-800 rounded animate-pulse w-5/6" />
-                <div className="h-4 bg-slate-800 rounded animate-pulse w-4/6" />
+                <div className="h-4 bg-[var(--color-surface-2)] rounded animate-pulse w-full" />
+                <div className="h-4 bg-[var(--color-surface-2)] rounded animate-pulse w-5/6" />
+                <div className="h-4 bg-[var(--color-surface-2)] rounded animate-pulse w-4/6" />
               </div>
             ) : whatNext ? (
-              <div className="text-slate-300 leading-relaxed text-lg font-medium">
-                <p className="border-l-2 border-rose-500/50 pl-4 py-1">{whatNext}</p>
+              <div className="text-[var(--color-text-secondary)] leading-relaxed text-lg font-medium">
+                <p className="border-l-2 border-[var(--color-accent)]/50 pl-4 py-1">{whatNext}</p>
               </div>
             ) : (
-              <p className="text-slate-400 italic">Analyzing your recent performance to determine the optimal next steps...</p>
+              <p className="text-[var(--color-text-muted)] italic">Analyzing your recent performance to determine the optimal next steps...</p>
             )}
           </div>
           
-          <div className="mt-6 pt-5 border-t border-slate-700/50 flex justify-between items-center">
+          <div className="mt-6 pt-5 border-t border-[var(--color-border)] flex justify-between items-center">
             <div className="w-full">
               <div className="flex justify-between items-end mb-2">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Curriculum Mastery</span>
-                <span className="text-sm font-bold text-white">{overallPct}% <span className="text-slate-500 font-normal">/ 100%</span></span>
+                <span className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">Curriculum Mastery</span>
+                <span className="text-sm font-bold text-[var(--color-text-primary)]">{overallPct}% <span className="text-[var(--color-text-muted)] font-normal">/ 100%</span></span>
               </div>
-              <div className="h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
+              <div className="h-2 bg-[var(--color-surface-2)] rounded-full overflow-hidden border border-[var(--color-border)]">
                 <div
-                  className="h-full bg-gradient-to-r from-rose-500 to-yellow-500 rounded-full transition-all duration-1000 ease-out"
+                  className="h-full bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-light)] rounded-full transition-all duration-1000 ease-out"
                   style={{ width: `${overallPct}%` }}
                 />
               </div>
@@ -219,8 +219,8 @@ export default function Dashboard() {
       {/* Modules List */}
       <div className="animate-slide-up" style={{ animationDelay: "0.4s" }}>
         <div className="flex items-center gap-3 mb-6">
-          <Box size={20} className="text-slate-400" />
-          <h2 className="text-xl font-bold text-white">Learning Curriculum</h2>
+          <Box size={20} className="text-[var(--color-text-muted)]" />
+          <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Learning Curriculum</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -238,37 +238,37 @@ export default function Dashboard() {
                 key={module.id}
                 className={`group relative overflow-hidden rounded-2xl transition-all duration-300 ${
                   unlocked
-                    ? "glass-card hover:-translate-y-1 hover:shadow-2xl hover:shadow-rose-500/10 cursor-pointer p-[1px] bg-gradient-to-b from-slate-700 to-slate-800 block"
-                    : "opacity-60 bg-slate-800/40 border border-slate-800 cursor-not-allowed block p-[1px]"
+                    ? "bg-[var(--color-surface)] border border-[var(--color-border)] hover:-translate-y-1 hover:shadow-xl cursor-pointer p-[1px] block"
+                    : "opacity-60 bg-[var(--color-surface-2)]/40 border border-[var(--color-border)] cursor-not-allowed block p-[1px]"
                 }`}
               >
-                 <div className="bg-slate-900/90 w-full h-full rounded-2xl p-6 relative z-10 backdrop-blur-md">
+                 <div className="bg-[var(--color-surface)] w-full h-full rounded-2xl p-6 relative z-10">
                    {/* Top header row */}
                    <div className="flex justify-between items-start mb-4">
                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-inner
-                        ${isCompleted ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" :
-                          unlocked ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" :
-                          "bg-slate-800 text-slate-600 border border-slate-700"
-                        }`}
+                       ${isCompleted ? "bg-[var(--color-success)]/20 text-[var(--color-success)] border border-[var(--color-success)]/30" :
+                       unlocked ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/20" :
+                       "bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border border-[var(--color-border)]"
+                     }`}
                      >
                        {unlocked ? (isCompleted ? "✓" : module.order) : <Lock size={14} />}
                      </div>
                      
                      {unlocked && (
-                        <div className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 flex gap-1 items-center shadow-inner">
-                          <span>{completedInMod}</span>
-                          <span className="text-slate-500">/</span>
-                          <span className="text-slate-500">{module.lesson_count}</span>
-                        </div>
+                       <div className="px-3 py-1 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs font-semibold text-[var(--color-text-secondary)] flex gap-1 items-center">
+                         <span>{completedInMod}</span>
+                         <span className="text-[var(--color-text-muted)]">/</span>
+                         <span className="text-[var(--color-text-muted)]">{module.lesson_count}</span>
+                       </div>
                      )}
                    </div>
                    
                    {/* Content body */}
                    <div className="space-y-1 mb-5">
-                      <h3 className={`font-bold text-lg truncate ${unlocked ? "text-white group-hover:text-rose-100 transition-colors" : "text-slate-500"}`}>
+                      <h3 className={`font-bold text-lg truncate ${unlocked ? "text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors" : "text-[var(--color-text-muted)]"}`}>
                         {module.title}
                       </h3>
-                      <p className="text-sm text-slate-500 font-medium truncate">{module.course}</p>
+                      <p className="text-sm text-[var(--color-text-muted)] font-medium truncate">{module.course}</p>
                    </div>
                    
                    {/* Progress footer */}
