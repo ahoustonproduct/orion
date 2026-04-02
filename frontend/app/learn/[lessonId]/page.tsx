@@ -27,14 +27,14 @@ function Markdown({ text }: { text: string }) {
         code: ({ className, children }) => {
           const isBlock = className?.includes("block");
           return isBlock
-            ? <pre className="bg-black/40 border border-white/5 rounded-lg p-3 my-2 overflow-x-auto"><code className={className}>{children}</code></pre>
-            : <code className="bg-black/40 border border-white/5 rounded px-1.5 py-0.5 text-sm">{children}</code>;
+            ? <pre className="bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg p-3 my-2 overflow-x-auto"><code className={className}>{children}</code></pre>
+            : <code className="bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded px-1.5 py-0.5 text-sm">{children}</code>;
         },
         p: ({ children }) => <p className="mb-3 leading-relaxed">{children}</p>,
         ul: ({ children }) => <ul className="list-disc ml-6 mb-3 space-y-1">{children}</ul>,
         ol: ({ children }) => <ol className="list-decimal ml-6 mb-3 space-y-1">{children}</ol>,
-        strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
-        h3: ({ children }) => <h3 className="text-lg font-bold text-white mt-4 mb-2">{children}</h3>,
+        strong: ({ children }) => <strong className="font-semibold text-[var(--color-text-primary)]">{children}</strong>,
+        h3: ({ children }) => <h3 className="text-lg font-bold text-[var(--color-text-primary)] mt-4 mb-2">{children}</h3>,
       }}
     >
       {text}
@@ -131,10 +131,10 @@ export default function LessonPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#a01c2c] to-[#b8822a] mx-auto flex items-center justify-center animate-pulse">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-light)] mx-auto flex items-center justify-center animate-pulse">
             <span className="text-white font-bold">O</span>
           </div>
-          <p className="text-sm text-gray-400">Loading lesson...</p>
+          <p className="text-sm text-[var(--color-text-muted)]">Loading lesson...</p>
         </div>
       </div>
     );
@@ -143,8 +143,8 @@ export default function LessonPage() {
   if (!lesson) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12 text-center">
-        <p className="text-gray-300 mb-4">Lesson not found.</p>
-        <Link href="/curriculum" className="text-[var(--color-accent-light)] text-sm hover:underline">← Back to Curriculum</Link>
+        <p className="text-[var(--color-text-secondary)] mb-4">Lesson not found.</p>
+        <Link href="/curriculum" className="text-[var(--color-accent)] text-sm hover:underline">← Back to Curriculum</Link>
       </div>
     );
   }
@@ -152,31 +152,31 @@ export default function LessonPage() {
   if (completed) {
     return (
       <div className="max-w-lg mx-auto px-4 py-12 text-center space-y-6">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-400 to-green-600 mx-auto flex items-center justify-center shadow-lg">
+        <div className="w-16 h-16 rounded-2xl bg-[var(--color-success)] mx-auto flex items-center justify-center shadow-lg">
           <Trophy size={28} className="text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-white mb-2">Lesson Complete!</h1>
-          <p className="text-gray-300">{lesson.title}</p>
+          <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">Lesson Complete!</h1>
+          <p className="text-[var(--color-text-secondary)]">{lesson.title}</p>
         </div>
         <div className="flex justify-center gap-1">
           {[1, 2, 3].map((s) => (
-            <Star key={s} size={32} className={s <= stars ? "fill-yellow-400 text-yellow-400" : "text-[#e5ddd4]"} />
+            <Star key={s} size={32} className={s <= stars ? "fill-[var(--color-star)] text-[var(--color-star)]" : "text-[var(--color-border)]"} />
           ))}
         </div>
-        <div className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-4 text-sm text-gray-300">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 text-sm text-[var(--color-text-secondary)]">
           Questions: {correctCount}/{lesson.questions.length} correct · Attempts: {attempts}
         </div>
         <div className="flex gap-3">
           <Link
             href="/curriculum"
-            className="flex-1 py-3 bg-[var(--color-accent)] shadow-lg shadow-[var(--color-accent)]/20 hover:bg-[var(--color-accent-hover)] text-white rounded-xl text-sm font-semibold transition-all text-center"
+            className="flex-1 py-3 bg-[var(--color-accent)] text-white rounded-xl text-sm font-semibold transition-all text-center"
           >
             Back to Curriculum
           </Link>
           <Link
             href="/curriculum"
-            className="flex-1 py-3 glass-card border-white/5 border border-white/10 border-transparent hover:border-[var(--color-accent)] hover:shadow-[var(--color-accent)]/20 shadow-md text-white rounded-xl text-sm font-medium transition-all text-center"
+            className="flex-1 py-3 bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-accent)] text-[var(--color-text-primary)] rounded-xl text-sm font-medium transition-all text-center"
           >
             Curriculum
           </Link>
