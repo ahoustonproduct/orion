@@ -336,7 +336,7 @@ export interface TechnicalExerciseBlock {
 export interface QuizQuestion2 {
   id: string;
   concept_tags: string[];
-  type: "multiple_choice" | "short_answer" | "what_would_you_do";
+  type: "multiple_choice" | "short_answer" | "what_would_you_do" | "true_false";
   question: string;
   options?: string[];
   correct_index?: number;

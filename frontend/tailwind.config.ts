@@ -9,28 +9,28 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#f2ece3",
-        surface: "#ffffff",
-        "surface-2": "#f5f0ea",
-        border: "#e5ddd4",
+        background: "#1C1917", // warm deep charcoal
+        surface: "#292524",
+        "surface-2": "#35312C",
+        border: "#44403C",
         accent: {
-          DEFAULT: "#a01c2c",
-          hover: "#821624",
-          light: "#c97a84",
+          DEFAULT: "#D97706", // muted amber
+          hover: "#B45309",
+          light: "#F59E0B",
         },
         cyan: {
-          DEFAULT: "#b8822a",
-          light: "#67e8f9",
+          DEFAULT: "#B45309",
+          light: "#FCD34D",
         },
         text: {
-          primary: "#1c1410",
-          secondary: "#5c4f45",
-          muted: "#9a8c80",
+          primary: "#E7E5E4",
+          secondary: "#A8A29E",
+          muted: "#78716C",
         },
-        star: "#f59e0b",
-        success: "#a01c2c",
-        error: "#ef4444",
-        warning: "#f59e0b",
+        star: "#F59E0B",
+        success: "#65A30D",
+        error: "#DC2626",
+        warning: "#D97706",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

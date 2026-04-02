@@ -560,11 +560,11 @@ class MiniGit:
         os.makedirs(repo_dir, exist_ok=True)
     
     def hash_content(self, content):
-        """Create a SHA-256 hash of file content."""
+        '''Create a SHA-256 hash of file content.'''
         return hashlib.sha256(content.encode()).hexdigest()[:8]
     
     def add(self, filename, content):
-        """Stage a file by hashing its content."""
+        '''Stage a file by hashing its content.'''
         file_hash = self.hash_content(content)
         filepath = os.path.join(self.repo_dir, file_hash)
         with open(filepath, "w") as f:
@@ -573,7 +573,7 @@ class MiniGit:
         return file_hash
     
     def log(self, commits):
-        """Display commit history."""
+        '''Display commit history.'''
         for i, commit in enumerate(reversed(commits)):
             print(f"Commit {len(commits)-i}: {commit['hash']}")
             print(f"  Message: {commit['message']}")
@@ -874,7 +874,7 @@ Let's build a simple regex engine that supports:
 
 ```python
 def match(pattern, text):
-    """Simple regex engine supporting ., *, ^, $"""
+    '''Simple regex engine supporting ., *, ^, $'''
     # Handle ^ anchor (must match from start)
     if pattern.startswith("^"):
         return match_here(pattern[1:], text)
@@ -886,7 +886,7 @@ def match(pattern, text):
     return False
 
 def match_here(pattern, text):
-    """Match pattern at the start of text."""
+    '''Match pattern at the start of text.'''
     if not pattern:
         return True
     if pattern == "$":
@@ -898,7 +898,7 @@ def match_here(pattern, text):
     return False
 
 def match_star(char, pattern, text):
-    """Match zero or more of char, then pattern."""
+    '''Match zero or more of char, then pattern.'''
     for i in range(len(text) + 1):
         if match_here(pattern, text[i:]):
             return True
@@ -1063,7 +1063,7 @@ The basic idea:
 import re
 
 def render(template, data):
-    """Simple template engine supporting {{ variable }} syntax."""
+    '''Simple template engine supporting {{ variable }} syntax.'''
     def replace_var(match):
         var_name = match.group(1).strip()
         return str(data.get(var_name, ""))
@@ -1217,12 +1217,12 @@ class SimpleNeuralNetwork:
         self.b2 = [0] * output_size
     
     def sigmoid(self, x):
-        """Activation function: squashes values to 0-1 range."""
+        '''Activation function: squashes values to 0-1 range.'''
         import math
         return 1 / (1 + math.exp(-max(-500, min(500, x))))
     
     def forward(self, inputs):
-        """Pass data through the network."""
+        '''Pass data through the network.'''
         # Hidden layer
         hidden = []
         for i in range(len(self.w1)):
