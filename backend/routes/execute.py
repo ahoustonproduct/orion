@@ -70,6 +70,11 @@ def _check_data_science_imports(code: str) -> list[str]:
 
 class ExecutePythonRequest(BaseModel):
     code: str
+    files: list[dict[str, str]] | None = None  # For multi-file execution
+
+
+class ExecuteMultiFileRequest(BaseModel):
+    files: list[dict[str, str]]  # [{"name": "main.py", "content": "..."}]
 
 
 class ExecuteSQLRequest(BaseModel):
@@ -178,3 +183,89 @@ def execute_sql(req: ExecuteSQLRequest) -> dict:
             "duration_ms": 0,
             "error": str(exc),
         }
+
+
+@router.post("/multi")
+def execute_multi(req: ExecuteMultiFileRequest) -> dict:
+    """Execute multiple Python files concurrently."""
+    files = req.files
+    if not files:
+        return {"error": "No files provided", "outputs": {}}
+    
+    # Create a temporary directory for the files
+    import tempfile
+    import shutil
+    
+    temp_dir = tempfile.mkdtemp()
+    outputs = {}
+    errors = {}
+    
+    try:
+        # Write all files to the temp directory
+        for file in files:
+            file_path = os.path.join(temp_dir, file["name"])
+            with open(file_path, "w") as f:
+                f.write(file["content"])
+        
+        # Find the main file (first .py file or the first file)
+        main_file = next((f for f in files if f["name"].endswith(".py")), files[0])
+        
+        # Check all files for unsafe patterns
+        for file in files:
+            unsafe, matched = _is_unsafe(file["content"])
+            if unsafe:
+                return {
+                    "error": f"Unsafe pattern in {file['name']}: {matched}",
+                    "outputs": {},
+                }
+        
+        # Check for data science imports across all files
+        all_code = "\n".join(f["content"] for f in files)
+        needed_libs = _check_data_science_imports(all_code)
+        
+        # Build command
+        main_path = os.path.join(temp_dir, main_file["name"])
+        cmd = ["python", main_path]
+        
+        if needed_libs:
+            install_cmd = f"pip install --quiet {' '.join(needed_libs)} && python {main_path}"
+            cmd = ["python", "-c", install_cmd]
+        
+        start = time.monotonic()
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=20,
+            cwd=temp_dir,
+        )
+        duration_ms = int((time.monotonic() - start) * 1000)
+        
+        outputs = {
+            "main": result.stdout[:5000],
+            "all_files": [f["name"] for f in files],
+        }
+        
+        if result.returncode != 0:
+            errors = {"main": result.stderr[:2000]}
+        
+        return {
+            "outputs": outputs,
+            "errors": errors if errors else None,
+            "duration_ms": duration_ms,
+        }
+        
+    except subprocess.TimeoutExpired:
+        return {
+            "error": "Execution timed out (20 s limit)",
+            "outputs": {},
+            "duration_ms": 20000,
+        }
+    except Exception as exc:
+        return {
+            "error": str(exc),
+            "outputs": {},
+            "duration_ms": 0,
+        }
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
