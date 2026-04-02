@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import { X, Plus, File, FileCode, FileText } from "lucide-react";
 
@@ -22,7 +22,6 @@ interface MultiFileEditorProps {
 export default function MultiFileEditor({
   files,
   onFilesChange,
-  onExecute,
 }: MultiFileEditorProps) {
   const [activeFileId, setActiveFileId] = useState(files[0]?.id || "");
   const editorRef = useRef<any>(null);
@@ -57,22 +56,22 @@ export default function MultiFileEditor({
   };
 
   const getFileIcon = (name: string) => {
-    if (name.endsWith(".py")) return <FileCode size={14} className="text-green-400" />;
-    if (name.endsWith(".sql")) return <FileText size={14} className="text-blue-400" />;
-    return <File size={14} className="text-gray-400" />;
+    if (name.endsWith(".py")) return <FileCode size={14} className="text-[var(--color-success)]" />;
+    if (name.endsWith(".sql")) return <FileText size={14} className="text-[var(--color-accent)]" />;
+    return <File size={14} className="text-[var(--color-text-muted)]" />;
   };
 
   return (
-    <div className="flex flex-col h-full border border-white/5 rounded-xl overflow-hidden bg-[#0a0a0f]">
+    <div className="flex flex-col h-full border border-[var(--color-border)] rounded-xl overflow-hidden bg-[var(--color-background)]">
       {/* Tab bar */}
-      <div className="flex items-center bg-[#12121a] border-b border-white/5 overflow-x-auto">
+      <div className="flex items-center bg-[var(--color-surface)] border-b border-[var(--color-border)] overflow-x-auto">
         {files.map((file) => (
           <div
             key={file.id}
-            className={`flex items-center gap-2 px-3 py-2 border-r border-white/5 cursor-pointer transition-colors group ${
+            className={`flex items-center gap-2 px-3 py-2 border-r border-[var(--color-border)] cursor-pointer transition-colors group ${
               file.id === activeFileId
-                ? "bg-[#1a1a2e] text-white"
-                : "text-gray-400 hover:text-gray-200 hover:bg-[#0f0f18]"
+                ? "bg-[var(--color-surface-2)] text-[var(--color-text-primary)]"
+                : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-2)]"
             }`}
             onClick={() => setActiveFileId(file.id)}
           >
@@ -84,7 +83,7 @@ export default function MultiFileEditor({
                   e.stopPropagation();
                   closeFile(file.id);
                 }}
-                className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-white/10 rounded transition-all"
+                className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-[var(--color-border)] rounded transition-all"
               >
                 <X size={12} />
               </button>
@@ -93,7 +92,7 @@ export default function MultiFileEditor({
         ))}
         <button
           onClick={addNewFile}
-          className="flex items-center gap-1 px-3 py-2 text-gray-400 hover:text-white hover:bg-[#0f0f18] transition-colors"
+          className="flex items-center gap-1 px-3 py-2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition-colors"
         >
           <Plus size={14} />
           <span className="text-xs">New File</span>

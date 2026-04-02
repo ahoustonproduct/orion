@@ -55,10 +55,10 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="relative w-24 h-24 flex items-center justify-center">
-          <div className="absolute inset-0 border-t-2 border-r-2 border-rose-500 rounded-full animate-spin"></div>
-          <div className="absolute inset-2 border-b-2 border-l-2 border-yellow-500 rounded-full animate-[spin_1.5s_reverse_infinite]"></div>
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-600 to-yellow-600 flex items-center justify-center shadow-lg shadow-rose-500/30 animate-pulse">
-            <span className="text-white font-bold text-xl">O</span>
+          <div className="absolute inset-0 border-t-2 border-r-2 border-[var(--color-accent)] rounded-full animate-spin"></div>
+          <div className="absolute inset-2 border-b-2 border-l-2 border-[var(--color-accent-light)] rounded-full animate-[spin_1.5s_reverse_infinite]"></div>
+          <div className="w-12 h-12 rounded-full bg-[var(--color-surface-2)] flex items-center justify-center animate-pulse">
+            <span className="text-[var(--color-accent)] font-bold text-xl">O</span>
           </div>
         </div>
       </div>
@@ -71,16 +71,16 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>
         <div className="flex items-center gap-5">
           <div className="relative">
-            <div className="absolute -inset-1 bg-gradient-to-r from-rose-500 to-yellow-500 rounded-2xl blur opacity-30 animate-glow-pulse" />
-            <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 flex items-center justify-center overflow-hidden">
-               <span className="text-transparent bg-clip-text bg-gradient-to-br from-rose-400 to-yellow-400 font-bold text-3xl">O</span>
+            <div className="absolute -inset-1 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-light)] rounded-2xl blur opacity-20" />
+            <div className="relative w-16 h-16 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-border)] flex items-center justify-center overflow-hidden">
+               <span className="text-[var(--color-accent)] font-bold text-3xl">O</span>
             </div>
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white mb-1">
+            <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)] mb-1">
               Welcome Back
             </h1>
-            <p className="text-slate-400 text-sm font-medium">Orion / WashU FinTech Analytics Prep</p>
+            <p className="text-[var(--color-text-secondary)] text-sm font-medium">Orion / WashU FinTech Analytics Prep</p>
           </div>
         </div>
         

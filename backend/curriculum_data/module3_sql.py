@@ -26,10 +26,6 @@ MODULE_3 = {
             "prerequisites": "None — beginner level, no prior knowledge of databases, SQL, Python, or programming required.",
         },
     ],
-            "tools": "SQL, Python, Jupyter, SQLite, IBM Db2 (optional), Pandas",
-            "prerequisites": "None — beginner level, no prior knowledge of databases, SQL, Python, or programming required.",
-        },
-    ],
     "concept_map": [
         {"id": "m3-l1",  "label": "What is a Database?",           "connects_to": ["m3-l2"]},
         {"id": "m3-l2",  "label": "Tables, Rows & Columns",        "connects_to": ["m3-l3"]},

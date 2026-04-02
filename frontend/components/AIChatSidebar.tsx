@@ -99,7 +99,7 @@ export default function AIChatSidebar({
           );
         }
       }
-    } catch (err) {
+    } catch {
       setMessages((prev) => [
         ...prev,
         {
@@ -130,24 +130,24 @@ export default function AIChatSidebar({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 w-96 bg-[#0f0f1a] border-l border-[#2d2d4a] shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-300">
+    <div className="fixed inset-y-0 right-0 w-96 bg-[var(--color-surface)] border-l border-[var(--color-border)] shadow-2xl z-50 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#2d2d4a]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
         <div className="flex items-center gap-2">
-          <Sparkles size={18} className="text-[var(--color-accent-light)]" />
-          <span className="font-semibold text-white">Orion AI Tutor</span>
+          <Sparkles size={18} className="text-[var(--color-accent)]" />
+          <span className="font-semibold text-[var(--color-text-primary)]">Orion AI Tutor</span>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={clearChat}
             title="Clear chat"
-            className="p-1.5 rounded-lg hover:bg-[#242438] text-gray-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
           >
             <Trash2 size={14} />
           </button>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-[#242438] text-gray-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
           >
             <X size={18} />
           </button>
@@ -155,10 +155,10 @@ export default function AIChatSidebar({
       </div>
 
       {/* Lesson context */}
-      <div className="px-4 py-2 bg-[#1a1a2e] border-b border-[#2d2d4a]">
-        <p className="text-xs text-gray-400">
+      <div className="px-4 py-2 bg-[var(--color-surface-2)] border-b border-[var(--color-border)]">
+        <p className="text-xs text-[var(--color-text-muted)]">
           Helping with:{" "}
-          <span className="text-[var(--color-accent-light)]">{lessonTitle}</span>
+          <span className="text-[var(--color-accent)]">{lessonTitle}</span>
         </p>
       </div>
 
@@ -166,11 +166,11 @@ export default function AIChatSidebar({
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
           <div className="text-center py-8">
-            <Sparkles size={32} className="text-[var(--color-accent)] mx-auto mb-3 opacity-50" />
-            <p className="text-sm text-gray-400 mb-2">
+            <Sparkles size={32} className="text-[var(--color-accent)] mx-auto mb-3 opacity-40" />
+            <p className="text-sm text-[var(--color-text-secondary)] mb-2">
               Ask me anything about this lesson!
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[var(--color-text-muted)]">
               Highlight confusing code and ask for explanations, or chat about concepts.
             </p>
           </div>
@@ -184,14 +184,14 @@ export default function AIChatSidebar({
               className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm ${
                 msg.role === "user"
                   ? "bg-[var(--color-accent)] text-white"
-                  : "bg-[#1a1a2e] border border-[#2d2d4a] text-gray-200"
+                  : "bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-primary)]"
               }`}
             >
               <div className="whitespace-pre-wrap leading-relaxed">
                 {msg.content}
               </div>
               {msg.role === "assistant" && isStreaming && msg.id === messages[messages.length - 1].id && (
-                <span className="inline-block ml-1 animate-pulse">▊</span>
+                <span className="inline-block ml-1 animate-pulse text-[var(--color-accent)]">▊</span>
               )}
             </div>
           </div>
@@ -200,7 +200,7 @@ export default function AIChatSidebar({
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-[#2d2d4a]">
+      <div className="p-4 border-t border-[var(--color-border)]">
         <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}
@@ -209,7 +209,7 @@ export default function AIChatSidebar({
             onKeyDown={handleKeyDown}
             placeholder="Ask a question..."
             rows={2}
-            className="flex-1 bg-[#1a1a2e] border border-[#2d2d4a] rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 resize-none outline-none focus:border-[var(--color-accent)] transition-colors"
+            className="flex-1 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] resize-none outline-none focus:border-[var(--color-accent)] transition-colors"
           />
           <button
             onClick={handleSend}
