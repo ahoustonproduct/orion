@@ -10,10 +10,11 @@ import {
 import { getUserKey } from "@/lib/user";
 import {
   ArrowLeft, CheckCircle, XCircle, Lightbulb, Trophy, Code,
-  ChevronRight, BookOpen, HelpCircle, Star, Sparkles, Loader2
+  ChevronRight, BookOpen, HelpCircle, Star, Sparkles, Loader2, MessageCircle
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import dynamic from "next/dynamic";
+import AIChatSidebar from "@/components/AIChatSidebar";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -67,6 +68,9 @@ export default function LessonPage() {
   const [aiFeedback, setAiFeedback] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [nextLessonId, setNextLessonId] = useState<string | null>(null);
+
+  // AI Chat Sidebar state
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     fetchLesson(lessonId)
@@ -215,6 +219,13 @@ export default function LessonPage() {
           <p className="text-xs text-gray-400">{lesson.module_title}</p>
           <h1 className="text-lg font-bold text-white truncate">{lesson.title}</h1>
         </div>
+        <button
+          onClick={() => setIsChatOpen(true)}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/30 text-[var(--color-accent-light)] text-sm font-medium hover:bg-[var(--color-accent)]/20 transition-colors"
+        >
+          <MessageCircle size={16} />
+          <span className="hidden sm:inline">AI Help</span>
+        </button>
       </div>
 
       {/* Step tabs */}
@@ -457,7 +468,7 @@ export default function LessonPage() {
               </div>
             </div>
           )}
-          <div className="flex gap-3">
+            <div className="flex gap-3">
             <button
               onClick={async () => {
                 setAttempts((a) => a + 1);
@@ -468,8 +479,31 @@ export default function LessonPage() {
                   setChallengeResult({ output: result.output, error: result.error || undefined });
                   
                   if (!result.error) {
+                    // Proactive Refactoring: AI evaluates code quality even on success
                     const newStars = attempts === 0 ? 3 : attempts < 2 ? 2 : 1;
                     setStars(newStars);
+                    
+                    // Only give refactoring feedback for good attempts (1-2 attempts)
+                    if (attempts < 2) {
+                      setIsThinking(true);
+                      setTimeout(async () => {
+                        try {
+                          await streamFeedback(
+                            userKey,
+                            lesson!,
+                            challengeCode,
+                            result.output || "",
+                            "CORRECT",
+                            attempts + 1,
+                            (chunk) => setAiFeedback((prev) => prev + chunk)
+                          );
+                        } catch (e) {
+                          // Silent fail - don't interrupt success flow
+                        } finally {
+                          setIsThinking(false);
+                        }
+                      }, 500);
+                    }
                   } else {
                     // Start reasoning and streaming feedback automatically
                     setIsThinking(true);
@@ -499,6 +533,17 @@ export default function LessonPage() {
             >
               Run Code
             </button>
+            {attempts >= 3 && stars === 0 && lesson.challenge?.solution && (
+              <button
+                onClick={() => {
+                  setChallengeCode(lesson.challenge!.solution || "");
+                  setAiFeedback("Here's the solution! Study it carefully, then try modifying it to understand how it works.");
+                }}
+                className="px-4 py-3 bg-yellow-600/20 border border-yellow-600/50 text-yellow-400 rounded-xl text-sm font-medium hover:bg-yellow-600/30 transition-all"
+              >
+                Reveal Solution
+              </button>
+            )}
             <button
               onClick={handleComplete}
               className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold transition-all"
@@ -508,6 +553,15 @@ export default function LessonPage() {
           </div>
         </div>
       )}
+
+      {/* AI Chat Sidebar */}
+      <AIChatSidebar
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        lessonId={lessonId}
+        lessonTitle={lesson.title}
+        currentCode={challengeCode}
+      />
     </div>
   );
 }

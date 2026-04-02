@@ -199,3 +199,58 @@ def what_next(req: WhatNextRequest, db: Session = Depends(get_db)):
             yield "You've completed all available lessons — Orion is proud of you!"
         return StreamingResponse(done(), media_type="text/plain")
     return stream_response(prompt, max_tokens=200)
+
+
+class ChatRequest(BaseModel):
+    user_message: str
+    lesson_id: str
+    lesson_title: str
+    current_code: str
+    chat_history: list[dict[str, str]]
+
+
+@router.post("/chat")
+def chat(req: ChatRequest, db: Session = Depends(get_db)):
+    """Stream a chat response for the AI Sidebar."""
+    profile = db.query(LearningProfile).filter(LearningProfile.user_key == "default").first()
+    weak_topics = profile.weak_topics if profile else []
+    
+    system_prompt = f"""You are Orion, an AI tutor for a business analytics student. You are helpful, patient, and explain concepts clearly.
+
+Context:
+- Student is working on lesson: {req.lesson_title} (ID: {req.lesson_id})
+- Weak areas to keep in mind: {', '.join(weak_topics) if weak_topics else 'None identified yet'}
+- Current code in editor:
+```python
+{req.current_code or '(No code yet)'}
+```
+
+Guidelines:
+1. Be conversational but educational
+2. If the user asks about code, reference their current code
+3. If they're stuck, give hints rather than solutions
+4. Use simple analogies for business concepts
+5. Keep responses concise but helpful
+
+Previous conversation:
+{chr(10).join([f"{m['role'].capitalize()}: {m['content'][:200]}" for m in req.chat_history[-5:]])}
+
+User: {req.user_message}
+
+Orion:"""
+
+    def generate():
+        stream = client.chat.completions.create(
+            model=MODEL,
+            max_tokens=800,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": req.user_message}
+            ],
+            stream=True,
+        )
+        for chunk in stream:
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+
+    return StreamingResponse(generate(), media_type="text/plain")
