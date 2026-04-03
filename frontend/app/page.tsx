@@ -224,7 +224,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {modules.map((module, idx) => {
             const status = progress?.module_status[module.id];
-            const unlocked = status?.unlocked ?? idx === 0;
+            const unlocked = true; // All lessons unlocked from the start
             const completedInMod = status?.completed_count ?? 0;
             const masteryPct = status?.mastery_pct ?? 0;
             const pct = module.lesson_count ? (completedInMod / module.lesson_count) * 100 : 0;

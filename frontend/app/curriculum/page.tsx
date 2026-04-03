@@ -25,7 +25,7 @@ export default function CurriculumPage() {
       <div className="space-y-3">
         {modules.map((module, idx) => {
           const status = progress?.module_status[module.id];
-          const unlocked = status?.unlocked ?? idx === 0;
+          const unlocked = true; // All lessons unlocked from the start
           const completedInMod = status?.completed_count ?? 0;
           const pct = module.lesson_count ? (completedInMod / module.lesson_count) * 100 : 0;
 

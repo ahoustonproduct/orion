@@ -83,6 +83,25 @@ export default function LessonPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+
+    // Pre-calculate next lesson ID so it's ready upon completion
+    fetchModules()
+      .then((modules) => {
+        let foundCurrent = false;
+        let nextId = null;
+        for (const m of modules) {
+          for (const l of m.lessons || []) {
+            if (foundCurrent) {
+              nextId = l.id;
+              break;
+            }
+            if (l.id === lessonId) foundCurrent = true;
+          }
+          if (nextId) break;
+        }
+        setNextLessonId(nextId);
+      })
+      .catch(console.error);
   }, [lessonId]);
 
   const handleComplete = async () => {
@@ -103,26 +122,7 @@ export default function LessonPage() {
       console.error("Failed to save progress:", err);
     }
     setCompleted(true);
-    
-    // Dynamically calculate the next lesson
-    try {
-      const modules = await fetchModules();
-      let foundCurrent = false;
-      let nextId = null;
-      for (const m of modules) {
-        for (const l of m.lessons || []) {
-          if (foundCurrent) {
-            nextId = l.id;
-            break;
-          }
-          if (l.id === lessonId) foundCurrent = true;
-        }
-        if (nextId) break;
-      }
-      setNextLessonId(nextId);
-    } catch (err) {
-      console.error(err);
-    }
+    // Next lesson ID is now eagerly loaded in useEffect and set when lesson loads.
   };
 
   const checkAnswer = (q: Question, answer: string | number | boolean) => {
