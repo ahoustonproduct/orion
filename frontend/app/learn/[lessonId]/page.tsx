@@ -255,7 +255,7 @@ export default function LessonPage() {
       {/* ── Concept Step ── */}
       {step === "concept" && (
         <div className="space-y-4">
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+          <div className="bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl p-8">
             <Markdown text={lesson.concept} />
           </div>
           {lesson.reference?.key_syntax && lesson.reference.key_syntax.length > 0 && (
