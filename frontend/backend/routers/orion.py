@@ -21,6 +21,7 @@ from models import (
     OrionWeekReviewRequest,
     OrionExplainAnswerRequest,
     OrionEvaluateDecisionRequest,
+    OrionChatRequest,
 )
 
 router = APIRouter(tags=["orion"])
@@ -300,3 +301,30 @@ def evaluate_decision(req: OrionEvaluateDecisionRequest) -> StreamingResponse:
         "Reference what a real FinTech analyst at a company like Affirm or Chime would consider."
     )
     return _stream([{"role": "user", "content": user_msg}])
+
+
+# ---------------------------------------------------------------------------
+# /chat — Interactive mid-lesson Q&A
+# ---------------------------------------------------------------------------
+
+@router.post("/chat")
+def chat(req: OrionChatRequest) -> StreamingResponse:
+    """Interactive AI chat for mid-lesson questions."""
+    messages: list[dict] = []
+
+    # Reconstruct conversation history
+    for msg in req.chat_history:
+        role = msg.get("role", "user")
+        content = msg.get("content", "")
+        if role in ("user", "assistant") and content:
+            messages.append({"role": role, "content": content})
+
+    # Build the new user message with context
+    context_parts = [f"The student is working on lesson: {req.lesson_title or req.lesson_id}."]
+    if req.current_code:
+        context_parts.append(f"Their current code:\n```python\n{req.current_code}\n```")
+    context_parts.append(f"\nStudent question: {req.user_message}")
+
+    messages.append({"role": "user", "content": "\n".join(context_parts)})
+
+    return _stream(messages, max_tokens=800)

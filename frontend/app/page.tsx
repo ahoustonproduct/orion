@@ -85,14 +85,14 @@ export default function Dashboard() {
         </div>
         
         {/* Countdown Badge */}
-        <div className="glass-card px-5 py-3 rounded-2xl flex items-center gap-4">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] px-5 py-3 rounded-2xl flex items-center gap-4">
            <div className="flex flex-col">
-              <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-yellow-400">
+              <span className="text-2xl font-black text-[var(--color-accent)]">
                 {daysUntilStart}
               </span>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Days to Start</span>
+              <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest mt-0.5">Days to Start</span>
            </div>
-           <div className="w-10 h-10 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
+           <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 flex items-center justify-center text-[var(--color-accent)]">
               <Activity size={18} />
            </div>
         </div>
@@ -104,14 +104,13 @@ export default function Dashboard() {
         {/* Left Column: Stats Cards */}
         <div className="md:col-span-5 grid grid-cols-2 gap-4">
           {[
-            { icon: <Flame size={20} />, value: progress?.streak ?? 0, label: "Day Streak", gradient: "from-orange-500/20 to-rose-500/5", color: "text-orange-400", border: "border-orange-500/20" },
-            { icon: <BookOpen size={20} />, value: completedLessons, label: "Lessons Done", gradient: "from-emerald-500/20 to-teal-500/5", color: "text-emerald-400", border: "border-emerald-500/20" },
-            { icon: <Star size={20} />, value: totalStars, label: "Total Stars", gradient: "from-yellow-500/20 to-amber-500/5", color: "text-yellow-400", border: "border-yellow-500/20", colSpan: "col-span-2" },
-          ].map(({ icon, value, label, gradient, color, border, colSpan }) => (
+            { icon: <Flame size={20} />, value: progress?.streak ?? 0, label: "Day Streak", colSpan: "" },
+            { icon: <BookOpen size={20} />, value: completedLessons, label: "Lessons Done", colSpan: "" },
+            { icon: <Star size={20} />, value: totalStars, label: "Total Stars", colSpan: "col-span-2" },
+          ].map(({ icon, value, label, colSpan }) => (
             <div key={label} className={`bg-[var(--color-surface)] border border-[var(--color-border)] p-5 rounded-2xl relative overflow-hidden ${colSpan || ""}`}>
-              <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${gradient} rounded-full blur-2xl -translate-y-10 translate-x-10`} />
               <div className="relative z-10 flex flex-col gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${border} bg-[var(--color-surface-2)]/50 ${color}`}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center border border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-accent)]">
                   {icon}
                 </div>
                 <div>
@@ -173,42 +172,41 @@ export default function Dashboard() {
         {reviewQueue && reviewQueue.total_due > 0 && (
           <Link
             href="/review-queue"
-            className="group glass-card !border-rose-500/30 p-5 rounded-2xl flex items-center justify-between overflow-hidden relative"
+            className="group bg-[var(--color-surface)] border border-[var(--color-accent)]/30 p-5 rounded-2xl flex items-center justify-between overflow-hidden relative hover:border-[var(--color-accent)] transition-colors"
           >
-            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-rose-500/10 to-transparent pointer-events-none group-hover:from-rose-500/20 transition-all" />
-            <div className="flex items-center gap-4 relative z-10">
-              <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
-                <RefreshCw size={20} className="text-rose-400" />
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 flex items-center justify-center">
+                <RefreshCw size={20} className="text-[var(--color-accent)]" />
               </div>
               <div>
-                <p className="font-bold text-white mb-0.5">{reviewQueue.total_due} Review{reviewQueue.total_due !== 1 ? "s" : ""} Due</p>
-                <p className="text-xs text-rose-300/80 font-medium">Spaced repetition queue requires attention</p>
+                <p className="font-bold text-[var(--color-text-primary)] mb-0.5">{reviewQueue.total_due} Review{reviewQueue.total_due !== 1 ? "s" : ""} Due</p>
+                <p className="text-xs text-[var(--color-text-secondary)] font-medium">Spaced repetition queue requires attention</p>
               </div>
             </div>
-            <div className="w-8 h-8 rounded-full bg-rose-500/10 flex items-center justify-center group-hover:bg-rose-500 transition-colors relative z-10">
-              <ArrowRight size={14} className="text-rose-500 group-hover:text-white" />
+            <div className="w-8 h-8 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] flex items-center justify-center group-hover:bg-[var(--color-accent)] transition-colors">
+              <ArrowRight size={14} className="text-[var(--color-text-muted)] group-hover:text-white" />
             </div>
           </Link>
         )}
 
         {/* Focus Areas Mini widget */}
         {mastery && mastery.focus_areas.length > 0 && (
-          <div className="glass-card p-5 rounded-2xl flex flex-col justify-center">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] p-5 rounded-2xl flex flex-col justify-center">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <AlertCircle size={14} className="text-yellow-500" />
-                <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">Focus Areas</span>
+                <AlertCircle size={14} className="text-[var(--color-warning)]" />
+                <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-widest">Focus Areas</span>
               </div>
-              <Link href="/progress" className="text-xs font-semibold text-rose-400 hover:text-rose-300 uppercase tracking-wider">Metrics →</Link>
+              <Link href="/progress" className="text-xs font-semibold text-[var(--color-accent)] hover:opacity-80 uppercase tracking-wider">Metrics →</Link>
             </div>
             <div className="space-y-3">
               {mastery.focus_areas.slice(0, 2).map(({ tag, mastery: score }) => (
                 <div key={tag} className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-slate-300 w-1/3 truncate capitalize">{tag.replace(/_/g, " ")}</span>
-                  <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-                    <div className="h-full bg-rose-500 rounded-full" style={{ width: `${score}%` }} />
+                  <span className="text-sm font-medium text-[var(--color-text-secondary)] w-1/3 truncate capitalize">{tag.replace(/_/g, " ")}</span>
+                  <div className="flex-1 h-1.5 bg-[var(--color-surface-2)] rounded-full overflow-hidden border border-[var(--color-border)]">
+                    <div className="h-full bg-[var(--color-accent)] rounded-full" style={{ width: `${score}%` }} />
                   </div>
-                  <span className="text-xs font-mono text-rose-400 w-10 text-right">{score}%</span>
+                  <span className="text-xs font-mono text-[var(--color-text-muted)] w-10 text-right">{score}%</span>
                 </div>
               ))}
             </div>
@@ -274,20 +272,18 @@ export default function Dashboard() {
                    {/* Progress footer */}
                    {unlocked ? (
                      <div className="flex items-center gap-3">
-                       <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
+                       <div className="flex-1 h-1.5 bg-[var(--color-surface-2)] rounded-full overflow-hidden border border-[var(--color-border)]">
                          <div
-                           className={`h-full rounded-full transition-all duration-700 ${isCompleted ? 'bg-emerald-500' : 'bg-gradient-to-r from-rose-500 to-yellow-500'}`}
+                           className={`h-full rounded-full transition-all duration-700 ${isCompleted ? 'bg-[var(--color-success)]' : 'bg-[var(--color-accent)]'}`}
                            style={{ width: `${pct}%` }}
                          />
                        </div>
                        {masteryPct > 0 && (
-                         <span className="text-xs font-mono font-medium text-yellow-500/80">{masteryPct}% <span className="text-[10px] text-slate-600">MR</span></span>
+                         <span className="text-xs font-mono font-medium text-[var(--color-text-muted)]">{masteryPct}% <span className="text-[10px] text-[var(--color-text-muted)]">MR</span></span>
                        )}
                      </div>
                    ) : (
-                      <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700/50 relative">
-                         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0wIDQwbDQwLTQwSDB6IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDUpIi8+Cjwvc3ZnPg==')] opacity-20"></div>
-                      </div>
+                      <div className="h-1.5 w-full bg-[var(--color-surface-2)] rounded-full overflow-hidden border border-[var(--color-border)]" />
                    )}
                  </div>
                  

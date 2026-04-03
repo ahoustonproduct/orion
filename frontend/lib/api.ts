@@ -83,55 +83,70 @@ export const fetchQuiz = (userKey: string) =>
 
 // ── Orion AI (streaming) ──────────────────────────────────────────────────────
 export const streamExplain = (userKey: string, lesson: Lesson, onChunk: (t: string) => void) =>
-  streamPost("/orion/explain", { user_key: userKey, lesson }, onChunk);
+  streamPost("/orion/explain", { lesson_id: lesson.id, concept: lesson.concept, context: "" }, onChunk);
 
 export const streamFeedback = (
   userKey: string, lesson: Lesson, studentCode: string,
   actualOutput: string, expectedOutput: string, attempts: number,
   onChunk: (t: string) => void
 ) => streamPost("/orion/feedback", {
-  user_key: userKey, lesson, student_code: studentCode,
-  actual_output: actualOutput, expected_output: expectedOutput, attempts
+  lesson_id: lesson.id,
+  code: studentCode,
+  expected: expectedOutput,
 }, onChunk);
 
 export const streamHint = (
   lesson: Lesson, studentCode: string, hintNumber: number, onChunk: (t: string) => void
-) => streamPost("/orion/hint", { lesson, student_code: studentCode, hint_number: hintNumber }, onChunk);
+) => streamPost("/orion/hint", { lesson_id: lesson.id, hint_number: hintNumber, context: studentCode }, onChunk);
 
 export const streamRecap = (
   userKey: string, lesson: Lesson, stars: number,
   attempts: number, studentCode: string, onChunk: (t: string) => void
 ) => streamPost("/orion/recap", {
-  user_key: userKey, lesson, stars, attempts, student_code: studentCode
+  lesson_id: lesson.id,
+  completed_steps: [`Stars: ${stars}`, `Attempts: ${attempts}`],
 }, onChunk);
 
 export const streamChallenge = (
   userKey: string, lesson: Lesson, variationIndex: number, onChunk: (t: string) => void
 ) => streamPost("/orion/generate-challenge", {
-  user_key: userKey, lesson, variation_index: variationIndex
+  lesson_id: lesson.id,
+  concept: lesson.concept,
+  difficulty: variationIndex === 0 ? "easy" : variationIndex === 1 ? "medium" : "hard",
 }, onChunk);
 
 export const streamExplainAnswer = (
   lesson: Lesson, question: Question, chosenOption: string,
   studentReasoning: string, onChunk: (t: string) => void
 ) => streamPost("/orion/explain-your-answer", {
-  lesson, question, chosen_option: chosenOption, student_reasoning: studentReasoning
+  lesson_id: lesson.id,
+  question: question.question,
+  user_answer: chosenOption,
+  correct_answer: String(question.answer),
 }, onChunk);
 
 export const streamStudyPlan = (
   userKey: string, progressData: ProgressData,
   daysUntilStart: number, onChunk: (t: string) => void
 ) => streamPost("/orion/study-plan", {
-  user_key: userKey, progress_data: progressData, days_until_start: daysUntilStart
+  user_key: userKey,
+  weak_topics: progressData.weak_topics ?? [],
+  goals: `Prepare for WashU MS Business Analytics & AI (${daysUntilStart} days until start)`,
 }, onChunk);
 
 export const streamWeekReview = (
   userKey: string, weekData: WeekData, onChunk: (t: string) => void
-) => streamPost("/orion/week-review", { user_key: userKey, week_data: weekData }, onChunk);
+) => streamPost("/orion/week-review", { user_key: userKey, week_data: weekData as unknown as Record<string, unknown> }, onChunk);
 
 export const streamWhatNext = (
   userKey: string, progressData: ProgressData, onChunk: (t: string) => void
-) => streamPost("/orion/what-next", { user_key: userKey, progress_data: progressData }, onChunk);
+) => {
+  const progress: Record<string, { completed: boolean; stars: number }> = {};
+  for (const l of progressData.lessons ?? []) {
+    progress[l.lesson_id] = { completed: l.completed, stars: l.stars };
+  }
+  return streamPost("/orion/what-next", { user_key: userKey, progress }, onChunk);
+};
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface Module {

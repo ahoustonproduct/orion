@@ -72,6 +72,9 @@ export default function LessonPage() {
   // AI Chat Sidebar state
   const [isChatOpen, setIsChatOpen] = useState(false);
 
+  // Fill-in-blank input state
+  const [fillInput, setFillInput] = useState("");
+
   useEffect(() => {
     fetchLesson(lessonId)
       .then((l) => {
@@ -96,7 +99,9 @@ export default function LessonPage() {
       if (confidence > 0) {
         await saveConfidence(userKey, lessonId, confidence);
       }
-    } catch {}
+    } catch (err) {
+      console.error("Failed to save progress:", err);
+    }
     setCompleted(true);
     
     // Dynamically calculate the next lesson
@@ -170,15 +175,9 @@ export default function LessonPage() {
         <div className="flex gap-3">
           <Link
             href="/curriculum"
-            className="flex-1 py-3 bg-[var(--color-accent)] text-white rounded-xl text-sm font-semibold transition-all text-center"
-          >
-            Back to Curriculum
-          </Link>
-          <Link
-            href="/curriculum"
             className="flex-1 py-3 bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-accent)] text-[var(--color-text-primary)] rounded-xl text-sm font-medium transition-all text-center"
           >
-            Curriculum
+            ← Curriculum
           </Link>
           {nextLessonId ? (
             <Link
@@ -212,12 +211,12 @@ export default function LessonPage() {
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/curriculum" className="text-gray-400 hover:text-gray-300">
+        <Link href="/curriculum" className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">
           <ArrowLeft size={18} />
         </Link>
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-gray-400">{lesson.module_title}</p>
-          <h1 className="text-lg font-bold text-white truncate">{lesson.title}</h1>
+          <p className="text-xs text-[var(--color-text-muted)]">{lesson.module_title}</p>
+          <h1 className="text-lg font-bold text-[var(--color-text-primary)] truncate">{lesson.title}</h1>
         </div>
         <button
           onClick={() => setIsChatOpen(true)}
@@ -229,7 +228,7 @@ export default function LessonPage() {
       </div>
 
       {/* Step tabs */}
-      <div className="flex gap-1 bg-black/20 rounded-xl p-1">
+      <div className="flex gap-1 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl p-1">
         {steps.map((s, i) => {
           const Icon = s.icon;
           const isActive = s.key === step;
@@ -240,10 +239,10 @@ export default function LessonPage() {
               onClick={() => setStep(s.key)}
               className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
                 isActive
-                  ? "glass-card border-white/5 shadow text-[var(--color-accent-light)]"
+                  ? "bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm text-[var(--color-accent)]"
                   : isDone
-                  ? "text-green-500"
-                  : "text-gray-400 hover:text-gray-300"
+                  ? "text-[var(--color-success)]"
+                  : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
               }`}
             >
               {isDone ? <CheckCircle size={14} /> : <Icon size={14} />}
@@ -256,22 +255,22 @@ export default function LessonPage() {
       {/* ── Concept Step ── */}
       {step === "concept" && (
         <div className="space-y-4">
-          <div className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-6">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
             <Markdown text={lesson.concept} />
           </div>
           {lesson.reference?.key_syntax && lesson.reference.key_syntax.length > 0 && (
-            <div className="bg-black/40 border border-white/5 rounded-xl p-4">
+            <div className="bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Lightbulb size={14} className="text-yellow-400" />
-                <span className="text-xs font-semibold text-gray-200">Quick Reference</span>
+                <Lightbulb size={14} className="text-[var(--color-star)]" />
+                <span className="text-xs font-semibold text-[var(--color-text-secondary)]">Quick Reference</span>
               </div>
               <div className="space-y-1">
                 {lesson.reference.key_syntax.map((s: string, i: number) => (
-                  <code key={i} className="block text-xs text-green-300 font-mono">{s}</code>
+                  <code key={i} className="block text-xs text-[var(--color-accent)] font-mono">{s}</code>
                 ))}
               </div>
               {lesson.reference.notes && (
-                <p className="text-xs text-gray-400 mt-2">{lesson.reference.notes}</p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-2">{lesson.reference.notes}</p>
               )}
             </div>
           )}
@@ -287,16 +286,16 @@ export default function LessonPage() {
       {/* ── Questions Step ── */}
       {step === "questions" && lesson.questions.length > 0 && (
         <div className="space-y-4">
-          <div className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-6">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-xs text-gray-400">Question {currentQ + 1} of {lesson.questions.length}</span>
-              <span className="text-xs text-green-500 font-medium">{correctCount} correct</span>
+              <span className="text-xs text-[var(--color-text-muted)]">Question {currentQ + 1} of {lesson.questions.length}</span>
+              <span className="text-xs text-[var(--color-success)] font-medium">{correctCount} correct</span>
             </div>
             {(() => {
               const q = lesson.questions[currentQ];
               return (
                 <div key={currentQ} className="space-y-4">
-                  <p className="text-sm font-medium text-white">{q.question}</p>
+                  <p className="text-sm font-medium text-[var(--color-text-primary)]">{q.question}</p>
                   {q.type === "multiple_choice" && q.options && (
                     <div className="space-y-2">
                       {q.options.map((opt: string, i: number) => {
@@ -310,16 +309,16 @@ export default function LessonPage() {
                             disabled={showAnswer}
                             className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all ${
                               showResult && isCorrect
-                                ? "border-green-400 bg-green-500/10 text-green-400"
+                                ? "border-[var(--color-success)] bg-[var(--color-success)]/10 text-[var(--color-success)]"
                                 : showResult && isSelected && !isCorrect
-                                ? "border-red-400 bg-red-500/10 text-red-400"
-                                : "border-white/10 border-transparent hover:border-[var(--color-accent)] hover:shadow-[var(--color-accent)]/20 shadow-md"
+                                ? "border-[var(--color-error)] bg-[var(--color-error)]/10 text-[var(--color-error)]"
+                                : "border-[var(--color-border)] bg-[var(--color-surface-2)] hover:border-[var(--color-accent)] text-[var(--color-text-primary)]"
                             }`}
                           >
                             <span className="font-medium mr-2">{String.fromCharCode(65 + i)}.</span>
                             {opt}
-                            {showResult && isCorrect && <CheckCircle size={14} className="inline ml-2 text-green-500" />}
-                            {showResult && isSelected && !isCorrect && <XCircle size={14} className="inline ml-2 text-red-500" />}
+                            {showResult && isCorrect && <CheckCircle size={14} className="inline ml-2 text-[var(--color-success)]" />}
+                            {showResult && isSelected && !isCorrect && <XCircle size={14} className="inline ml-2 text-[var(--color-error)]" />}
                           </button>
                         );
                       })}
@@ -338,10 +337,10 @@ export default function LessonPage() {
                             disabled={showAnswer}
                             className={`flex-1 py-3 rounded-lg border text-sm font-medium transition-all ${
                               showResult && isCorrect
-                                ? "border-green-400 bg-green-500/10 text-green-400"
+                                ? "border-[var(--color-success)] bg-[var(--color-success)]/10 text-[var(--color-success)]"
                                 : showResult && isSelected && !isCorrect
-                                ? "border-red-400 bg-red-500/10 text-red-400"
-                                : "border-white/10 border-transparent hover:border-[var(--color-accent)] hover:shadow-[var(--color-accent)]/20 shadow-md"
+                                ? "border-[var(--color-error)] bg-[var(--color-error)]/10 text-[var(--color-error)]"
+                                : "border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-text-primary)] hover:border-[var(--color-accent)]"
                             }`}
                           >
                             {String(val)}
@@ -352,30 +351,37 @@ export default function LessonPage() {
                   )}
                   {q.type === "fill_blank" && q.template && (
                     <div className="space-y-3">
-                      <code className="block bg-black/40 text-green-300 p-3 rounded-lg text-sm font-mono">
+                      <code className="block bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-primary)] p-3 rounded-lg text-sm font-mono">
                         {q.template}
                       </code>
-                      {showAnswer && (
-                        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
-                          <p className="text-xs text-green-400 font-mono">Answer: <code>{String(q.answer)}</code></p>
+                      {showAnswer ? (
+                        <div className="bg-[var(--color-success)]/10 border border-[var(--color-success)]/30 rounded-lg p-3">
+                          <p className="text-xs text-[var(--color-success)] font-mono">Answer: <code>{String(q.answer)}</code></p>
                         </div>
-                      )}
-                      {!showAnswer && (
-                        <button
-                          onClick={() => {
-                            const input = prompt("Your answer:");
-                            if (input !== null) checkAnswer(q, input.trim());
-                          }}
-                          className="px-4 py-2 bg-[var(--color-accent)] shadow-lg shadow-[var(--color-accent)]/20 text-white rounded-lg text-sm font-medium"
-                        >
-                          Submit Answer
-                        </button>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={fillInput}
+                            onChange={(e) => setFillInput(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter" && fillInput.trim()) { checkAnswer(q, fillInput.trim()); setFillInput(""); } }}
+                            placeholder="Type your answer..."
+                            className="flex-1 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] outline-none focus:border-[var(--color-accent)] transition-colors"
+                          />
+                          <button
+                            onClick={() => { if (fillInput.trim()) { checkAnswer(q, fillInput.trim()); setFillInput(""); } }}
+                            disabled={!fillInput.trim()}
+                            className="px-4 py-2 bg-[var(--color-accent)] text-white rounded-lg text-sm font-medium disabled:opacity-40 transition-colors"
+                          >
+                            Submit
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
                   {showAnswer && (
-                    <div className="bg-black/20 rounded-lg p-3 text-xs text-gray-300">
-                      <span className="font-medium">Explanation:</span> {q.explanation}
+                    <div className="bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg p-3 text-xs text-[var(--color-text-secondary)]">
+                      <span className="font-medium text-[var(--color-text-primary)]">Explanation:</span> {q.explanation}
                     </div>
                   )}
                 </div>
@@ -392,7 +398,7 @@ export default function LessonPage() {
                 }
               }}
               disabled={currentQ >= lesson.questions.length - 1}
-              className="flex-1 py-3 glass-card border-white/5 border border-white/10 border-transparent disabled:opacity-30 text-white rounded-xl text-sm font-medium transition-all"
+              className="flex-1 py-3 bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-accent)] disabled:opacity-30 text-[var(--color-text-primary)] rounded-xl text-sm font-medium transition-all"
             >
               Next Question
             </button>
@@ -409,11 +415,11 @@ export default function LessonPage() {
       {/* ── Challenge Step ── */}
       {step === "challenge" && (
         <div className="space-y-4">
-          <div className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-6">
-            <h3 className="text-sm font-bold text-white mb-2">Coding Challenge</h3>
-            <p className="text-sm text-gray-300 mb-4">{lesson.challenge?.instructions}</p>
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+            <h3 className="text-sm font-bold text-[var(--color-text-primary)] mb-2">Coding Challenge</h3>
+            <p className="text-sm text-[var(--color-text-secondary)] mb-4">{lesson.challenge?.instructions}</p>
           </div>
-          <div className="bg-black/40 border border-white/5 rounded-xl overflow-hidden">
+          <div className="bg-[#14110F] border border-[#2C2520] rounded-xl overflow-hidden">
             <MonacoEditor
               value={challengeCode}
               language="python"
@@ -426,44 +432,46 @@ export default function LessonPage() {
                 fontSize: 13,
                 lineNumbers: "on",
                 padding: { top: 12, bottom: 12 },
+                wordWrap: "off",
+                scrollbar: { horizontal: "auto" },
               }}
             />
           </div>
           {challengeResult && (
-            <div className={`rounded-xl p-4 ${challengeResult.error ? "bg-red-500/10 border border-red-500/30" : "bg-green-500/10 border border-green-500/30"}`}>
+            <div className={`rounded-xl p-4 ${challengeResult.error ? "bg-[var(--color-error)]/10 border border-[var(--color-error)]/30" : "bg-[var(--color-success)]/10 border border-[var(--color-success)]/30"}`}>
               {challengeResult.error ? (
                 <div>
-                  <p className="text-xs font-semibold text-red-500 mb-1">Error</p>
-                  <pre className="text-xs text-red-400 font-mono whitespace-pre-wrap">{challengeResult.error}</pre>
+                  <p className="text-xs font-semibold text-[var(--color-error)] mb-1">Error</p>
+                  <pre className="text-xs text-[var(--color-error)] font-mono whitespace-pre-wrap">{challengeResult.error}</pre>
                 </div>
               ) : (
                 <div>
-                  <p className="text-xs font-semibold text-green-500 mb-1">Output</p>
-                  <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap">{challengeResult.output || "(no output)"}</pre>
+                  <p className="text-xs font-semibold text-[var(--color-success)] mb-1">Output</p>
+                  <pre className="text-xs text-[var(--color-success)] font-mono whitespace-pre-wrap">{challengeResult.output || "(no output)"}</pre>
                 </div>
               )}
             </div>
           )}
           
           {(aiFeedback || isThinking) && (
-            <div className="mt-4 p-5 glass-card border border-accent/30 rounded-xl relative overflow-hidden">
+            <div className="mt-4 p-5 bg-[var(--color-surface)] border border-[var(--color-accent)]/30 rounded-xl relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-[var(--color-accent)]"></div>
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={16} className="text-[var(--color-accent-light)]" />
-                <span className="text-sm font-bold text-[var(--color-accent-light)]">Orion AI Tutor</span>
-                {isThinking && <Loader2 size={14} className="animate-spin text-gray-400 ml-2" />}
+                <Sparkles size={16} className="text-[var(--color-accent)]" />
+                <span className="text-sm font-bold text-[var(--color-text-primary)]">Orion AI Tutor</span>
+                {isThinking && <Loader2 size={14} className="animate-spin text-[var(--color-text-muted)] ml-2" />}
               </div>
-              <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+              <div className="text-sm text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-wrap">
                 {aiFeedback || "Analyzing your code..."}
               </div>
             </div>
           )}
           {stars > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400">Stars earned:</span>
+              <span className="text-xs text-[var(--color-text-muted)]">Stars earned:</span>
               <div className="flex gap-0.5">
                 {[1, 2, 3].map((s) => (
-                  <Star key={s} size={18} className={s <= stars ? "fill-yellow-400 text-yellow-400" : "text-[#e5ddd4]"} />
+                  <Star key={s} size={18} className={s <= stars ? "fill-[var(--color-star)] text-[var(--color-star)]" : "text-[var(--color-border)]"} />
                 ))}
               </div>
             </div>
@@ -486,44 +494,33 @@ export default function LessonPage() {
                     // Only give refactoring feedback for good attempts (1-2 attempts)
                     if (attempts < 2) {
                       setIsThinking(true);
-                      setTimeout(async () => {
-                        try {
-                          await streamFeedback(
-                            userKey,
-                            lesson!,
-                            challengeCode,
-                            result.output || "",
-                            "CORRECT",
-                            attempts + 1,
-                            (chunk) => setAiFeedback((prev) => prev + chunk)
-                          );
-                        } catch (e) {
-                          // Silent fail - don't interrupt success flow
-                        } finally {
-                          setIsThinking(false);
-                        }
-                      }, 500);
+                      streamFeedback(
+                        userKey,
+                        lesson!,
+                        challengeCode,
+                        result.output || "",
+                        "CORRECT",
+                        attempts + 1,
+                        (chunk) => setAiFeedback((prev) => prev + chunk)
+                      ).catch((e) => {
+                        console.error("Refactor feedback stream error:", e);
+                      }).finally(() => setIsThinking(false));
                     }
                   } else {
                     // Start reasoning and streaming feedback automatically
                     setIsThinking(true);
-                    setTimeout(async () => {
-                      try {
-                        await streamFeedback(
-                          userKey,
-                          lesson!,
-                          challengeCode,
-                          result.output || "",
-                          result.error || "",
-                          attempts + 1,
-                          (chunk) => setAiFeedback((prev) => prev + chunk)
-                        );
-                      } catch (e) {
-                        setAiFeedback("Orion encountered an error generating feedback. Please try again.");
-                      } finally {
-                        setIsThinking(false);
-                      }
-                    }, 600);
+                    streamFeedback(
+                      userKey,
+                      lesson!,
+                      challengeCode,
+                      result.output || "",
+                      result.error || "",
+                      attempts + 1,
+                      (chunk) => setAiFeedback((prev) => prev + chunk)
+                    ).catch((e) => {
+                      console.error("Feedback stream error:", e);
+                      setAiFeedback("Orion encountered an error generating feedback. Please try again.");
+                    }).finally(() => setIsThinking(false));
                   }
                 } catch (err: unknown) {
                   setChallengeResult({ error: String(err) });
@@ -546,7 +543,7 @@ export default function LessonPage() {
             )}
             <button
               onClick={handleComplete}
-              className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold transition-all"
+              className="flex-1 py-3 bg-[var(--color-success)] hover:opacity-90 text-white rounded-xl text-sm font-semibold transition-all"
             >
               Complete Lesson
             </button>

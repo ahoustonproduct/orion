@@ -151,3 +151,11 @@ class OrionEvaluateDecisionRequest(BaseModel):
     justification: str
     decision_value: Any = None
     scenario: str = ""
+
+
+class OrionChatRequest(BaseModel):
+    user_message: str
+    lesson_id: str
+    lesson_title: str = ""
+    current_code: str = ""
+    chat_history: list = []
