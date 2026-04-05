@@ -307,7 +307,7 @@ print(ticker[0:2]) # AA (slice from index 0 UP TO but not including index 2)
             "id": "m1-l4",
             "title": "Numbers and Math",
             "order": 4,
-            "duration_min": 15,
+            "duration_min": 25,
             "concept": """Python is excellent at math — from simple arithmetic to complex statistical calculations.
 
 **Arithmetic operators:**
@@ -327,12 +327,58 @@ print(10 ** 3)  # 1000 (exponent — 10 to the power of 3)
 result = (5 + 3) * 2 ** 2  # = 8 * 4 = 32
 ```
 
-**Updating variables:**
+**Assignment operators — updating a variable in place:**
+Instead of writing `x = x + 1` every time, Python gives you shorthand operators. You'll use `+=` constantly when summing things up in a loop.
+
 ```python
-score = 100
-score += 10   # Same as: score = score + 10
-score -= 5    # Now 105
-score *= 2    # Now 210
+x = 1
+x += 1   # Same as: x = x + 1  → x is now 2
+x *= 2   # Same as: x = x * 2  → x is now 4
+x -= 1   # Same as: x = x - 1  → x is now 3
+x /= 3   # Same as: x = x / 3  → x is now 1.0
+```
+
+**Swapping two values — a Python trick:**
+In most languages swapping two variables requires a temporary third variable. Python can do it on one line:
+```python
+salary_kelly = 95000
+salary_luke  = 87000
+
+# Traditional swap (other languages)
+temp = salary_kelly
+salary_kelly = salary_luke
+salary_luke = temp
+
+# Python's elegant one-liner
+salary_kelly, salary_luke = salary_luke, salary_kelly
+print(salary_kelly)  # 87000
+print(salary_luke)   # 95000
+```
+
+**Comparison operators — asking Python a yes/no question:**
+These always return `True` or `False` (a Boolean). They become essential inside `if` statements and loops.
+
+```python
+salary_kelly = 95000
+salary_luke  = 87000
+
+print(salary_kelly == salary_luke)   # False — are they equal?
+print(salary_kelly != salary_luke)   # True  — are they different?
+print(salary_kelly > salary_luke)    # True  — is Kelly paid more?
+print(salary_kelly >= 95000)         # True  — at least 95k?
+print(1 == 1)                        # True
+print(1 == 2)                        # False
+```
+
+**Common beginner mistake — = vs ==:**
+```python
+# WRONG — this tries to assign 1 to 1, which is a SyntaxError
+if 1 = 1:
+    print("oops")
+
+# CORRECT — double == for comparison
+if 1 == 1:
+    print("yes")
 ```
 
 **Useful built-in math:**
@@ -341,14 +387,46 @@ print(abs(-42))      # 42 (absolute value)
 print(round(3.7))    # 4  (rounds to nearest int)
 print(max(3, 7, 2))  # 7  (maximum)
 print(min(3, 7, 2))  # 2  (minimum)
+```
+
+**Formatting large numbers for readability:**
+Python ignores underscores inside numeric literals — they're purely for human readability:
+```python
+annual_revenue = 1_250_000   # same as 1250000, but much easier to read
+salary         = 95_000
 ```""",
+            "worked_example": {
+                "description": "Use comparison operators and assignment shorthand to analyze two analyst salaries.",
+                "code": """# Two data analyst candidates at a FinTech firm
+salary_kelly = 95_000
+salary_luke  = 87_000
+
+# Comparison operators — return True or False
+print("Same salary?", salary_kelly == salary_luke)     # False
+print("Kelly earns more?", salary_kelly > salary_luke) # True
+print("Luke earns at least 85k?", salary_luke >= 85_000) # True
+
+# Assignment shorthand — give both a 5% raise
+salary_kelly *= 1.05
+salary_luke  *= 1.05
+print(f"\\nAfter 5% raise:")
+print(f"  Kelly: ${salary_kelly:,.0f}")
+print(f"  Luke:  ${salary_luke:,.0f}")
+
+# Swap their values (Python one-liner)
+salary_kelly, salary_luke = salary_luke, salary_kelly
+print(f"\\nAfter swap — Kelly: ${salary_kelly:,.0f}, Luke: ${salary_luke:,.0f}")""",
+                "explanation": "1. `salary_kelly == salary_luke` compares the two values and returns False because 95000 ≠ 87000.\n2. `salary_kelly > salary_luke` returns True.\n3. `*= 1.05` is shorthand for `salary = salary * 1.05` — a 5% raise applied directly.\n4. The tuple swap `a, b = b, a` is a Python idiom. Python evaluates the right side first, then assigns. No temp variable needed.\n5. The f-string format `{salary:,.0f}` adds comma separators and no decimal places — ideal for displaying dollar amounts."
+            },
             "reference": {
                 "key_syntax": [
                     "+ - * / // % **",
                     "+= -= *= /=",
+                    "== != > < >= <=",
+                    "a, b = b, a  # swap",
                     "abs() round() max() min()"
                 ],
-                "notes": "/ always returns a float. Use // for integer division."
+                "notes": "/ always returns a float. Use // for integer division. Use _ in large numbers for readability: 1_000_000."
             },
             "questions": [
                 {
@@ -370,23 +448,44 @@ print(min(3, 7, 2))  # 2  (minimum)
                     "template": "print(2 ___ 8)",
                     "answer": "**",
                     "explanation": "** is the exponentiation operator. 2 ** 8 = 256."
+                },
+                {
+                    "type": "multiple_choice",
+                    "question": "salary = 80000 — then salary += 5000 — what is salary now?",
+                    "options": ["80000", "85000", "75000", "5000"],
+                    "answer": 1,
+                    "explanation": "+= adds the right side to the existing value. 80000 + 5000 = 85000. It's shorthand for salary = salary + 5000."
+                },
+                {
+                    "type": "true_false",
+                    "question": "salary_a == salary_b returns True if both salaries are the same number.",
+                    "answer": True,
+                    "explanation": "== is the equality comparison operator. It returns True if both sides hold the same value, and False otherwise."
+                },
+                {
+                    "type": "multiple_choice",
+                    "question": "What is the output of: x = 3; x *= 4; print(x)?",
+                    "options": ["3", "4", "7", "12"],
+                    "answer": 3,
+                    "explanation": "*= multiplies the variable by the right side and stores the result. 3 * 4 = 12."
                 }
             ],
             "challenge": {
-                "instructions": "You scored 87, 92, and 78 on three exams. Calculate and print your average score. Then print whether your average is above 80 (use a comparison like avg > 80).",
-                "starter_code": "score1 = 87\nscore2 = 92\nscore3 = 78\n\n# Calculate average\n\n# Print average and whether it's above 80\n",
+                "instructions": "You're comparing two job offers. Offer A pays $92,000 and Offer B pays $85,500. Write code that: (1) stores both as variables using underscores for readability, (2) applies a 7% raise to Offer A using *=, (3) prints whether Offer A (after raise) is greater than Offer B, and (4) swaps the two values and prints both.",
+                "starter_code": "# Store the salaries\noffer_a = 92_000\noffer_b = 85_500\n\n# Apply 7% raise to offer_a\n\n# Print whether offer_a > offer_b\n\n# Swap and print both\n",
                 "tests": [
-                    {"type": "output_contains", "value": "85."},
+                    {"type": "code_contains", "value": "*="},
+                    {"type": "code_contains", "value": "offer_a, offer_b = offer_b, offer_a"},
                     {"type": "runs_without_error"}
                 ],
-                "solution": "score1 = 87\nscore2 = 92\nscore3 = 78\navg = (score1 + score2 + score3) / 3\nprint(avg)\nprint(avg > 80)"
+                "solution": "offer_a = 92_000\noffer_b = 85_500\noffer_a *= 1.07\nprint(offer_a > offer_b)\noffer_a, offer_b = offer_b, offer_a\nprint(offer_a)\nprint(offer_b)"
             }
         },
         {
             "id": "m1-l5",
             "title": "If/Else — Making Decisions",
             "order": 5,
-            "duration_min": 20,
+            "duration_min": 30,
             "concept": """Programs need to make decisions based on conditions. `if/elif/else` lets your code take different paths.
 
 ```python
@@ -402,29 +501,95 @@ else:
     print("Below C")
 ```
 
-**Important:** Python uses **indentation** (4 spaces) to define code blocks. Code indented under `if` only runs when that condition is True.
+**Important:** Python uses **indentation** (4 spaces) to define code blocks. Code indented under `if` only runs when that condition is True. If you forget the indentation, Python throws an `IndentationError`.
 
-**Comparison operators:**
+**The three keywords — if, elif, else:**
+
+| Keyword | When it runs |
+|---------|-------------|
+| `if` | Always evaluated first. Runs its block if the condition is True. |
+| `elif` | Only evaluated if the `if` above it was False. You can chain as many as you need. |
+| `else` | Runs if every condition above it was False. It's your catch-all. |
+
+**Comparison operators (return True or False):**
 ```python
-x == y   # Equal to
-x != y   # Not equal to
+x == y   # Equal to          → "Do these match?"
+x != y   # Not equal to      → "Are these different?"
 x > y    # Greater than
 x < y    # Less than
 x >= y   # Greater than or equal
 x <= y   # Less than or equal
 ```
 
-**Logical operators:**
+**Logical operators — combining conditions:**
 ```python
-if age >= 18 and has_id:
+if age >= 18 and has_id:      # BOTH must be True
     print("Welcome!")
 
-if is_weekend or is_holiday:
+if is_weekend or is_holiday:  # AT LEAST ONE must be True
     print("Day off!")
 
-if not is_raining:
+if not is_raining:            # True when is_raining is False
     print("Go outside!")
-```""",
+```
+
+**Real-world example — filtering job applicants:**
+A hiring manager wants to flag candidates who have the right skills OR enough experience, and reject everyone else:
+
+```python
+job_skill       = "SQL"
+applicant_skill = "Python"
+years_experience = 6
+
+if applicant_skill == job_skill:
+    print("Skills match — interview them!")
+elif years_experience >= 5:
+    print("Enough experience, no SQL — worth a look")
+else:
+    print("Doesn't meet requirements")
+```
+
+Step through this: applicant has Python (not SQL) so the first `if` is False. `elif` checks experience — 6 >= 5 is True, so it prints "Enough experience, no SQL — worth a look". The `else` is never reached.
+
+Change `years_experience = 3` and the `elif` also becomes False, so `else` runs instead.
+
+**Nothing prints when no condition is True:**
+```python
+if score >= 90:
+    print("A")
+elif score >= 80:
+    print("B")
+# No else — if score is 70, nothing prints at all
+```
+This is valid Python, but often a bug. If you always want *some* output, add an `else`.""",
+            "worked_example": {
+                "description": "Build a multi-condition candidate screening tool for a data analytics job.",
+                "code": """# Candidate profile
+applicant_name   = "Jordan"
+applicant_skill  = "Python"
+years_experience = 4
+required_skill   = "SQL"
+
+# Screen the candidate
+if applicant_skill == required_skill:
+    print(f"{applicant_name}: Skills match — schedule an interview!")
+elif years_experience >= 5:
+    print(f"{applicant_name}: No SQL but strong experience — review their portfolio")
+else:
+    print(f"{applicant_name}: Does not meet requirements")
+
+# Bonus: combined condition — SQL skill AND 3+ years
+print()
+has_sql = applicant_skill == "SQL"
+experienced = years_experience >= 3
+if has_sql and experienced:
+    print("Fast-track to final round")
+elif has_sql or experienced:
+    print("Move to phone screen")
+else:
+    print("Reject")""",
+                "explanation": "1. `applicant_skill == required_skill` is 'Python' == 'SQL' → False. Python moves to `elif`.\n2. `years_experience >= 5` is 4 >= 5 → False. Python moves to `else`.\n3. The `else` block runs: Jordan doesn't meet requirements.\n4. In the second block, `has_sql` is False and `experienced` is True (4 >= 3). So `has_sql and experienced` → False. `has_sql or experienced` → True. Prints 'Move to phone screen'.\n5. Storing comparisons in named variables (`has_sql`, `experienced`) makes complex conditions far more readable."
+            },
             "reference": {
                 "key_syntax": [
                     "if condition:",
@@ -433,7 +598,7 @@ if not is_raining:
                     "== != > < >= <=",
                     "and / or / not"
                 ],
-                "notes": "Indentation (4 spaces) is required — it defines the code block."
+                "notes": "Indentation (4 spaces) is required — it defines the code block. elif is short for 'else if'. You can have as many elif blocks as you want, but only one if and one else per chain."
             },
             "questions": [
                 {
@@ -465,16 +630,34 @@ if not is_raining:
                     ],
                     "answer": 0,
                     "explanation": "and requires BOTH conditions to be True. or requires at least one to be True."
+                },
+                {
+                    "type": "multiple_choice",
+                    "question": "An applicant has skill='Excel' and years_experience=7. The required_skill is 'SQL'. Which block runs?\n\nif applicant_skill == required_skill:\n    print('Match')\nelif years_experience >= 5:\n    print('Experienced')\nelse:\n    print('Reject')",
+                    "options": [
+                        "Match",
+                        "Experienced",
+                        "Reject",
+                        "Nothing prints"
+                    ],
+                    "answer": 1,
+                    "explanation": "'Excel' == 'SQL' is False, so if is skipped. years_experience >= 5 is 7 >= 5 = True, so elif runs and prints 'Experienced'."
+                },
+                {
+                    "type": "true_false",
+                    "question": "If all conditions in an if/elif chain are False and there is no else block, no output is produced and no error is raised.",
+                    "answer": True,
+                    "explanation": "Python simply skips the entire block if no condition is True and there is no else. No error — just silence. This is often a bug in real code."
                 }
             ],
             "challenge": {
-                "instructions": "Write a program that checks a student's GPA. If it's 3.7 or above, print 'Honors'. If it's between 3.0 and 3.69, print 'Good Standing'. Otherwise, print 'Academic Probation'.",
-                "starter_code": "gpa = 3.5\n\n# Write your if/elif/else below\n",
+                "instructions": "Build a loan eligibility checker. A customer is eligible for a loan if they have a credit score of 700+ AND income of at least $50,000. If their credit score is 650-699 they qualify for a 'limited loan' regardless of income. Otherwise, they are rejected. Write if/elif/else code for: credit_score = 670, income = 42000.",
+                "starter_code": "credit_score = 670\nincome = 42_000\n\n# Write your eligibility checker below\n",
                 "tests": [
-                    {"type": "output_contains", "value": "Good Standing"},
+                    {"type": "output_contains", "value": "limited"},
                     {"type": "code_contains", "value": "elif"}
                 ],
-                "solution": "gpa = 3.5\nif gpa >= 3.7:\n    print('Honors')\nelif gpa >= 3.0:\n    print('Good Standing')\nelse:\n    print('Academic Probation')"
+                "solution": "credit_score = 670\nincome = 42_000\n\nif credit_score >= 700 and income >= 50_000:\n    print('Approved for full loan')\nelif credit_score >= 650:\n    print('Approved for limited loan')\nelse:\n    print('Rejected')"
             }
         },
         {

@@ -421,7 +421,7 @@ df.columns = ["col1", "col2", "col3"]  # Replace all names
             "id": "m2-l5",
             "title": "Filtering, Sorting, and Grouping",
             "order": 5,
-            "duration_min": 25,
+            "duration_min": 35,
             "concept": """The most common data analysis tasks are filtering (find specific rows), sorting (rank data), and grouping (aggregate by category).
 
 **Filtering:**
@@ -446,31 +446,113 @@ df.sort_values(["year", "gpa"])            # Sort by multiple columns
 ```
 
 **Grouping and aggregation — the heart of analytics:**
+`groupby()` is the pandas equivalent of SQL's GROUP BY and Excel's pivot tables. It splits your data into groups by a column's unique values, then applies an aggregation to each group.
+
 ```python
 # Average GPA by major
 df.groupby("major")["gpa"].mean()
 
-# Multiple aggregations
+# Multiple aggregations at once
 df.groupby("major").agg({
     "gpa": ["mean", "max", "min"],
     "name": "count"
 })
 
-# Count students per major
+# Named aggregations (cleaner syntax)
+df.groupby("major")["gpa"].agg(
+    avg_gpa="mean",
+    top_gpa="max",
+    students="count"
+)
+
+# Count per group
 df.groupby("major").size()
 
-# Reset index to get a clean DataFrame
+# Reset index to get a clean DataFrame back
 result = df.groupby("major")["gpa"].mean().reset_index()
-```""",
+```
+
+**Mean vs Median — which should you use?**
+For salary, GPA, and income data, the **median** is almost always more meaningful than the mean. Outliers (one student with a 4.0 GPA, or one CEO making $50M) pull the mean in misleading directions. The median is the true middle value and is not affected by extremes.
+
+```python
+df.groupby("title")["salary"].mean()    # Skewed by high earners
+df.groupby("title")["salary"].median()  # More representative of typical pay
+```
+
+**Real-world application — salary analysis by job role:**
+This exact pattern is used in data analytics portfolios to answer "which data roles pay the most?"
+
+```python
+salary_by_role = (
+    df.groupby("job_title")["salary"]
+      .agg(median_salary="median", job_count="count")
+      .query("job_count >= 50")          # filter out small-sample titles
+      .sort_values("median_salary", ascending=False)
+)
+print(salary_by_role.head(5))
+```
+
+**Skill frequency analysis — what % of job postings require Python?**
+```python
+total = len(df)
+skills = ["python", "sql", "excel", "tableau"]
+for skill in skills:
+    count = df["job_skills"].str.lower().str.contains(skill, na=False).sum()
+    pct   = round(count / total * 100, 1)
+    print(f"{skill:<10}: {pct}% of postings")
+```
+
+The key trick: `str.contains(skill, na=False)` returns True/False per row, and `.sum()` counts the Trues — giving you the number of postings that mention that skill.""",
+            "worked_example": {
+                "description": "Perform a multi-angle analysis of a job postings dataset: salary by role, skill demand, and top-paying cities.",
+                "code": """import pandas as pd
+
+# Sample job postings data
+data = {
+    "title":   ["Data Analyst","Data Analyst","Data Scientist","Data Scientist",
+                 "Data Engineer","Data Engineer","ML Engineer","ML Engineer"],
+    "city":    ["Chicago","NYC","NYC","SF","Chicago","NYC","SF","Chicago"],
+    "salary":  [85000, 92000, 130000, 148000, 115000, 125000, 145000, 138000],
+    "skills":  ["sql,excel,python","sql,tableau","python,ml,sql","python,ml,spark",
+                "python,sql,spark","python,spark,aws","python,ml,aws","python,ml,tensorflow"]
+}
+df = pd.DataFrame(data)
+
+# ── SALARY BY ROLE ────────────────────────────────────────────────────────
+salary_stats = df.groupby("title")["salary"].agg(
+    median_salary="median",
+    mean_salary="mean",
+    count="count"
+).sort_values("median_salary", ascending=False)
+
+print("=== MEDIAN SALARY BY ROLE ===")
+print(salary_stats)
+
+# ── TOP CITY ──────────────────────────────────────────────────────────────
+city_median = df.groupby("city")["salary"].median().sort_values(ascending=False)
+print("\\n=== MEDIAN SALARY BY CITY ===")
+print(city_median.apply(lambda x: f"${x:,.0f}"))
+
+# ── SKILL DEMAND ─────────────────────────────────────────────────────────
+total = len(df)
+print("\\n=== SKILL DEMAND (% of postings) ===")
+for skill in ["python", "sql", "ml", "spark", "excel"]:
+    count = df["skills"].str.contains(skill, na=False).sum()
+    print(f"  {skill:<8}: {count/total*100:.0f}%")""",
+                "explanation": "1. `.agg(median_salary='median', ...)` creates named columns — much cleaner than chaining multiple groupby calls.\n2. `sort_values('median_salary', ascending=False)` ranks from highest to lowest median salary.\n3. `.apply(lambda x: f'${x:,.0f}')` formats each number as a dollar amount in one line.\n4. The skill demand loop uses `str.contains()` which returns a boolean per row, and `.sum()` counts the Trues. No need to explode lists or do complex parsing for a quick frequency check."
+            },
             "reference": {
                 "key_syntax": [
                     'df[df["col"] > value]',
                     '(condition1) & (condition2)',
                     'df.sort_values("col", ascending=False)',
-                    'df.groupby("col")["col2"].mean()',
+                    'df.groupby("col")["col2"].agg(name="func")',
+                    'df.groupby("col").size()',
+                    'series.str.contains("text", na=False)',
                     ".reset_index()"
                 ],
-                "notes": "Always use & (and) and | (or) with parentheses around each condition when filtering DataFrames."
+                "notes": "Always use & (and) and | (or) with parentheses around each condition when filtering DataFrames. Use median instead of mean for skewed data like salary."
             },
             "questions": [
                 {
@@ -497,24 +579,49 @@ result = df.groupby("major")["gpa"].mean().reset_index()
                     "question": "df.sort_values('score') sorts from highest to lowest by default.",
                     "answer": False,
                     "explanation": "sort_values() sorts ascending (low to high) by default. Use ascending=False for high to low."
+                },
+                {
+                    "type": "multiple_choice",
+                    "question": "For salary analysis, why is median usually preferred over mean?",
+                    "options": [
+                        "Median is faster to compute",
+                        "Mean is not available in pandas groupby",
+                        "High outlier salaries pull the mean up, making it unrepresentative of typical pay",
+                        "Median is always the same as mean for salary data"
+                    ],
+                    "answer": 2,
+                    "explanation": "Salary distributions are right-skewed. A few high-earning executives or senior roles can drag the mean well above what most people in that role actually earn. The median (middle value) is not affected by extremes."
+                },
+                {
+                    "type": "multiple_choice",
+                    "question": "What does df['skills'].str.contains('python', na=False).sum() compute?",
+                    "options": [
+                        "The total length of all skill strings combined",
+                        "The number of rows where the skills column mentions 'python'",
+                        "The percentage of rows with python",
+                        "Whether 'python' exists in any row"
+                    ],
+                    "answer": 1,
+                    "explanation": "str.contains() returns True/False per row. .sum() treats True as 1 and False as 0, giving the count of rows where the condition is True."
                 }
             ],
             "challenge": {
-                "instructions": "Using the sales DataFrame below: (1) Filter to show only sales > 500. (2) Sort by revenue descending. (3) Group by 'region' and print the total revenue per region.",
-                "starter_code": "import pandas as pd\n\ndata = {\n    'product': ['A','B','C','D','E','F'],\n    'region':  ['North','South','North','East','South','East'],\n    'units':   [120, 45, 300, 80, 210, 95],\n    'price':   [5, 12, 3, 8, 4, 10]\n}\ndf = pd.DataFrame(data)\ndf['revenue'] = df['units'] * df['price']\n\n# 1. Filter: revenue > 500\n\n# 2. Sort by revenue descending\n\n# 3. Total revenue by region\n",
+                "instructions": "Using the sales DataFrame below: (1) Filter to show only sales > 500. (2) Sort by revenue descending. (3) Group by 'region' and print the total and median revenue per region. (4) Determine what % of products have 'premium' in their name.",
+                "starter_code": "import pandas as pd\n\ndata = {\n    'product': ['Premium-A','Standard-B','Premium-C','Standard-D','Premium-E','Standard-F'],\n    'region':  ['North','South','North','East','South','East'],\n    'units':   [120, 45, 300, 80, 210, 95],\n    'price':   [5, 12, 3, 8, 4, 10]\n}\ndf = pd.DataFrame(data)\ndf['revenue'] = df['units'] * df['price']\n\n# 1. Filter: revenue > 500\n\n# 2. Sort by revenue descending\n\n# 3. Total and median revenue by region\n\n# 4. % of products containing 'Premium'\n",
                 "tests": [
                     {"type": "code_contains", "value": "groupby"},
                     {"type": "code_contains", "value": "sort_values"},
+                    {"type": "code_contains", "value": "str.contains"},
                     {"type": "runs_without_error"}
                 ],
-                "solution": 'import pandas as pd\ndata = {\n    "product": ["A","B","C","D","E","F"],\n    "region": ["North","South","North","East","South","East"],\n    "units": [120,45,300,80,210,95],\n    "price": [5,12,3,8,4,10]\n}\ndf = pd.DataFrame(data)\ndf["revenue"] = df["units"] * df["price"]\nprint(df[df["revenue"] > 500])\nprint(df.sort_values("revenue", ascending=False))\nprint(df.groupby("region")["revenue"].sum())'
+                "solution": 'import pandas as pd\ndata = {\n    "product": ["Premium-A","Standard-B","Premium-C","Standard-D","Premium-E","Standard-F"],\n    "region": ["North","South","North","East","South","East"],\n    "units": [120,45,300,80,210,95],\n    "price": [5,12,3,8,4,10]\n}\ndf = pd.DataFrame(data)\ndf["revenue"] = df["units"] * df["price"]\nprint(df[df["revenue"] > 500])\nprint(df.sort_values("revenue", ascending=False))\nprint(df.groupby("region")["revenue"].agg(total="sum", median="median"))\ncount = df["product"].str.contains("Premium", na=False).sum()\nprint(f"Premium %: {count/len(df)*100:.0f}%")'
             }
         },
         {
             "id": "m2-l6",
             "title": "Data Visualization — Telling Stories with Charts",
             "order": 6,
-            "duration_min": 25,
+            "duration_min": 35,
             "concept": """Data visualization turns numbers into insights. Python's **matplotlib** and **seaborn** libraries make it easy to create professional charts.
 
 ```python
@@ -540,12 +647,44 @@ plt.ylabel("Count")
 plt.show()
 ```
 
+**Horizontal bar chart (`barh`) — preferred when category labels are long:**
+Vertical bars need rotated labels when category names are long (e.g., "Data Scientist", "Machine Learning Engineer"). Horizontal bars sidestep this entirely — the labels sit on the y-axis and read naturally left-to-right.
+
+```python
+roles   = ["Data Analyst", "Data Scientist", "ML Engineer"]
+salaries = [85000, 132000, 148000]
+
+# Sort ascending so the highest value appears at the TOP
+fig, ax = plt.subplots(figsize=(10, 5))
+ax.barh(roles, salaries, color="steelblue")
+ax.set_xlabel("Median Salary ($)")
+ax.set_title("Median Salary by Data Role")
+ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"${x/1000:.0f}K"))
+
+# Clean professional look — remove top and right borders
+ax.spines["top"].set_visible(False)
+ax.spines["right"].set_visible(False)
+
+plt.tight_layout()
+plt.show()
+```
+
+**Adding data labels to bars:**
+```python
+bars = ax.barh(roles, salaries, color="steelblue")
+for bar in bars:
+    ax.text(bar.get_width() + 1000,          # x position: just past the bar tip
+            bar.get_y() + bar.get_height()/2, # y position: vertically centered
+            f"${bar.get_width():,.0f}",        # label text
+            va="center", fontsize=9)
+```
+
 **Line chart — show trends over time:**
 ```python
 months = [1, 2, 3, 4, 5]
 sales = [100, 120, 115, 140, 160]
 
-plt.plot(months, sales, marker='o', color='cyan')
+plt.plot(months, sales, marker='o', color='royalblue', linewidth=2)
 plt.title("Monthly Sales")
 plt.show()
 ```
@@ -563,16 +702,77 @@ plt.show()
 sns.histplot(df["score"], bins=10)  # Histogram
 sns.boxplot(x="major", y="gpa", data=df)  # Box plot by group
 sns.heatmap(df.corr(), annot=True)  # Correlation matrix
+```
+
+**Portfolio chart checklist:**
+Every chart you include in a portfolio or report should have:
+- [ ] A descriptive title
+- [ ] Labeled axes with units (e.g., "Salary ($)" not just "Salary")
+- [ ] `plt.tight_layout()` to prevent clipping
+- [ ] Saved as PNG with `plt.savefig('name.png', dpi=150)` if included in a report
+
+**Saving before showing:**
+```python
+# CORRECT — save first, then show
+plt.savefig("chart.png", dpi=150, bbox_inches="tight")
+plt.show()
+
+# WRONG — show clears the figure; savefig then saves a blank image
+plt.show()
+plt.savefig("chart.png")
 ```""",
+            "worked_example": {
+                "description": "Build a portfolio-quality horizontal bar chart of skill demand for data analysts.",
+                "code": """import matplotlib.pyplot as plt
+
+# Skill demand data (% of job postings mentioning each skill)
+skills = ["Word", "SAS", "R", "Power BI", "Tableau", "Python", "Excel", "SQL"]
+pcts   = [4.8,    7.2,  9.1, 18.6,       27.3,       30.8,     40.7,    51.3]
+
+fig, ax = plt.subplots(figsize=(10, 6))
+
+# Horizontal bars (sorted ascending so SQL appears at top)
+bars = ax.barh(skills, pcts, color="steelblue", edgecolor="white")
+
+# Add percentage labels at end of each bar
+for bar, pct in zip(bars, pcts):
+    ax.text(bar.get_width() + 0.5,
+            bar.get_y() + bar.get_height() / 2,
+            f"{pct}%",
+            va="center", fontsize=9, color="#333")
+
+# Title and axis label
+ax.set_xlabel("Likelihood in Job Posting (%)", fontsize=11)
+ax.set_title(
+    "Top Skills for Data Analysts\\n(% of postings that mention the skill)",
+    fontsize=13, fontweight="bold"
+)
+
+# Extend x-axis so labels don't get cut off
+ax.set_xlim(0, max(pcts) + 8)
+
+# Remove top and right spines for a clean, modern look
+ax.spines["top"].set_visible(False)
+ax.spines["right"].set_visible(False)
+
+plt.tight_layout()
+plt.savefig("skill_demand.png", dpi=150, bbox_inches="tight")
+plt.show()
+print("Chart saved.")""",
+                "explanation": "1. Sorting the data ascending before plotting means the longest bar (SQL, 51.3%) appears at the top after barh plots bottom-to-top.\n2. The label loop uses `bar.get_width()` (the bar's right edge) to position the percentage text just past each bar.\n3. `set_xlim(0, max(pcts) + 8)` gives enough room for the labels without cutting them off.\n4. Removing the top and right spines is a professional styling choice — it reduces visual clutter and makes the chart feel more modern.\n5. `savefig()` before `show()` — critical ordering: once you call `show()`, matplotlib clears the figure."
+            },
             "reference": {
                 "key_syntax": [
-                    "import matplotlib.pyplot as plt",
-                    "plt.bar() / plt.plot() / plt.scatter()",
-                    "plt.title() / .xlabel() / .ylabel()",
-                    "plt.show()",
-                    "sns.histplot() / sns.boxplot() / sns.heatmap()"
+                    "fig, ax = plt.subplots(figsize=(w, h))",
+                    "ax.bar(x, y) / ax.barh(y, x)",
+                    "ax.plot(x, y, marker='o')",
+                    "ax.scatter(x, y, alpha=0.6)",
+                    "ax.set_title() / .set_xlabel() / .set_ylabel()",
+                    "ax.spines['top'].set_visible(False)",
+                    "plt.tight_layout()",
+                    "plt.savefig('file.png', dpi=150)"
                 ],
-                "notes": "Always call plt.show() to display the chart. Save with plt.savefig('chart.png')."
+                "notes": "Save before show — plt.show() clears the figure. Use barh (horizontal) when category labels are long strings."
             },
             "questions": [
                 {
@@ -594,17 +794,36 @@ sns.heatmap(df.corr(), annot=True)  # Correlation matrix
                     "template": 'plt.___("Sales by Region")',
                     "answer": "title",
                     "explanation": "plt.title() sets the chart title. plt.xlabel() and plt.ylabel() set axis labels."
+                },
+                {
+                    "type": "multiple_choice",
+                    "question": "Why is ax.barh() preferred over ax.bar() when plotting job titles or skill names?",
+                    "options": [
+                        "barh loads data faster",
+                        "Long text labels read naturally on the y-axis without needing to be rotated",
+                        "barh automatically adds percentage labels",
+                        "Horizontal bars are always more accurate"
+                    ],
+                    "answer": 1,
+                    "explanation": "Long category names on vertical bars must be rotated at an angle to fit, reducing readability. Horizontal bars place them on the y-axis where they read left-to-right naturally."
+                },
+                {
+                    "type": "true_false",
+                    "question": "Calling plt.show() before plt.savefig() will result in saving a blank image.",
+                    "answer": True,
+                    "explanation": "plt.show() renders AND clears the figure from memory. If you call savefig() afterward, there's nothing left to save. Always save first, then show."
                 }
             ],
             "challenge": {
-                "instructions": "Create a bar chart showing the average GPA by major using the data below. Add a title, x-label, y-label. Save it as 'gpa_chart.png' using plt.savefig().",
-                "starter_code": "import pandas as pd\nimport matplotlib.pyplot as plt\n\ndata = {\n    'name': ['Alice','Bob','Carol','Dave','Eve','Frank','Grace'],\n    'major': ['BA','CS','BA','Econ','CS','BA','Econ'],\n    'gpa': [3.8, 3.5, 3.2, 3.9, 3.7, 3.4, 3.1]\n}\ndf = pd.DataFrame(data)\n\n# Calculate average GPA by major\n\n# Create bar chart\n\n# Add title and labels\n\n# Save the chart\nplt.savefig('gpa_chart.png')\nplt.show()\n",
+                "instructions": "Create a horizontal bar chart of median salary by job role using the data provided. The highest-paying role should appear at the top. Format x-axis labels as dollar amounts (e.g., '$120K'). Remove the top and right spines. Save as 'salary_chart.png'.",
+                "starter_code": "import matplotlib.pyplot as plt\n\n# Job role salary data\nroles   = ['Data Analyst', 'Business Analyst', 'Data Scientist', 'Data Engineer', 'ML Engineer']\nsalaries = [85000, 90000, 132000, 120000, 148000]\n\n# Sort so highest-paying role appears at the top (sort ascending for barh)\n\n# Create horizontal bar chart\n\n# Add title and axis label\n\n# Format x-axis as dollar amounts\n\n# Remove top and right spines\n\n# Save and show\nplt.tight_layout()\nplt.savefig('salary_chart.png', dpi=150)\nplt.show()\n",
                 "tests": [
-                    {"type": "code_contains", "value": "groupby"},
-                    {"type": "code_contains", "value": "plt.bar"},
+                    {"type": "code_contains", "value": "barh"},
+                    {"type": "code_contains", "value": "set_title"},
+                    {"type": "code_contains", "value": "spines"},
                     {"type": "runs_without_error"}
                 ],
-                "solution": 'import pandas as pd\nimport matplotlib.pyplot as plt\ndata = {\n    "name":["Alice","Bob","Carol","Dave","Eve","Frank","Grace"],\n    "major":["BA","CS","BA","Econ","CS","BA","Econ"],\n    "gpa":[3.8,3.5,3.2,3.9,3.7,3.4,3.1]\n}\ndf = pd.DataFrame(data)\navg = df.groupby("major")["gpa"].mean()\nplt.bar(avg.index, avg.values, color="#3b82f6")\nplt.title("Average GPA by Major")\nplt.xlabel("Major")\nplt.ylabel("GPA")\nplt.savefig("gpa_chart.png")\nplt.show()'
+                "solution": 'import matplotlib.pyplot as plt\n\nroles    = ["Data Analyst","Business Analyst","Data Scientist","Data Engineer","ML Engineer"]\nsalaries = [85000, 90000, 132000, 120000, 148000]\n\n# Sort ascending so highest bar ends at top\npaired = sorted(zip(roles, salaries), key=lambda x: x[1])\nroles_s, salaries_s = zip(*paired)\n\nfig, ax = plt.subplots(figsize=(10, 5))\nax.barh(roles_s, salaries_s, color="steelblue")\nax.set_title("Median Salary by Data Role")\nax.set_xlabel("Median Salary ($)")\nax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"${x/1000:.0f}K"))\nax.spines["top"].set_visible(False)\nax.spines["right"].set_visible(False)\nplt.tight_layout()\nplt.savefig("salary_chart.png", dpi=150)\nplt.show()'
             }
         },
         {
