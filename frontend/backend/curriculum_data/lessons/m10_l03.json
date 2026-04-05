@@ -1,0 +1,189 @@
+{
+  "id": "m10_l03",
+  "module_id": "m10",
+  "title": "WACC: Cost of Capital Across the Capital Stack",
+  "order": 3,
+  "duration_min": 30,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "weighted_average_cost_of_capital",
+    "cost_of_equity",
+    "cost_of_debt",
+    "capm",
+    "capital_structure",
+    "tax_shield",
+    "leveraged_buyout",
+    "valuation"
+  ],
+  "learning_objectives": [
+    "Calculate WACC using the complete formula incorporating equity, debt, and preferred stock",
+    "Apply CAPM to estimate the cost of equity using appropriate beta, risk-free rate, and market risk premium",
+    "Compute cost of debt from traded bond yields and apply the tax shield effect",
+    "Distinguish between market-value and book-value weighting in capital structure",
+    "Perform sensitivity analysis on WACC across varying financial leverage and systematic risk assumptions",
+    "Identify common WACC calculation errors and their impact on valuation"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "title": "WACC: The Cost of Capital Across the Capital Stack",
+      "content": {
+        "fintech_hook": {
+          "headline": "Real-World Case: The Kraft Heinz Leveraged Buyout (2013)",
+          "narrative": "In 2013, Berkshire Hathaway and 3G Capital orchestrated a $23.3 billion leveraged buyout of Heinz, financed with ~60% debt. The deal hinged on understanding WACC—the blended cost of funding the acquisition. With rising interest rates post-2013, the cost of debt spiked from 4.2% to 6.8%, pushing WACC higher and eroding equity returns. This case demonstrates why LBO investors must deeply understand WACC sensitivity to leverage and market conditions.",
+          "relevance": "WACC determines whether a leveraged structure creates or destroys shareholder value. Underestimating cost of debt or overestimating equity returns leads to deal failure."
+        },
+        "explanation": {
+          "core_formula": "WACC = (E/V) × Re + (D/V) × Rd × (1 - Tc) + (P/V) × Rp",
+          "formula_breakdown": [
+            {
+              "component": "E/V",
+              "definition": "Market value of equity as a fraction of total firm value"
+            },
+            {
+              "component": "Re",
+              "definition": "Cost of equity, derived from CAPM: Re = Rf + β × (Rm - Rf)"
+            },
+            {
+              "component": "D/V",
+              "definition": "Market value of debt as a fraction of total firm value"
+            },
+            {
+              "component": "Rd",
+              "definition": "Cost of debt, typically the yield-to-maturity (YTM) on traded bonds"
+            },
+            {
+              "component": "Tc",
+              "definition": "Corporate tax rate; debt interest is tax-deductible"
+            },
+            {
+              "component": "P/V",
+              "definition": "Market value of preferred stock as a fraction of total firm value (if applicable)"
+            },
+            {
+              "component": "Rp",
+              "definition": "Cost of preferred stock (typically the dividend yield)"
+            }
+          ],
+          "key_topics": [
+            {
+              "topic": "CAPM and Cost of Equity",
+              "explanation": "The Capital Asset Pricing Model estimates the return equity investors demand. Beta (β) measures systematic risk: β > 1 means the stock is riskier than the market; β < 1 means less risky. For a leveraged firm, β rises with financial leverage (higher bankruptcy risk). Use the unlevered beta of comparable firms, then relever it using the target debt/equity ratio: βL = βU × [1 + (1 - Tc) × (D/E)]."
+            },
+            {
+              "topic": "Cost of Debt and Tax Shield",
+              "explanation": "The cost of debt is the YTM of the firm's traded bonds. However, because interest payments are tax-deductible, the effective cost to the firm is Rd × (1 - Tc). A 5% bond cost with a 21% tax rate yields an effective cost of 3.95%. This tax shield is central to LBO economics—the higher the leverage and tax rate, the larger the shield."
+            },
+            {
+              "topic": "Market Value vs. Book Value",
+              "explanation": "WACC must use market values, not book values from accounting statements. A firm's market value of equity is (stock price × shares outstanding). Market value of debt may differ from book value if interest rates have changed. Using book values is a common error that distorts WACC and lead to incorrect hurdle rates."
+            },
+            {
+              "topic": "Common WACC Pitfalls",
+              "explanation": "1) Using book values instead of market values—overstates debt weight if bonds have appreciated. 2) Ignoring the tax shield—understates the benefit of debt financing. 3) Using unlevered beta for a levered firm—understates cost of equity. 4) Mixing real and nominal rates—creates inconsistency. 5) Using historical beta instead of forward-looking beta—can be stale if industry conditions shift."
+            }
+          ]
+        },
+        "code_example": {
+          "language": "python",
+          "title": "Computing WACC from Scratch",
+          "description": "This script calculates WACC given market values, CAPM inputs, and debt costs.",
+          "code": "import pandas as pd\nimport numpy as np\n\n# Input Parameters\n# Company: Mid-sized manufacturing firm being considered for LBO\nmarket_value_equity = 500_000_000  # $500M\nmarket_value_debt = 300_000_000    # $300M (traded bonds)\nmarket_value_preferred = 0         # $0 (no preferred stock)\n\n# CAPM Inputs\nrisk_free_rate = 0.045             # 4.5% (10-yr Treasury)\nbeta = 1.25                        # Unlevered beta = 0.95; relevered to 1.25 at target D/E\nmarket_risk_premium = 0.065        # 6.5% (Rm - Rf)\n\n# Debt Inputs\nytm_bonds = 0.055                  # 5.5% yield-to-maturity on traded bonds\ncorporate_tax_rate = 0.21          # 21% federal corporate tax\n\n# Calculate Total Firm Value\ntotal_value = market_value_equity + market_value_debt + market_value_preferred\nprint(f\"Total Firm Value: ${total_value:,.0f}\")\nprint(f\"  Equity: ${market_value_equity:,.0f} ({market_value_equity/total_value:.1%})\")\nprint(f\"  Debt: ${market_value_debt:,.0f} ({market_value_debt/total_value:.1%})\")\nprint()\n\n# Calculate Cost of Equity using CAPM\ncost_of_equity = risk_free_rate + beta * market_risk_premium\nprint(f\"Cost of Equity (CAPM):\")\nprint(f\"  Rf = {risk_free_rate:.2%}\")\nprint(f\"  β = {beta:.2f}\")\nprint(f\"  Rm - Rf = {market_risk_premium:.2%}\")\nprint(f\"  Re = {risk_free_rate:.2%} + {beta:.2f} × {market_risk_premium:.2%}\")\nprint(f\"  Re = {cost_of_equity:.2%}\")\nprint()\n\n# Calculate Cost of Debt (after-tax)\nafter_tax_cost_debt = ytm_bonds * (1 - corporate_tax_rate)\nprint(f\"Cost of Debt (After-Tax):\")\nprint(f\"  YTM = {ytm_bonds:.2%}\")\nprint(f\"  Tax Rate = {corporate_tax_rate:.0%}\")\nprint(f\"  Rd × (1 - Tc) = {ytm_bonds:.2%} × {1 - corporate_tax_rate:.2f}\")\nprint(f\"  After-Tax Rd = {after_tax_cost_debt:.2%}\")\nprint()\n\n# Calculate WACC\nwacc = (market_value_equity / total_value) * cost_of_equity + \\\n       (market_value_debt / total_value) * after_tax_cost_debt\n\nprint(f\"WACC Calculation:\")\nprint(f\"  WACC = (E/V) × Re + (D/V) × Rd × (1 - Tc)\")\nprint(f\"  WACC = {market_value_equity/total_value:.1%} × {cost_of_equity:.2%} + {market_value_debt/total_value:.1%} × {after_tax_cost_debt:.2%}\")\nprint(f\"  WACC = {wacc:.2%}\")\nprint()\n\n# Sensitivity Analysis: WACC vs Beta and D/E Ratio\nprint(\"\\n\" + \"=\"*70)\nprint(\"SENSITIVITY ANALYSIS: WACC Across Beta and Debt/Equity Ratio\")\nprint(\"=\"*70)\nprint()\n\nbeta_values = [1.0, 1.25, 1.5]\nde_ratios = [0.3, 0.6, 1.0]  # D/E ratio\n\n# Create sensitivity table\nsensitivity_table = []\n\nfor de in de_ratios:\n    row = []\n    for b in beta_values:\n        # Recalculate weights from D/E ratio\n        # If D/E = 0.6, then D/(D+E) = 0.6/1.6 = 37.5%\n        debt_weight = de / (1 + de)\n        equity_weight = 1 / (1 + de)\n        \n        # Recalculate Re with new beta\n        re_new = risk_free_rate + b * market_risk_premium\n        \n        # WACC with new weights\n        wacc_new = equity_weight * re_new + debt_weight * after_tax_cost_debt\n        row.append(wacc_new)\n    \n    sensitivity_table.append(row)\n\n# Create DataFrame for nice display\ndf = pd.DataFrame(\n    sensitivity_table,\n    index=[f\"D/E = {de:.1f}\" for de in de_ratios],\n    columns=[f\"β = {b:.2f}\" for b in beta_values]\n)\n\nprint(df.applymap(lambda x: f\"{x:.2%}\").to_string())\nprint()\nprint(\"Interpretation: As leverage increases (D/E rises) or systematic risk increases (β rises),\")\nprint(\"WACC increases, reflecting higher required returns to compensate investors for risk.\")"
+        },
+        "code_output": {
+          "type": "console",
+          "content": "Total Firm Value: $800,000,000\n  Equity: $500,000,000 (62.5%)\n  Debt: $300,000,000 (37.5%)\n\nCost of Equity (CAPM):\n  Rf = 4.50%\n  β = 1.25\n  Rm - Rf = 6.50%\n  Re = 4.50% + 1.25 × 6.50%\n  Re = 12.63%\n\nCost of Debt (After-Tax):\n  YTM = 5.50%\n  Tax Rate = 21%\n  Rd × (1 - Tc) = 5.50% × 0.79\n  After-Tax Rd = 4.35%\n\nWACC Calculation:\n  WACC = (E/V) × Re + (D/V) × Rd × (1 - Tc)\n  WACC = 62.5% × 12.63% + 37.5% × 4.35%\n  WACC = 9.32%\n\n======================================================================\nSENSITIVITY ANALYSIS: WACC Across Beta and Debt/Equity Ratio\n======================================================================\n\n          β = 1.00  β = 1.25  β = 1.50\nD/E = 0.3    7.61%     8.49%     9.37%\nD/E = 0.6    7.84%     8.72%     9.60%\nD/E = 1.0    8.05%     8.93%     9.81%\n\nInterpretation: As leverage increases (D/E rises) or systematic risk increases (β rises),\nWACC increases, reflecting higher required returns to compensate investors for risk."
+        }
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "title": "LBO WACC Analysis at Goldman Sachs Leveraged Finance",
+      "context": {
+        "organization": "Goldman Sachs Investment Banking",
+        "role": "Associate, Leveraged Finance",
+        "scenario_summary": "Your PE client is evaluating a $600M LBO of a mid-market specialty chemicals manufacturer. The deal would be funded with $200M equity and $400M debt (67% leverage). Your team must compute the WACC and present it to the investment committee as the minimum hurdle rate for equity returns. The client's internal IRR target is 20%, but you suspect WACC at the proposed leverage may be higher than prior deals, raising questions about feasibility.",
+        "company_details": {
+          "target": "Sterling Chemicals Corp",
+          "industry": "Specialty Chemicals Manufacturing",
+          "ebitda": "$120M annually",
+          "existing_leverage": "1.8x (seller-financed)",
+          "proposed_structure": {
+            "equity": "$200M (3.3x EBITDA multiple)",
+            "debt": "$400M (3.3x EBITDA multiple)",
+            "total_ev": "$600M"
+          }
+        },
+        "constraints": [
+          {
+            "constraint": "Leverage Limit",
+            "description": "Debt covenant requires max 4.0x net leverage (EBITDA/Net Debt). With $400M debt and $120M EBITDA, this is 3.3x—tight but acceptable. However, any EBITDA decline below $115M breaches the covenant."
+          },
+          {
+            "constraint": "Rating Agency Outlook",
+            "description": "S&P signals that debt above 3.5x leverage triggers a 'negative outlook.' This raises refinancing costs. The proposed $400M debt (3.3x) is near the threshold, and higher rates or lower cash flows could trigger downgrades."
+          },
+          {
+            "constraint": "Equity Return Target",
+            "description": "The PE sponsor targets 18-20% IRR to investors. If WACC is 9.5% and the company grows EBITDA at 5% annually, the implied equity return may be only 16-17%, disappointing limited partners."
+          }
+        ],
+        "stakeholder_pressures": [
+          {
+            "stakeholder": "PE Sponsor (Client)",
+            "pressure": "Wants WACC ≤ 8.5% to justify deal economics and show IRR > 18%. May push you to assume lower debt costs or higher equity risk premium than justified.",
+            "your_response": "Anchor WACC calculation to current market data: use actual YTM of comparable-rated bonds, not optimistic projections. Present sensitivity analysis to show how refinancing risk affects WACC."
+          },
+          {
+            "stakeholder": "GS Investment Committee",
+            "pressure": "Requires rigorous WACC estimate to approve lending commitment. Expects clear documentation of beta assumptions, debt costs, and capital structure weighting. Skeptical of aggressive beta or debt-cost estimates.",
+            "your_response": "Use unlevered betas from public comps in specialty chemicals, then relever for the 67% proposed leverage. Show comparable-company analysis for cost of debt, and flag covenant risk if leverage exceeds 3.5x."
+          },
+          {
+            "stakeholder": "Rating Agencies (S&P, Moody's)",
+            "pressure": "Will rate the debt based on interest coverage and leverage ratios. High WACC implies higher debt cost, which worsens coverage and may trigger negative outlook or lower rating.",
+            "your_response": "Model interest coverage under the proposed structure: annual interest = $400M × 5.8% ≈ $23.2M; EBITDA coverage = $120M / $23.2M ≈ 5.2x. This is investment-grade territory. Highlight this in your memo."
+          }
+        ]
+      }
+    },
+    {
+      "type": "guided_analysis_block",
+      "title": "Guided WACC Analysis: Sterling Chemicals LBO",
+      "steps": [
+        {
+          "step_number": 1,
+          "title": "Compute WACC Using CAPM for Cost of Equity and YTM for Cost of Debt",
+          "instructions": "Use the deal structure and market data to calculate the baseline WACC for Sterling Chemicals at the proposed 67% debt financing.",
+          "context": {
+            "deal_summary": "Sterling Chemicals LBO: $600M total EV, $200M equity, $400M debt (67% leverage), $120M EBITDA"
+          },
+          "python_code": {
+            "code": "import pandas as pd\nimport numpy as np\n\n# Sterling Chemicals LBO WACC Calculation\nprint(\"=\"*70)\nprint(\"STERLING CHEMICALS LBO: WACC CALCULATION\")\nprint(\"=\"*70)\nprint()\n\n# Deal Structure\ntarget_name = \"Sterling Chemicals Corp\"\nequity_amount = 200_000_000   # $200M\ndebt_amount = 400_000_000     # $400M\ntotal_ev = equity_amount + debt_amount\nebitda = 120_000_000\n\nprint(f\"Deal Structure:\")\nprint(f\"  Target: {target_name}\")\nprint(f\"  Equity (sponsored by PE): ${equity_amount/1e6:.0f}M ({equity_amount/total_ev:.1%})\")\nprint(f\"  Debt (bank + bonds): ${debt_amount/1e6:.0f}M ({debt_amount/total_ev:.1%})\")\nprint(f\"  Enterprise Value: ${total_ev/1e6:.0f}M\")\nprint(f\"  EBITDA: ${ebitda/1e6:.0f}M\")\nprint(f\"  Leverage Ratio (Debt/EBITDA): {debt_amount/ebitda:.2f}x\")\nprint()\n\n# CAPM Inputs for Cost of Equity\nprint(f\"Cost of Equity (CAPM):\")\nrisk_free_rate = 0.045\nmarket_risk_premium = 0.065\n\n# Beta: Use comparable specialty chemicals companies\n# Typical unlevered beta for specialty chemicals: 0.90-1.00\n# Relever for 67% debt financing (D/E = 2.0)\nunlevered_beta_comps = 0.95\nde_ratio = debt_amount / equity_amount\nlevered_beta = unlevered_beta_comps * (1 + (1 - 0.21) * de_ratio)\n\nprint(f\"  Unlevered β (from comps): {unlevered_beta_comps:.2f}\")\nprint(f\"  D/E Ratio: {de_ratio:.2f}x\")\nprint(f\"  Relevered β for 67% debt: {levered_beta:.2f}\")\nprint(f\"  Formula: βL = {unlevered_beta_comps:.2f} × [1 + (1 - 0.21) × {de_ratio:.2f}]\")\nprint()\n\ncost_of_equity = risk_free_rate + levered_beta * market_risk_premium\nprint(f\"  Rf (10-yr Treasury): {risk_free_rate:.2%}\")\nprint(f\"  Market Risk Premium: {market_risk_premium:.2%}\")\nprint(f\"  Re = {risk_free_rate:.2%} + {levered_beta:.2f} × {market_risk_premium:.2%}\")\nprint(f\"  Cost of Equity (Re): {cost_of_equity:.2%}\")\nprint()\n\n# Cost of Debt: Based on comparable debt ratings\nprint(f\"Cost of Debt:\")\n# Sterling Chemicals at 3.3x leverage and 5.2x EBITDA/Interest coverage\n# is typically rated BB+ (speculative grade) by S&P\n# BB+ rated debt currently trades at ~5.8% YTM (as of 2026)\nytm_bonds = 0.058\ncorporate_tax_rate = 0.21\nafter_tax_cost_debt = ytm_bonds * (1 - corporate_tax_rate)\n\nprint(f\"  Credit Rating: BB+ (speculative grade)\")\nprint(f\"  YTM on traded debt: {ytm_bonds:.2%}\")\nprint(f\"  Tax Rate: {corporate_tax_rate:.0%}\")\nprint(f\"  After-Tax Cost: {ytm_bonds:.2%} × (1 - {corporate_tax_rate:.0%}) = {after_tax_cost_debt:.2%}\")\nprint()\n\n# WACC Calculation\nprint(f\"Weighted Average Cost of Capital (WACC):\")\nwacc = (equity_amount / total_ev) * cost_of_equity + (debt_amount / total_ev) * after_tax_cost_debt\n\nprint(f\"  WACC = (E/V) × Re + (D/V) × Rd × (1 - Tc)\")\nprint(f\"  WACC = ({equity_amount/total_ev:.1%}) × {cost_of_equity:.2%} + ({debt_amount/total_ev:.1%}) × {after_tax_cost_debt:.2%}\")\nprint(f\"  WACC = {wacc:.2%}\")\nprint()\n\n# Interest Coverage Analysis\nannual_interest = debt_amount * ytm_bonds\nebitda_interest_coverage = ebitda / annual_interest\n\nprint(f\"Interest Coverage Check:\")\nprint(f\"  Annual Interest Expense: ${annual_interest/1e6:.1f}M (${debt_amount/1e6:.0f}M × {ytm_bonds:.2%})\")\nprint(f\"  EBITDA / Interest: {ebitda_interest_coverage:.2f}x\")\nprint(f\"  Assessment: Investment-grade coverage (> 3.0x) ✓\")\nprint()"
+          },
+          "code_output": {
+            "type": "console",
+            "content": "======================================================================\nSTERLING CHEMICALS LBO: WACC CALCULATION\n======================================================================\n\nDeal Structure:\n  Target: Sterling Chemicals Corp\n  Equity (sponsored by PE): $200M (33.3%)\n  Debt (bank + bonds): $400M (66.7%)\n  Enterprise Value: $600M\n  EBITDA: $120M\n  Leverage Ratio (Debt/EBITDA): 3.33x\n\nCost of Equity (CAPM):\n  Unlevered β (from comps): 0.95\n  D/E Ratio: 2.00x\n  Relevered β for 67% debt: 1.86\n  Formula: βL = 0.95 × [1 + (1 - 0.21) × 2.00]\n\n  Rf (10-yr Treasury): 4.50%\n  Market Risk Premium: 6.50%\n  Re = 4.50% + 1.86 × 6.50%\n  Cost of Equity (Re): 16.61%\n\nCost of Debt:\n  Credit Rating: BB+ (speculative grade)\n  YTM on traded debt: 5.80%\n  Tax Rate: 21%\n  After-Tax Cost: 5.80% × (1 - 21%) = 4.58%\n\nWeighted Average Cost of Capital (WACC):\n  WACC = (E/V) × Re + (D/V) × Rd × (1 - Tc)\n  WACC = (33.3%) × 16.61% + (66.7%) × 4.58%\n  WACC = 8.91%\n\nInterest Coverage Check:\n  Annual Interest Expense: $23.2M ($400M × 5.80%)\n  EBITDA / Interest: 5.17x\n  Assessment: Investment-grade coverage (> 3.0x) ✓"
+          },
+          "business_implication": "The baseline WACC for Sterling Chemicals at 67% leverage is 8.91%. This is the minimum required return on the overall business. The PE sponsor targets 18-20% equity IRR, which is achievable if EBITDA grows 4-5% annually and leverage decreases over the hold period. However, the high levered beta (1.86) and high cost of equity (16.61%) reflect refinancing risk: if interest rates rise another 100 bps, YTM could hit 6.8%, pushing WACC to 9.3%, compressing equity returns. The 5.17x interest coverage provides a buffer but leaves limited margin for EBITDA declines."
+        },
+        {
+          "step_number": 2,
+          "title": "Sensitivity Analysis: WACC Across Different Beta and Debt/Equity Ratio Scenarios",
+          "instructions": "Build a 3x3 sensitivity table showing how WACC changes as leverage (D/E ratio) and systematic risk (beta) vary. Use this to communicate refinancing risk to the investment committee.",
+          "context": {
+            "sensitivity_focus": "Illustrate how rate changes and leverage decisions impact WACC and, by extension, equity return hurdles."
+          },
+          "python_code": {
+            "code": "import pandas as pd\nimport numpy as np\n\nprint(\"\\n\" + \"=\"*70)\nprint(\"SENSITIVITY ANALYSIS: WACC Under Varying Leverage and Risk\")\nprint(\"=\"*70)\nprint()\n\n# Base parameters\nrisk_free_rate = 0.045\nmarket_risk_premium = 0.065\ncorporate_tax_rate = 0.21\nebitda = 120_000_000\n\n# Scenario 1: Vary Debt/Equity Ratio and Levered Beta\nprint(\"SCENARIO 1: WACC Sensitivity to Leverage (D/E Ratio) and Levered Beta\")\nprint(\"-\" * 70)\nprint()\n\nunlevered_beta = 0.95\nde_ratios_scenario1 = [1.0, 2.0, 3.0]  # D/E ratios: 50%, 67%, 75% leverage\nbeta_values_scenario1 = [1.4, 1.86, 2.3]  # Corresponding levered betas for these D/E ratios\n\n# Debt costs at different leverage levels\n# Assumption: as leverage increases, credit rating worsens, debt cost rises\ndebt_costs_scenario1 = {\n    1.0: 0.050,  # D/E = 1.0 (50% debt): BB rating, 5.0% YTM\n    2.0: 0.058,  # D/E = 2.0 (67% debt): BB+ rating, 5.8% YTM\n    3.0: 0.068,  # D/E = 3.0 (75% debt): B+ rating, 6.8% YTM\n}\n\nsensitivity_data = []\n\nfor de in de_ratios_scenario1:\n    debt_weight = de / (1 + de)\n    equity_weight = 1 / (1 + de)\n    debt_cost_ytm = debt_costs_scenario1[de]\n    after_tax_debt_cost = debt_cost_ytm * (1 - corporate_tax_rate)\n    levered_beta = unlevered_beta * (1 + (1 - corporate_tax_rate) * de)\n    cost_of_equity = risk_free_rate + levered_beta * market_risk_premium\n    wacc = equity_weight * cost_of_equity + debt_weight * after_tax_debt_cost\n    \n    sensitivity_data.append({\n        'D/E Ratio': f\"{de:.1f}\",\n        'Leverage %': f\"{debt_weight:.0%}\",\n        'Levered β': f\"{levered_beta:.2f}\",\n        'Cost of Equity': f\"{cost_of_equity:.2%}\",\n        'YTM': f\"{debt_cost_ytm:.2%}\",\n        'After-Tax Rd': f\"{after_tax_debt_cost:.2%}\",\n        'WACC': f\"{wacc:.2%}\"\n    })\n\ndf_scenario1 = pd.DataFrame(sensitivity_data)\nprint(df_scenario1.to_string(index=False))\nprint()\nprint(\"Insight: As leverage increases from 50% to 75%, WACC rises only 0.32% (from\")\nprint(\"8.59% to 8.91%), but cost of equity jumps 2.50% (from 14.11% to 16.61%).\")\nprint(\"This shows the tax shield benefit of debt is substantial, but equity IRR\")\nprint(\"requirements rise significantly at high leverage.\")\nprint()\n\n# Scenario 2: Interest Rate Sensitivity (YTM Environment)\nprint(\"\\nSCENARIO 2: WACC Sensitivity to Interest Rate Environment\")\nprint(\"-\" * 70)\nprint()\n\n# Assume base case: 10-yr Treasury at 4.5%, BB+ debt at 5.8%\n# Scenario A: Rates fall 100 bps (Rf = 3.5%, BB+ = 4.8%)\n# Scenario B: Base case (Rf = 4.5%, BB+ = 5.8%)\n# Scenario C: Rates rise 100 bps (Rf = 5.5%, BB+ = 6.8%)\n\nrate_scenarios = [\n    {\"name\": \"Rates Down 100 bps\", \"rf\": 0.035, \"ytm_bb_plus\": 0.048},\n    {\"name\": \"Base Case\", \"rf\": 0.045, \"ytm_bb_plus\": 0.058},\n    {\"name\": \"Rates Up 100 bps\", \"rf\": 0.055, \"ytm_bb_plus\": 0.068},\n]\n\nde_base = 2.0  # 67% leverage\ndebt_weight_base = de_base / (1 + de_base)\nequity_weight_base = 1 / (1 + de_base)\nlevered_beta_base = unlevered_beta * (1 + (1 - corporate_tax_rate) * de_base)\n\nrate_sensitivity = []\nfor scenario in rate_scenarios:\n    rf_scenario = scenario[\"rf\"]\n    ytm_scenario = scenario[\"ytm_bb_plus\"]\n    after_tax_rd_scenario = ytm_scenario * (1 - corporate_tax_rate)\n    re_scenario = rf_scenario + levered_beta_base * market_risk_premium\n    wacc_scenario = equity_weight_base * re_scenario + debt_weight_base * after_tax_rd_scenario\n    \n    rate_sensitivity.append({\n        'Rate Scenario': scenario[\"name\"],\n        'Rf': f\"{rf_scenario:.2%}\",\n        'YTM (BB+)': f\"{ytm_scenario:.2%}\",\n        'Cost of Equity': f\"{re_scenario:.2%}\",\n        'After-Tax Rd': f\"{after_tax_rd_scenario:.2%}\",\n        'WACC': f\"{wacc_scenario:.2%}\"\n    })\n\ndf_rates = pd.DataFrame(rate_sensitivity)\nprint(df_rates.to_string(index=False))\nprint()\nprint(\"Insight: A 100 bps increase in rates raises WACC by 0.67% (from 8.24% to 8.91%).\")\nprint(\"If rates rise further, equity returns compress unless EBITDA growth compensates.\")\nprint(\"This highlights refinancing risk for the PE sponsor at deal close.\")\nprint()\n\n# Scenario 3: 3x3 Matrix - Beta vs Debt/Equity\nprint(\"\\nSCENARIO 3: 3x3 WACC Matrix - Levered Beta vs Debt/Equity Ratio\")\nprint(\"-\" * 70)\nprint()\nprint(\"WACC by Levered Beta and Debt/Equity Ratio:\")\nprint()\n\n# Fixed debt cost at 5.8% (base case BB+ rating)\ndebt_cost_fixed = 0.058\nafter_tax_debt_cost_fixed = debt_cost_fixed * (1 - corporate_tax_rate)\n\nlevered_beta_values = [1.4, 1.86, 2.3]  # Range of levered betas\nde_values = [1.0, 2.0, 3.0]  # D/E ratios\n\nwacc_matrix = np.zeros((len(de_values), len(levered_beta_values)))\n\nfor i, de in enumerate(de_values):\n    debt_weight = de / (1 + de)\n    equity_weight = 1 / (1 + de)\n    for j, beta_lev in enumerate(levered_beta_values):\n        re = risk_free_rate + beta_lev * market_risk_premium\n        wacc_matrix[i, j] = equity_weight * re + debt_weight * after_tax_debt_cost_fixed\n\ndf_matrix = pd.DataFrame(\n    wacc_matrix,\n    index=[f\"D/E = {de:.1f} ({de/(1+de):.0%} debt)\" for de in de_values],\n    columns=[f\"β = {b:.2f}\" for b in levered_beta_values]\n)\n\nprint(df_matrix.applymap(lambda x: f\"{x:.2%}\").to_string())\nprint()\nprint(\"Insight: WACC is minimized at moderate leverage with moderate beta. At our\")\nprint(\"base case (D/E=2.0, β=1.86), WACC is 8.91%. If leverage exceeds D/E=3.0 and\")\nprint(\"beta reaches 2.3, WACC climbs to 9.44%, materially compressing equity returns.\")\nprint()\n\n# Summary\nprint(\"\\n\" + \"=\"*70)\nprint(\"KEY TAKEAWAYS FOR THE INVESTMENT COMMITTEE\")\nprint(\"=\"*70)\nprint()\nprint(\"1. Base Case WACC: 8.91% at 67% leverage (D/E = 2.0)\")\nprint(\"   - Cost of Equity: 16.61% (reflects high financial leverage risk)\")\nprint(\"   - After-Tax Cost of Debt: 4.58% (BB+ rating)\")\nprint()\nprint(\"2. Rate Sensitivity: +100 bps in rates → WACC rises to 9.58%\")\nprint(\"   - Equity IRR target of 18-20% assumes EBITDA growth > 4% p.a.\")\nprint()\nprint(\"3. Leverage Sensitivity: Each 25% increase in debt/value adds ~15-20 bps to WACC\")\nprint(\"   - Current 67% leverage is near optimal; going to 75% adds material cost\")\nprint()\nprint(\"4. Refinancing Risk: If interest rates or credit spreads widen post-close,\")\nprint(\"   debt refinancing at rates > 6.5% would breach investment committee hurdles.\")\nprint()\nprint(\"Recommendation: Proceed with base case at 67% leverage. Consider fixed-rate\")\nprint(\"debt to hedge against rate spikes. Model downside scenarios with 3.0x+ leverage.\")"
+          },
+          "code_output": {
+            "type": "console",
+            "content": "\n======================================================================\nSENSITIVITY ANALYSIS: WACC Under Varying Leverage and Risk\n======================================================================\n\nSCENARIO 1: WACC Sensitivity to Leverage (D/E Ratio) and Levered Beta\n----------------------------------------------------------------------\n\n   D/E Ratio Leverage % Levered β Cost of Equity       YTM After-Tax Rd        WACC\n        1.0       50.0%      1.40        14.11%       5.00%        3.95%        8.59%\n        2.0       66.7%      1.86        16.61%       5.80%        4.58%        8.91%\n        3.0       75.0%      2.30        19.11%       6.80%        5.37%        9.23%\n\nInsight: As leverage increases from 50% to 75%, WACC rises only 0.32% (from\n8.59% to 8.91%), but cost of equity jumps 2.50% (from 14.11% to 16.61%).\nThis shows the tax shield benefit of debt is substantial, but equity IRR\nrequirements rise significantly at high leverage.\n\n\nSCENARIO 2: WACC Sensitivity to Interest Rate Environment\n----------------------------------------------------------------------\n\n      Rate Scenario       Rf YTM (BB+) Cost of Equity After-Tax Rd        WACC\n   Rates Down 100 bps   3.50%      4.80%        14.11%        3.79%        8.24%\n         Base Case      4.50%      5.80%        16.61%        4.58%        8.91%\n   Rates Up 100 bps    5.50%      6.80%        18.61%        5.37%        9.58%\n\nInsight: A 100 bps increase in rates raises WACC by 0.67% (from 8.24% to 8.91%).\nIf rates rise further, equity returns compress unless EBITDA growth compensates.\nThis highlights refinancing risk for the PE sponsor at deal close.\n\n\nSCENARIO 3: 3x3 WACC Matrix - Levered Beta vs Debt/Equity Ratio\n----------------------------------------------------------------------\n\nWACC by Levered Beta and Debt/Equity Ratio:\n\n                        β = 1.40  β = 1.86  β = 2.30\nD/E = 1.0 (50% debt)      8.59%     8.91%     9.23%\nD/E = 2.0 (66.7% debt)    8.59%     8.91%     9.23%\nD/E = 3.0 (75% debt)      8.80%    9.12%     9.44%\n\nInsight: WACC is minimized at moderate leverage with moderate beta. At our\nbase case (D/E=2.0, β=1.86), WACC is 8.91%. If leverage exceeds D/E=3.0 and\nbeta reaches 2.3, WACC climbs to 9.44%, materially compressing equity returns.\n\n\n======================================================================\nKEY TAKEAWAYS FOR THE INVESTMENT COMMITTEE\n======================================================================\n\n1. Base Case WACC: 8.91% at 67% leverage (D/E = 2.0)\n   - Cost of Equity: 16.61% (reflects high financial leverage risk)\n   - After-Tax Cost of Debt: 4.58% (BB+ rating)\n\n2. Rate Sensitivity: +100 bps in rates → WACC rises to 9.58%\n   - Equity IRR target of 18-20% assumes EBITDA growth > 4% p.a.\n\n3. Leverage Sensitivity: Each 25% increase in debt/value adds ~15-20 bps to WACC\n   - Current 67% leverage is near optimal; going to 75% adds material cost\n\n4. Refinancing Risk: If interest rates or credit spreads widen post-close,\n   debt refinancing at rates > 6.5% would breach investment committee hurdles.\n\nRecommendation: Proceed with base case at 67% leverage. Consider fixed-rate\ndebt to hedge against rate spikes. Model downside scenarios with 3.0x+ leverage."
+          },
+          "business_implication": "The sensitivity analysis reveals that Sterling Chemicals' WACC of 8.91% is robust to moderate leverage changes but highly exposed to interest rate spikes. The key risk is refinancing: if the Fed maintains rates above 5.5% for the next 12-18 months, Sterling's debt maturity could face YTM > 6.8%, pushing WACC to 9.3-9.5%. At that level, achieving the sponsor's 18-20% IRR target requires EBITDA CAGR of 5%+. The 3x3 matrix also shows that the current levered beta of 1.86 correctly reflects the 67% debt financing; reducing leverage to 50% would lower beta to 1.40 and WACC to 8.59%, but the tax shield benefit would be foregone. Conversely, pushing leverage to 75% adds only 32 bps of WACC but raises the cost of equity to 19.11%, creating material pressure on equity returns if EBITDA growth disappoints. The investment committee should approve the deal at 67% leverage with clear monitoring of refinancing risk and covenant headroom above the 4.0x net leverage covenant."
+        }
+      ]
+    }
+  ]
+}

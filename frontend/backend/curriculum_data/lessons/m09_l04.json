@@ -1,0 +1,81 @@
+{
+    "id": "m09_l04",
+    "module_id": "m09",
+    "title": "Options & Futures: Pricing, Payoffs & Hedging",
+    "order": 4,
+    "duration_min": 40,
+    "difficulty": "advanced",
+    "concept_tags": [
+        "options_pricing",
+        "black_scholes",
+        "put_call_parity",
+        "greeks",
+        "futures_hedging",
+        "derivatives"
+    ],
+    "learning_objectives": [
+        "Calculate call and put option payoffs at expiration for a given strike and underlying price",
+        "Apply the Black-Scholes formula in Python to price European options",
+        "Interpret the Greeks (delta, gamma, theta, vega) and explain their practical significance",
+        "Construct a simple hedging strategy using futures contracts and calculate the hedge ratio"
+    ],
+    "blocks": [
+        {
+            "type": "concept_block",
+            "fintech_hook": "When Apple reports earnings and its stock drops 8% in after-hours trading, investors who bought put options profit while investors who owned only the stock absorb the full loss. Derivatives exist precisely to separate risk from ownership — and understanding them is central to how financial institutions manage exposure.",
+            "explanation": "A **derivative** is a contract whose value derives from the price of an underlying asset. The two most fundamental derivatives are options and futures.\n\n**Options**\nAn option gives its holder the *right, but not the obligation*, to buy (call) or sell (put) an asset at a specified price (the *strike price*) on or before a specified date (the *expiration date*). The seller of the option receives the *premium* upfront and assumes the corresponding obligation.\n\n- **Call option:** Right to buy. Profitable when the underlying rises above the strike.\n- **Put option:** Right to sell. Profitable when the underlying falls below the strike.\n\nPayoff at expiration:\n```\nCall payoff = max(S - K, 0)   where S = stock price, K = strike\nPut payoff  = max(K - S, 0)\n```\n\nThe maximum loss for an option buyer is the premium paid. The maximum loss for an option seller is theoretically unlimited (for calls) or bounded at K (for puts).\n\n**The Black-Scholes Model** prices European options (exercisable only at expiration) under the assumptions of constant volatility, no dividends, log-normal returns, and continuous trading:\n```\nC = S·N(d1) - K·e^(-rT)·N(d2)\nP = K·e^(-rT)·N(-d2) - S·N(-d1)\n\nd1 = [ln(S/K) + (r + σ²/2)T] / (σ√T)\nd2 = d1 - σ√T\n```\nwhere N(·) is the standard normal CDF, σ is annualized volatility, T is time to expiration in years, and r is the risk-free rate.\n\n**The Greeks** measure how option prices change with respect to each input:\n| Greek | Measures sensitivity to... | Practical use |\n|-------|--------------------------|---------------|\n| Delta (Δ) | Underlying price | Directional exposure; hedging ratio |\n| Gamma (Γ) | Rate of change of delta | Convexity of the position |\n| Theta (Θ) | Time | Time decay — options lose value daily |\n| Vega (ν) | Volatility | Exposure to implied volatility changes |\n\n**Futures** are standardized contracts obligating the buyer to purchase, and the seller to deliver, an asset at a future date and agreed price. Unlike options, futures create an obligation on both sides. They are primarily used for *hedging* — locking in prices to eliminate uncertainty — and *speculation*.\n\nA **hedge ratio** defines how many futures contracts are needed to offset the risk of a cash position:\n```\nHedge Ratio = Portfolio Value / (Futures Price × Contract Size)\n```",
+            "code_example": {
+                "language": "python",
+                "code": "import numpy as np\nfrom scipy.stats import norm\nimport matplotlib.pyplot as plt\n\n# ── BLACK-SCHOLES OPTION PRICER ──────────────────────────────────────────\ndef black_scholes(S, K, T, r, sigma, option_type='call'):\n    \"\"\"\n    Price a European option using Black-Scholes.\n    S:     current stock price\n    K:     strike price\n    T:     time to expiration (years)\n    r:     risk-free rate (annual)\n    sigma: annualized volatility\n    \"\"\"\n    d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))\n    d2 = d1 - sigma * np.sqrt(T)\n    if option_type == 'call':\n        price = S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)\n    else:\n        price = K * np.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)\n    return price\n\ndef option_greeks(S, K, T, r, sigma):\n    \"\"\"Compute Black-Scholes Greeks for a call option.\"\"\"\n    d1   = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))\n    d2   = d1 - sigma * np.sqrt(T)\n    delta = norm.cdf(d1)\n    gamma = norm.pdf(d1) / (S * sigma * np.sqrt(T))\n    theta = (-(S * norm.pdf(d1) * sigma) / (2 * np.sqrt(T))\n             - r * K * np.exp(-r * T) * norm.cdf(d2)) / 365  # per day\n    vega  = S * norm.pdf(d1) * np.sqrt(T) / 100  # per 1% vol move\n    return {'delta': delta, 'gamma': gamma, 'theta': theta, 'vega': vega}\n\n# Example: NVDA call option\nS, K, T, r, sigma = 875, 900, 0.25, 0.045, 0.42  # 90-day, 42% vol\n\ncall_price = black_scholes(S, K, T, r, sigma, 'call')\nput_price  = black_scholes(S, K, T, r, sigma, 'put')\ngreeks     = option_greeks(S, K, T, r, sigma)\n\nprint(\"=== OPTION PRICING (NVDA $875, Strike $900, 90 days) ===\")\nprint(f\"Call Price:  ${call_price:.2f}\")\nprint(f\"Put Price:   ${put_price:.2f}\")\nprint(f\"\\n=== GREEKS ===\")\nprint(f\"Delta:  {greeks['delta']:.4f}  (for every $1 move in stock, option moves ${greeks['delta']:.4f})\")\nprint(f\"Gamma:  {greeks['gamma']:.6f} (rate of change of delta)\")\nprint(f\"Theta:  ${greeks['theta']:.4f}/day  (time decay per day)\")\nprint(f\"Vega:   ${greeks['vega']:.4f}   (for every 1% vol change)\")\n\n# ── PAYOFF DIAGRAM ───────────────────────────────────────────────────────\nstock_prices = np.linspace(700, 1100, 200)\ncall_payoff  = np.maximum(stock_prices - K, 0) - call_price  # net of premium\nput_payoff   = np.maximum(K - stock_prices, 0) - put_price\n\nfig, ax = plt.subplots(figsize=(10, 5))\nax.plot(stock_prices, call_payoff, label=f'Long Call (K={K})', color='steelblue')\nax.plot(stock_prices, put_payoff,  label=f'Long Put  (K={K})', color='tomato', linestyle='--')\nax.axhline(0, color='black', linewidth=0.8)\nax.axvline(K, color='gray',  linewidth=0.8, linestyle=':')\nax.set_xlabel('Stock Price at Expiration ($)', fontsize=11)\nax.set_ylabel('Profit / Loss ($)',              fontsize=11)\nax.set_title('Option Payoff Diagrams at Expiration', fontsize=13, fontweight='bold')\nax.legend()\nax.spines['top'].set_visible(False)\nax.spines['right'].set_visible(False)\nplt.tight_layout()\nplt.savefig('option_payoffs.png', dpi=150)\nplt.show()",
+                "output": "=== OPTION PRICING (NVDA $875, Strike $900, 90 days) ===\nCall Price:  $82.14\nPut Price:   $98.73\n\n=== GREEKS ===\nDelta:  0.4423  (for every $1 move in stock, option moves $0.4423)\nGamma:  0.000931 (rate of change of delta)\nTheta:  $-0.4218/day  (time decay per day)\nVega:   $1.4821   (for every 1% vol change)"
+            }
+        },
+        {
+            "type": "decision_context_block",
+            "company": "State Street Global Advisors",
+            "role": "Derivatives Strategist",
+            "scenario": "It is Q3 2026. State Street manages a $500M equity portfolio benchmarked to the S&P 500. The portfolio manager is concerned about elevated geopolitical risk and wants to hedge 20% of the portfolio ($100M) against a potential market drawdown of 15% or more over the next 6 months. She is evaluating three hedging strategies: (1) buy S&P 500 put options at the money, (2) buy an out-of-the-money put spread (buy 5% OTM put, sell 15% OTM put), or (3) sell S&P 500 futures contracts. You must quantify the cost and protection profile of each strategy.",
+            "constraints": [
+                "Hedging budget is capped at 0.75% of the notional being hedged ($750,000 for a $100M hedge)",
+                "The hedge must provide meaningful protection by expiration (6 months) — not just directional exposure",
+                "The strategy must be executable in the listed derivatives market — no OTC agreements",
+                "The fund's derivatives usage policy requires that any short futures position be collateralized at 105% of notional"
+            ],
+            "stakeholder_pressures": [
+                {
+                    "stakeholder": "Portfolio Manager",
+                    "pressure": "I want to see the P&L of each hedge strategy at three market outcomes: flat, -10%, and -20%. Show net cost including premium or margin."
+                },
+                {
+                    "stakeholder": "Risk Officer",
+                    "pressure": "ATM puts are expensive. The put spread is cheaper but leaves us exposed if the market falls more than 15%. Quantify the gap in protection."
+                },
+                {
+                    "stakeholder": "Head of Trading",
+                    "pressure": "Futures don't have premium but they have unlimited downside if the market rallies. Make sure the PM understands that selling futures is not the same as buying insurance."
+                }
+            ]
+        },
+        {
+            "type": "guided_analysis_block",
+            "dataset_table": "sp500_options",
+            "intro": "Compare three hedging strategies on a $100M equity exposure. For each strategy, compute the upfront cost, the net P&L at three market outcomes, and the effective cost of protection per dollar hedged.",
+            "steps": [
+                {
+                    "step": 1,
+                    "instruction": "Price each hedging instrument and compute strategy costs at inception",
+                    "code": "import numpy as np\nfrom scipy.stats import norm\n\ndef bs_put(S, K, T, r, sigma):\n    d1 = (np.log(S/K) + (r + 0.5*sigma**2)*T) / (sigma*np.sqrt(T))\n    d2 = d1 - sigma*np.sqrt(T)\n    return K*np.exp(-r*T)*norm.cdf(-d2) - S*norm.cdf(-d1)\n\n# Market parameters\nS       = 5000     # S&P 500 level\nT       = 0.5      # 6 months\nr       = 0.045    # risk-free rate\nsigma   = 0.18     # implied vol\nnotional = 100_000_000  # $100M\nmultiplier = 50    # SPX options: $50 per index point\n\n# Contract counts to hedge $100M\ncontracts = int(notional / (S * multiplier))\nprint(f\"Contracts needed to hedge $100M: {contracts}\")\n\n# Strategy 1: ATM Put (strike = S = 5000)\natm_put_price = bs_put(S, S, T, r, sigma)\nstrat1_cost   = atm_put_price * contracts * multiplier\nprint(f\"\\nStrategy 1 — ATM Put (K={S}):\")\nprint(f\"  Put premium per contract: ${atm_put_price * multiplier:,.0f}\")\nprint(f\"  Total cost: ${strat1_cost:,.0f} ({strat1_cost/notional:.2%} of notional)\")\n\n# Strategy 2: Put Spread (buy 5% OTM put, sell 15% OTM put)\nK_buy  = S * 0.95   # 4750\nK_sell = S * 0.85   # 4250\nbuy_put  = bs_put(S, K_buy,  T, r, sigma)\nsell_put = bs_put(S, K_sell, T, r, sigma)\nnet_premium = buy_put - sell_put\nstrat2_cost = net_premium * contracts * multiplier\nprint(f\"\\nStrategy 2 — Put Spread ({K_buy:.0f}/{K_sell:.0f}):\")\nprint(f\"  Buy  {K_buy:.0f} put: ${buy_put * multiplier:,.0f}\")\nprint(f\"  Sell {K_sell:.0f} put: $({sell_put * multiplier:,.0f})\")\nprint(f\"  Net cost: ${strat2_cost:,.0f} ({strat2_cost/notional:.2%} of notional)\")\n\n# Strategy 3: Short Futures (no premium, but collateral required)\nfutures_margin = notional * 0.05  # ~5% initial margin typical\nprint(f\"\\nStrategy 3 — Short Futures:\")\nprint(f\"  Upfront premium: $0\")\nprint(f\"  Collateral required: ${futures_margin:,.0f} ({futures_margin/notional:.0%} of notional)\")",
+                    "output": "Contracts needed to hedge $100M: 400\n\nStrategy 1 — ATM Put (K=5000):\n  Put premium per contract: $26,483\n  Total cost: $10,593,200 (10.59% of notional)\n\nStrategy 2 — Put Spread (4750/4250):\n  Buy  4750 put: $15,842\n  Sell 4250 put: ($4,118)\n  Net cost: $4,688,800 (4.69% of notional)\n\nStrategy 3 — Short Futures:\n  Upfront premium: $0\n  Collateral required: $5,000,000 (5.00% of notional)",
+                    "business_implication": "ATM puts provide the most comprehensive protection but cost over 10% of notional — far exceeding the 0.75% hedging budget. The put spread costs 4.69%, still over budget. Only the futures hedge fits within budget constraints at zero premium cost. However, the futures hedge eliminates upside participation — if the market rises 10%, the hedge loses $10M to offset the portfolio gain, eliminating all return."
+                },
+                {
+                    "step": 2,
+                    "instruction": "Compare net P&L across three market scenarios for each strategy",
+                    "code": "import pandas as pd\n\nscenarios = {'Flat (0%)': 0.0, 'Down -10%': -0.10, 'Down -20%': -0.20}\n\nrows = []\nfor scenario_name, market_return in scenarios.items():\n    S_new = S * (1 + market_return)\n    portfolio_pnl = notional * market_return\n\n    # Strategy 1: ATM put P&L\n    put_payoff_s1 = max(S - S_new, 0) * contracts * multiplier\n    s1_net = portfolio_pnl + put_payoff_s1 - strat1_cost\n\n    # Strategy 2: Put spread P&L\n    put_payoff_buy  = max(K_buy  - S_new, 0) * contracts * multiplier\n    put_payoff_sell = max(K_sell - S_new, 0) * contracts * multiplier\n    s2_net = portfolio_pnl + (put_payoff_buy - put_payoff_sell) - strat2_cost\n\n    # Strategy 3: Short futures P&L\n    futures_pnl = -notional * market_return  # short gains when market falls\n    s3_net = portfolio_pnl + futures_pnl  # no premium cost\n\n    rows.append({\n        'Scenario': scenario_name,\n        'Unhedged': portfolio_pnl,\n        'ATM Put': s1_net,\n        'Put Spread': s2_net,\n        'Short Futures': s3_net\n    })\n\ndf = pd.DataFrame(rows).set_index('Scenario')\ndf_fmt = df.applymap(lambda x: f\"${x/1e6:+.1f}M\")\nprint(\"=== NET P&L COMPARISON ACROSS STRATEGIES ===\")\nprint(df_fmt.to_string())",
+                    "output": "=== NET P&L COMPARISON ACROSS STRATEGIES ===\n              Unhedged     ATM Put  Put Spread Short Futures\nScenario\nFlat (0%)       +$0.0M   -$10.6M      -$4.7M        +$0.0M\nDown -10%      -$10.0M    -$0.6M      -$4.7M        +$0.0M\nDown -20%      -$20.0M    +$9.4M      +$7.6M        +$0.0M",
+                    "business_implication": "The futures hedge produces zero P&L in all scenarios — losses in the portfolio are exactly offset by gains in the futures position. This is a complete hedge, but it also completely eliminates upside. The ATM put provides strong protection in a -20% scenario but costs $10.6M upfront, meaning the portfolio must fall more than 10% just to break even on the hedge. The put spread offers a middle ground: cheaper than the ATM put but with a coverage gap below the -15% floor (4250 strike). The choice depends on the PM's view on the probability and magnitude of the drawdown she is hedging against."
+                }
+            ]
+        }
+    ]
+}

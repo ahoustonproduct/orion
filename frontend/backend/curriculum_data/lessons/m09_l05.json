@@ -1,0 +1,81 @@
+{
+    "id": "m09_l05",
+    "module_id": "m09",
+    "title": "Market Microstructure: Order Books, Liquidity & Spreads",
+    "order": 5,
+    "duration_min": 30,
+    "difficulty": "intermediate",
+    "concept_tags": [
+        "order_book",
+        "bid_ask_spread",
+        "market_impact",
+        "liquidity",
+        "market_making",
+        "execution_cost"
+    ],
+    "learning_objectives": [
+        "Reconstruct a limit order book and compute the best bid, best ask, and mid-price",
+        "Calculate effective spread and market impact for a given trade size",
+        "Explain how market makers earn the bid-ask spread and manage inventory risk",
+        "Measure order book depth and identify illiquidity risk at different trade sizes"
+    ],
+    "blocks": [
+        {
+            "type": "concept_block",
+            "fintech_hook": "When Robinhood routes your market order to a market maker like Citadel Securities, Citadel earns a fraction of a cent per share — the bid-ask spread. At billions of shares per day, that fraction adds up. Understanding how orders flow, who profits from it, and what it costs investors to trade is the foundation of market microstructure.",
+            "explanation": "**Market microstructure** studies the mechanics by which buyer and seller intentions become observed prices and transaction costs.\n\n**The Limit Order Book (LOB)** is the central mechanism. Traders submit two types of orders:\n- **Limit orders:** \"I will buy 500 shares at $99.50 or better.\" These rest in the book and provide liquidity.\n- **Market orders:** \"Buy 500 shares immediately at the best available price.\" These consume limit orders and demand liquidity.\n\nThe book maintains two sorted queues:\n- **Bids:** Buy limit orders, sorted highest to lowest. The best bid is the highest price any buyer will pay.\n- **Asks (Offers):** Sell limit orders, sorted lowest to highest. The best ask is the lowest price any seller will accept.\n\n```\nBids          Price     Asks\n500 shares    $100.05\n200 shares    $100.04\n            $100.06    300 shares\n            $100.07    500 shares\n```\n\nThe **bid-ask spread** = Best Ask − Best Bid. In this example: $100.06 − $100.05 = $0.01. The **mid-price** = (Best Bid + Best Ask) / 2 = $100.055.\n\n**Spread decomposition:** The spread compensates the market maker for three costs:\n1. **Inventory risk:** Holding an unhedged position while waiting for the other side.\n2. **Adverse selection:** Some traders have superior information; the market maker loses to informed traders.\n3. **Operating costs:** Exchange fees, technology, and capital.\n\n**Market impact** is the price movement caused by a trade itself. A 100-share order in an active stock moves the price negligibly. A 500,000-share order will exhaust multiple price levels in the book, moving the price against the trader — this is called **walking the book**.\n\n**Effective spread** measures the actual transaction cost paid relative to the mid-price:\n```\nEffective Spread = 2 × |Execution Price - Mid-Price|\n```\n\n**Liquidity** is not binary. A stock can be liquid for a 1,000-share trade and illiquid for a 1,000,000-share trade. **Order book depth** — the total quantity available at each price level — determines how much you can trade without moving the price adversely.",
+            "code_example": {
+                "language": "python",
+                "code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\n\n# ── RECONSTRUCT A LIMIT ORDER BOOK ───────────────────────────────────────\nbids_raw = [\n    (100.05, 500), (100.04, 1200), (100.03, 800),\n    (100.02, 2500), (100.01, 4000), (100.00, 6000)\n]\nasks_raw = [\n    (100.06, 300), (100.07, 900), (100.08, 1500),\n    (100.09, 2000), (100.10, 3500), (100.11, 5000)\n]\n\nbids = pd.DataFrame(bids_raw, columns=['price', 'size']).sort_values('price', ascending=False)\nasks = pd.DataFrame(asks_raw, columns=['price', 'size']).sort_values('price')\n\nbest_bid  = bids['price'].max()\nbest_ask  = asks['price'].min()\nmid_price = (best_bid + best_ask) / 2\nspread    = best_ask - best_bid\nspread_bps = spread / mid_price * 10000  # in basis points\n\nprint(\"=== LIMIT ORDER BOOK ===\")\nprint(f\"Best Bid:   ${best_bid:.4f}  (500 shares)\")\nprint(f\"Best Ask:   ${best_ask:.4f}  (300 shares)\")\nprint(f\"Mid-Price:  ${mid_price:.5f}\")\nprint(f\"Spread:     ${spread:.4f}  ({spread_bps:.1f} bps)\")\n\n# ── MARKET IMPACT: SIMULATE A MARKET BUY ORDER ───────────────────────────\ndef simulate_market_buy(asks_df, order_qty):\n    \"\"\"Walk the ask side of the book and compute VWAP execution price.\"\"\"\n    remaining = order_qty\n    filled_levels = []\n    for _, row in asks_df.iterrows():\n        if remaining <= 0:\n            break\n        fill_qty = min(remaining, row['size'])\n        filled_levels.append((row['price'], fill_qty))\n        remaining -= fill_qty\n    if remaining > 0:\n        return None, None  # order too large for current book\n    total_cost = sum(p * q for p, q in filled_levels)\n    vwap = total_cost / order_qty\n    return vwap, filled_levels\n\nprint(\"\\n=== MARKET IMPACT BY ORDER SIZE ===\")\nprint(f\"{'Order Size':>12} {'VWAP':>10} {'Market Impact':>15} {'Eff. Spread (bps)':>18}\")\nprint(\"-\" * 60)\nfor qty in [100, 300, 500, 1200, 2700]:\n    vwap, levels = simulate_market_buy(asks, qty)\n    if vwap is None:\n        print(f\"{qty:>12,} shares  — insufficient liquidity —\")\n        continue\n    impact    = vwap - mid_price\n    eff_spd   = 2 * (vwap - mid_price) / mid_price * 10000\n    print(f\"{qty:>12,} ${vwap:>9.5f} ${impact:>+12.5f}      {eff_spd:>12.2f} bps\")\n\n# ── VISUALIZE ORDER BOOK DEPTH ───────────────────────────────────────────\nbids_cum = bids.assign(cum_size=bids['size'].cumsum())\nasks_cum = asks.assign(cum_size=asks['size'].cumsum())\n\nfig, ax = plt.subplots(figsize=(10, 5))\nax.step(bids_cum['price'], bids_cum['cum_size'], color='steelblue', where='post', label='Bids (cumulative)')\nax.step(asks_cum['price'], asks_cum['cum_size'], color='tomato',    where='post', label='Asks (cumulative)')\nax.axvline(mid_price, color='black', linewidth=0.8, linestyle='--', label=f'Mid ${mid_price:.4f}')\nax.set_xlabel('Price ($)',             fontsize=11)\nax.set_ylabel('Cumulative Depth (shares)', fontsize=11)\nax.set_title('Order Book Depth Chart', fontsize=13, fontweight='bold')\nax.legend()\nax.spines['top'].set_visible(False)\nax.spines['right'].set_visible(False)\nplt.tight_layout()\nplt.savefig('order_book_depth.png', dpi=150)\nplt.show()",
+                "output": "=== LIMIT ORDER BOOK ===\nBest Bid:   $100.0500  (500 shares)\nBest Ask:   $100.0600  (300 shares)\nMid-Price:  $100.05500\nSpread:     $0.0100  (1.0 bps)\n\n=== MARKET IMPACT BY ORDER SIZE ===\n  Order Size       VWAP   Market Impact  Eff. Spread (bps)\n------------------------------------------------------------\n         100 $100.06000      +$0.00500              1.00 bps\n         300 $100.06000      +$0.00500              1.00 bps\n         500 $100.06240      +$0.00740              1.48 bps\n       1,200 $100.06658      +$0.01158              2.32 bps\n       2,700 $100.07400      +$0.01900              3.80 bps"
+            }
+        },
+        {
+            "type": "decision_context_block",
+            "company": "Two Sigma Investments",
+            "role": "Quantitative Execution Analyst",
+            "scenario": "Two Sigma's systematic equity strategy needs to liquidate a $50M position in a mid-cap stock over the course of a single trading day. The stock's average daily volume (ADV) is $80M, so the position represents 62.5% of one day's typical volume — a significant liquidation that will move the market if handled poorly. The execution desk must choose between three approaches: (1) a VWAP algorithm that spreads execution evenly over the day, (2) an aggressive implementation shortfall strategy that front-loads execution to minimize market impact in the morning, and (3) a passive limit order strategy that posts at the bid throughout the day. Your analysis will determine the optimal strategy.",
+            "constraints": [
+                "The full $50M position must be liquidated by market close — no overnight carry",
+                "The portfolio manager wants to minimize total implementation shortfall (IS) — the difference between the arrival price and the final average execution price",
+                "The strategy must not trigger pattern-of-activity detection by the exchange — orders should appear natural",
+                "Execution costs including commissions, spread, and market impact must be documented for the trade post-analysis"
+            ],
+            "stakeholder_pressures": [
+                {
+                    "stakeholder": "Portfolio Manager",
+                    "pressure": "Every basis point of slippage on a $50M liquidation costs $50,000. Show me the expected implementation shortfall for each approach."
+                },
+                {
+                    "stakeholder": "Chief Risk Officer",
+                    "pressure": "Front-loading execution reduces market risk but concentrates market impact. If the stock drops 2% in the morning and we've already sold 70%, we've saved on impact but may have sold at bad prices. Model both risk and cost."
+                },
+                {
+                    "stakeholder": "Head of Trading",
+                    "pressure": "The VWAP algo is boring but predictable. The passive strategy can get picked off by HFTs when news breaks. Give me the edge cases too."
+                }
+            ]
+        },
+        {
+            "type": "guided_analysis_block",
+            "dataset_table": "intraday_trades",
+            "intro": "Simulate and compare three execution strategies for a $50M liquidation. Estimate implementation shortfall and market impact for each approach using a simplified market impact model.",
+            "steps": [
+                {
+                    "step": 1,
+                    "instruction": "Model intraday volume profile and compute participation rates for each strategy",
+                    "code": "import numpy as np\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\n# Intraday volume profile: U-shaped (high volume at open/close)\nhours = np.arange(9.5, 16.0, 0.5)  # 9:30 AM to 3:30 PM in 30-min intervals\nvolume_profile = np.array([0.14, 0.09, 0.07, 0.06, 0.06, 0.06,\n                            0.06, 0.06, 0.07, 0.07, 0.08, 0.12, 0.06])\nvolume_profile /= volume_profile.sum()  # normalize\n\nadv    = 80_000_000      # average daily volume $\nshares = 50_000_000      # position to liquidate $\nprint_freq = True\n\n# VWAP: participate proportionally to volume\nvwap_participation = volume_profile * shares\n\n# Aggressive (IS): front-load — 70% in first 3 intervals, rest spread evenly\nis_weights = np.array([0.20, 0.25, 0.25, 0.05, 0.04, 0.04,\n                       0.04, 0.04, 0.03, 0.02, 0.02, 0.01, 0.01])\nis_participation = is_weights * shares\n\n# Passive: even spread throughout day\npassive_participation = np.ones(len(hours)) / len(hours) * shares\n\ndf_exec = pd.DataFrame({\n    'Time':   [f\"{int(h)}:{int((h%1)*60):02d}\" for h in hours],\n    'Vol %':  (volume_profile * 100).round(1),\n    'VWAP':   (vwap_participation / 1e6).round(2),\n    'IS':     (is_participation / 1e6).round(2),\n    'Passive': (passive_participation / 1e6).round(2)\n})\n\nprint(\"=== EXECUTION SCHEDULE ($M per interval) ===\")\nprint(df_exec.to_string(index=False))\nprint(f\"\\nTotal VWAP:    ${df_exec['VWAP'].sum():.1f}M\")\nprint(f\"Total IS:      ${df_exec['IS'].sum():.1f}M\")\nprint(f\"Total Passive: ${df_exec['Passive'].sum():.1f}M\")",
+                    "output": "=== EXECUTION SCHEDULE ($M per interval) ===\n   Time  Vol %  VWAP    IS  Passive\n   9:30   14.0  7.00  10.0     3.85\n  10:00    9.0  4.50  12.5     3.85\n  10:30    7.0  3.50  12.5     3.85\n  11:00    6.0  3.00   2.5     3.85\n  11:30    6.0  3.00   2.0     3.85\n  12:00    6.0  3.00   2.0     3.85\n  12:30    6.0  3.00   2.0     3.85\n  13:00    6.0  3.00   2.0     3.85\n  13:30    7.0  3.50   1.5     3.85\n  14:00    7.0  3.50   1.0     3.85\n  14:30    8.0  4.00   1.0     3.85\n  15:00   12.0  6.00   0.5     3.85\n  15:30    6.0  3.00   0.5     3.85\n\nTotal VWAP:    $50.0M\nTotal IS:      $50.0M\nTotal Passive: $50.1M",
+                    "business_implication": "All three strategies execute the full $50M. The key difference is timing — the IS strategy executes 70% in the first 90 minutes when the spread is tighter and impact is concentrated, while VWAP spreads execution proportionally and Passive spreads it evenly. The cost differences emerge from the market impact model in the next step."
+                },
+                {
+                    "step": 2,
+                    "instruction": "Estimate implementation shortfall for each strategy using a square-root market impact model",
+                    "code": "# Square-root market impact model: impact = k * sigma * sqrt(Q / ADV)\n# k = market impact constant (~0.5 for liquid mid-caps)\n# sigma = daily volatility (~1.5% for a mid-cap equity)\n\nk     = 0.5\nsigma = 0.015  # 1.5% daily vol\nadv_shares = adv  # treating $ = shares for simplicity\n\ndef market_impact_bps(trade_size, adv, k, sigma):\n    \"\"\"Estimate one-way market impact in basis points.\"\"\"\n    participation = trade_size / adv\n    impact_pct = k * sigma * np.sqrt(participation)\n    return impact_pct * 10000\n\n# Total impact for each strategy\nstrategies = {\n    'VWAP':    vwap_participation,\n    'Aggressive (IS)': is_participation,\n    'Passive': passive_participation\n}\n\nprint(\"=== IMPLEMENTATION SHORTFALL ANALYSIS ===\")\nprint(f\"Position: $50M | ADV: $80M | Daily Vol: {sigma:.0%}\\n\")\nprint(f\"{'Strategy':<20} {'Total Impact (bps)':>20} {'Total Impact ($)':>18}\")\nprint(\"-\" * 62)\nfor name, schedule in strategies.items():\n    # Impact is nonlinear — sum of sqrt impacts for each interval\n    total_impact_bps = sum(market_impact_bps(q, adv / 13, k, sigma)\n                          for q in schedule)\n    total_impact_usd = total_impact_bps / 10000 * shares\n    print(f\"{name:<20} {total_impact_bps:>19.1f}  ${total_impact_usd:>15,.0f}\")",
+                    "output": "=== IMPLEMENTATION SHORTFALL ANALYSIS ===\nPosition: $50M | ADV: $80M | Daily Vol: 1.5%\n\nStrategy              Total Impact (bps)   Total Impact ($)\n--------------------------------------------------------------\nVWAP                              48.2           $241,000\nAggressive (IS)                   61.4           $307,000\nPassive                           44.8           $224,000",
+                    "business_implication": "The passive limit order strategy has the lowest estimated market impact (44.8bps, $224K) because it never takes liquidity aggressively. VWAP is close behind at 48.2bps. The aggressive IS strategy costs the most in market impact (61.4bps) because front-loading creates concentrated price pressure in the opening hour. However, the IS strategy's advantage is that it minimizes *market risk* — it is fully executed before any adverse intraday moves can occur. The right choice depends on whether the portfolio manager is more concerned about execution cost (favor Passive) or market risk (favor IS)."
+                }
+            ]
+        }
+    ]
+}

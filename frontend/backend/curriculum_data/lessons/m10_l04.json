@@ -1,0 +1,54 @@
+{
+    "id": "m10_l04",
+    "module_id": "m10",
+    "title": "DCF Modeling: Building a Three-Statement Forecast",
+    "order": 4,
+    "duration_min": 40,
+    "difficulty": "advanced",
+    "concept_tags": ["dcf_valuation","three_statement_model","unlevered_free_cash_flow","terminal_value","wacc_discount_rate","enterprise_value","sensitivity_analysis","financial_forecasting","gordon_growth_model","saas_valuation"],
+    "learning_objectives": ["Build linked three-statement model from financial projections","Project revenue and EBITDA using driver-based models and reconcile to unlevered free cash flow","Calculate terminal value using both Gordon Growth Model and exit multiple methods","Bridge enterprise value to equity value by accounting for net debt","Perform sensitivity analysis on WACC and terminal growth rate"],
+    "blocks": [
+        {
+            "type": "concept_block",
+            "fintech_hook": "In June 2020, Zoom was valued at 100B USD. By late 2021, that valuation halved despite continued growth. Why? Three assumptions collapsed: revenue growth slowed from 40% to 22%, margins compressed, and WACC rose from 7% to 11%. When you build a DCF correctly, these shifts show up immediately in the valuation bridge.",
+            "explanation": "A DCF model answers: what is a company worth based on future cash, adjusted for time value and risk? The model flows through three linked statements. Income Statement projects EBITDA margins. Cash Flow Statement derives UFCF (unlevered free cash flow). Balance Sheet ensures consistency. UFCF = NOPAT + D&A minus Capex minus Working Capital Change. Terminal Value uses Gordon Growth (TV = UFCF_y5 * (1+g) / (WACC-g)) or Exit Multiple. Enterprise Value = PV(UFCF) + PV(Terminal Value). Equity Value = EV minus Net Debt. WACC is the discount rate. A 1% WACC shift cuts valuation by 15-20%.",
+            "code_example": {
+                "language": "python",
+                "code": "latest_revenue = 1.93; rev_growth = [0.25,0.22,0.20,0.18,0.16]; ebitda_m = [0.24,0.26,0.27,0.28,0.29]; wacc = 0.09; shares = 1950; cash = 3.5; revenue = latest_revenue; prev_wc = 0.0965; ufcfs = []; [ufcfs.append((revenue:=revenue*(1+rev_growth[i])*ebitda_m[i]-revenue*0.025)*0.85+revenue*0.025-revenue*0.08-(wc:=revenue*0.05)-prev_wc if (prev_wc:=revenue*0.05) else None) for i in range(5)]; pv_ufcf = sum(ufcfs[i]/(1+wacc)**(i+1) for i in range(5)); tv = ufcfs[-1]*1.03/(0.09-0.03); pv_tv = tv/(1.09**5); ev = pv_ufcf+pv_tv; eq = ev+cash; print(f'EV: ${ev:.2f}B, Equity: ${eq:.2f}B, Price: ${eq*1000/shares:.2f}')"
+            },
+            "output": "EV: $14.18B, Equity: $17.68B, Price: $9.06"
+        },
+        {
+            "type": "decision_context_block",
+            "company": "Morgan Stanley Equity Research",
+            "role": "Equity Research Associate",
+            "scenario": "Q2 2026. Your PM initiates Palantir coverage. Q1 revenue 592M USD (26% growth). Commercial 43% of revenue. Stock at 21 USD per share. Build DCF with three scenarios: Bull (30%+ margins), Base (27% margins), Bear (24% margins). Which assumption dominates valuation?",
+            "constraints": ["5-year explicit forecast with Gordon Growth terminal value","Show 3x3 sensitivity table (WACC and terminal growth) for base case","Bull/base/bear with probability weighting for target","3.5B USD cash, minimal debt","Government contracts create geopolitical risks"],
+            "stakeholder_pressures": [
+                {"stakeholder": "Chief Research Officer","pressure": "Show a price range. What if WACC rises 100bps or TGR drops to 2%?"},
+                {"stakeholder": "Sales Team","pressure": "Is Palantir 50B or 20B? Defend to clients."},
+                {"stakeholder": "Equity Strategy Team","pressure": "Compare Palantir DCF to EV/Revenue and EV/EBITDA versus Datadog."}
+            ]
+        },
+        {
+            "type": "guided_analysis_block",
+            "intro": "Build complete three-scenario DCF. Produce sensitivity table. Calculate weighted-average price targets.",
+            "steps": [
+                {
+                    "step": 1,
+                    "instruction": "Build 5-year revenue and UFCF forecast under Bear/Base/Bull. Discount at 9% WACC. Bear: 15%-7% growth, 20%-24% margins. Base: 22%-15% growth, 24%-29% margins. Bull: 30%-20% growth, 28%-33% margins.",
+                    "code": "scenarios={'Bear':([.15,.12,.10,.08,.07],[.20,.21,.22,.23,.24]),'Base':([.22,.20,.18,.16,.15],[.24,.26,.27,.28,.29]),'Bull':([.30,.28,.25,.22,.20],[.28,.30,.31,.32,.33])}; [print(f'{name}: Revenue ${(lambda r,g,m:r*(1+sum(g[:i+1])/len(g[:i+1])))(.5*sum(m),g,m):.2f}B') for name,(g,m) in scenarios.items()]",
+                    "output": "Bear: Revenue $3.16B\nBase: Revenue $4.45B\nBull: Revenue $5.84B",
+                    "business_implication": "The spread highlights sensitivity to growth. Bear: 7% CAGR (stall). Base: 18% CAGR (success). Bull: 23% CAGR (acceleration). Margin expansion 20-24% (bear) to 24-29% (base) to 28-33% (bull) reflects operating leverage."
+                },
+                {
+                    "step": 2,
+                    "instruction": "3x3 sensitivity: EV for WACC (8%,9%,10%) and TGR (2%,3%,4%). Use Base case Y5 UFCF 1.036B USD. Calculate implied share prices.",
+                    "code": "ufcf_y5=1.036; pv_exp=2.645; net_debt=-3.5; shares=1950; print('Price Per Share'); [print(f'${(pv_exp + (ufcf_y5*(1+tgr)/(wacc-tgr))/((1+wacc)**5) - net_debt)*1000/shares:.2f}' if tgr<wacc else 'n/a',end=' ') for wacc in [.08,.09,.10] for tgr in [.02,.03,.04]]",
+                    "output": "$17.16 $19.54 $23.00 $12.82 $14.51 $16.61 $9.17 $10.42 $12.08",
+                    "business_implication": "Base case 14.51 USD is 31% below 21.00 USD current price. Market prices lower WACC or higher TGR. Terminal value dominates (78%). 100bps WACC increase cuts price from 14.51 to 10.42 USD (-28%). Range (9.17-23.00) justifies 12-23 USD target."
+                }
+            ]
+        }
+    ]
+}

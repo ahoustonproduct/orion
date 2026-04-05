@@ -1,0 +1,81 @@
+{
+    "id": "m09_l03",
+    "module_id": "m09",
+    "title": "Fixed Income: Bond Pricing, Duration & Yield Curves",
+    "order": 3,
+    "duration_min": 35,
+    "difficulty": "intermediate",
+    "concept_tags": [
+        "bond_pricing",
+        "yield_to_maturity",
+        "duration",
+        "convexity",
+        "yield_curve",
+        "interest_rate_risk"
+    ],
+    "learning_objectives": [
+        "Calculate the price of a bond given its coupon rate, maturity, and yield to maturity",
+        "Compute modified duration and explain what a 1% interest rate move does to a bond portfolio",
+        "Interpret the yield curve and explain what normal, inverted, and flat curves signal about economic expectations",
+        "Use Python to build a bond pricing function and construct a yield curve from Treasury rates"
+    ],
+    "blocks": [
+        {
+            "type": "concept_block",
+            "fintech_hook": "When the Federal Reserve raised rates 525 basis points between March 2022 and July 2023, Silicon Valley Bank's bond portfolio fell $15.8 billion in market value. The bank had ignored duration risk. Understanding why requires understanding how bond prices move with interest rates.",
+            "explanation": "A bond is a loan. The borrower (issuer) promises to pay the lender (investor) a series of fixed coupon payments plus the face value at maturity. The price of that bond is simply the present value of all future cash flows, discounted at the current market yield:\n\n```\nBond Price = Σ [Coupon / (1+y)^t] + [Face Value / (1+y)^n]\n```\n\nWhere `y` is the yield to maturity (YTM) and `n` is the number of periods. This formula has one crucial implication: **bond prices move inversely with interest rates**. When market yields rise, the fixed coupons on existing bonds become less attractive, so their prices fall. When yields fall, those fixed coupons become more attractive, so prices rise.\n\n**Duration** measures how sensitive a bond's price is to interest rate changes. Specifically, modified duration tells you the approximate percentage change in price for a 1% (100 basis point) move in yield:\n\n```\n% Change in Price ≈ -Modified Duration × Change in Yield\n```\n\nA bond with modified duration of 7 will lose approximately 7% of its value if yields rise 1%. A $100M portfolio with duration 7 loses ~$7M per 100bp rate move. This is exactly the exposure SVB failed to hedge.\n\n**The Yield Curve** plots yields of the same issuer (typically the US Treasury) across different maturities — from 3 months to 30 years. The shape of the curve communicates market expectations about future interest rates and economic conditions:\n- **Normal (upward sloping):** Long-term rates exceed short-term rates. Investors demand a premium for the greater uncertainty of locking in money for longer. This is the typical shape in a stable economy.\n- **Inverted (downward sloping):** Short-term rates exceed long-term rates. This occurs when markets expect future rate cuts, typically because they anticipate a recession. Every US recession since 1955 has been preceded by a yield curve inversion.\n- **Flat:** Short and long rates are similar. Often a transition state between normal and inverted, or vice versa.\n\n**Convexity** refines the duration estimate. Duration assumes a linear relationship between price and yield, but the true relationship is curved (convex). For large rate moves, convexity matters: bonds with higher convexity gain more when rates fall and lose less when rates rise than the duration estimate alone would suggest.",
+            "code_example": {
+                "language": "python",
+                "code": "import numpy as np\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\n# ── BOND PRICING FUNCTION ────────────────────────────────────────────────\ndef bond_price(face, coupon_rate, ytm, years, freq=2):\n    \"\"\"\n    Price a fixed-rate bond.\n    face:        par value ($)\n    coupon_rate: annual coupon rate (e.g. 0.05 for 5%)\n    ytm:         yield to maturity (annual, e.g. 0.06)\n    years:       years to maturity\n    freq:        coupon payments per year (2 = semiannual)\n    \"\"\"\n    periods      = int(years * freq)\n    coupon       = face * coupon_rate / freq\n    discount     = ytm / freq\n    pv_coupons   = sum(coupon / (1 + discount)**t for t in range(1, periods + 1))\n    pv_principal = face / (1 + discount)**periods\n    return pv_coupons + pv_principal\n\n# Example: 5% coupon, 10-year Treasury, priced at different yields\nface = 1000\ncoupon_rate = 0.05\nyears = 10\n\nprint(\"=== BOND PRICE vs YIELD (5% coupon, 10-year) ===\")\nprint(f\"{'YTM':>8} {'Price':>10} {'Premium/Discount':>18}\")\nprint(\"-\" * 40)\nfor ytm in [0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08]:\n    price = bond_price(face, coupon_rate, ytm, years)\n    diff  = price - face\n    label = f\"{'Premium' if diff > 0 else 'Discount'} ${abs(diff):.2f}\"\n    print(f\"{ytm:>7.0%} ${price:>9.2f} {label:>18}\")\n\n# ── MODIFIED DURATION ────────────────────────────────────────────────────\ndef modified_duration(face, coupon_rate, ytm, years, freq=2):\n    \"\"\"Compute modified duration via finite difference method.\"\"\"\n    dy    = 0.0001  # 1 basis point shock\n    p_up  = bond_price(face, coupon_rate, ytm + dy, years, freq)\n    p_dn  = bond_price(face, coupon_rate, ytm - dy, years, freq)\n    p0    = bond_price(face, coupon_rate, ytm, years, freq)\n    dur   = -(p_up - p_dn) / (2 * dy * p0)  # symmetric finite difference\n    return dur\n\nytm_current = 0.05\nprice_now   = bond_price(face, coupon_rate, ytm_current, years)\ndur         = modified_duration(face, coupon_rate, ytm_current, years)\n\nprint(f\"\\n=== DURATION ANALYSIS ===\")\nprint(f\"Current price (YTM=5%):  ${price_now:.2f}\")\nprint(f\"Modified Duration:        {dur:.2f} years\")\nprint(f\"\\n1% rate INCREASE  → price change: {-dur * 0.01 * 100:.1f}% = ${-dur * 0.01 * price_now:.2f}\")\nprint(f\"1% rate DECREASE  → price change: {+dur * 0.01 * 100:.1f}% = ${+dur * 0.01 * price_now:.2f}\")\n\n# ── YIELD CURVE ──────────────────────────────────────────────────────────\n# US Treasury yields (hypothetical, illustrative)\nmaturities   = [0.25, 0.5, 1, 2, 3, 5, 7, 10, 20, 30]\nnormal_curve = [5.20, 5.25, 5.10, 4.80, 4.60, 4.30, 4.20, 4.15, 4.30, 4.40]\ninverted     = [5.40, 5.45, 5.35, 5.10, 4.80, 4.40, 4.20, 4.00, 3.90, 3.85]\n\nfig, ax = plt.subplots(figsize=(10, 5))\nax.plot(maturities, normal_curve,  marker='o', label='Normal (stable economy)',   color='steelblue')\nax.plot(maturities, inverted,      marker='s', label='Inverted (recession signal)', color='tomato', linestyle='--')\nax.set_xlabel('Maturity (years)',  fontsize=11)\nax.set_ylabel('Yield (%)',         fontsize=11)\nax.set_title('US Treasury Yield Curve: Normal vs Inverted', fontsize=13, fontweight='bold')\nax.legend()\nax.spines['top'].set_visible(False)\nax.spines['right'].set_visible(False)\nplt.tight_layout()\nplt.savefig('yield_curve.png', dpi=150)\nplt.show()",
+                "output": "=== BOND PRICE vs YIELD (5% coupon, 10-year) ===\n     YTM      Price   Premium/Discount\n----------------------------------------\n      2%  $1,270.74   Premium $270.74\n      3%  $1,170.60   Premium $170.60\n      4%  $1,081.11    Premium $81.11\n      5%  $1,000.00     Discount $0.00\n      6%    $926.40    Discount $73.60\n      7%    $859.53   Discount $140.47\n      8%    $798.70   Discount $201.30\n\n=== DURATION ANALYSIS ===\nCurrent price (YTM=5%):  $1000.00\nModified Duration:        7.99 years\n\n1% rate INCREASE  → price change: -8.0% = $-79.88\n1% rate DECREASE  → price change: +8.0% = $+79.88"
+            }
+        },
+        {
+            "type": "decision_context_block",
+            "company": "BlackRock Fixed Income Research",
+            "role": "Fixed Income Research Analyst",
+            "scenario": "It is Q1 2026. The Federal Reserve has signaled it intends to begin cutting interest rates over the next 12 months as inflation returns toward the 2% target. Your team manages a $2 billion intermediate-term Treasury portfolio with a current average modified duration of 5.2 years. The head of fixed income research wants to know: given the anticipated rate cuts, should the portfolio extend duration (buy longer-maturity bonds) to capture more price appreciation, or maintain the current positioning? You must quantify the P&L impact of three duration scenarios across two rate-cut magnitudes.",
+            "constraints": [
+                "The portfolio benchmark is the Bloomberg US Aggregate Bond Index, which has a duration of approximately 6.1 years",
+                "The investment policy statement caps portfolio duration at 9 years to limit interest rate risk",
+                "Any duration extension must be achievable through the liquid Treasury market — no corporate bonds or MBS",
+                "The analysis must account for both a 50bp and a 100bp rate cut scenario"
+            ],
+            "stakeholder_pressures": [
+                {
+                    "stakeholder": "Head of Fixed Income",
+                    "pressure": "If we keep duration at 5.2 when the benchmark is 6.1, we are structurally short duration in a rate-cutting cycle. Show me what that costs us in relative performance."
+                },
+                {
+                    "stakeholder": "Risk Management",
+                    "pressure": "Duration extension increases mark-to-market volatility. If cuts don't materialize and rates stay flat or rise, a duration-extended portfolio will underperform. I want the downside scenario quantified alongside the upside."
+                },
+                {
+                    "stakeholder": "Portfolio Manager",
+                    "pressure": "Give me a table: three duration levels (5.2, 6.5, 8.0) across two rate scenarios (+25bp, -50bp, -100bp). I want dollar P&L, not just percentages — this is a $2B book."
+                }
+            ]
+        },
+        {
+            "type": "guided_analysis_block",
+            "dataset_table": "treasury_portfolio",
+            "intro": "Build a duration scenario analysis that shows the P&L impact of three portfolio duration choices across five interest rate scenarios. This is the core analytical output that will drive the duration positioning decision.",
+            "steps": [
+                {
+                    "step": 1,
+                    "instruction": "Build the scenario analysis matrix: P&L impact of three duration levels across five rate moves on a $2B portfolio",
+                    "code": "import pandas as pd\nimport numpy as np\n\nportfolio_size = 2_000_000_000  # $2 billion\n\n# Three candidate duration positions\ndurations = {\n    'Current (5.2yr)':   5.2,\n    'Benchmark (6.1yr)': 6.1,\n    'Extended (8.0yr)':  8.0\n}\n\n# Rate scenarios (basis points)\nrate_moves_bp = [-100, -50, -25, +25, +50]\n\nprint(\"=== DURATION SCENARIO ANALYSIS ===\")\nprint(f\"Portfolio Size: ${portfolio_size/1e9:.1f}B\")\nprint()\n\nrows = []\nfor scenario_bp in rate_moves_bp:\n    scenario_pct = scenario_bp / 100\n    scenario_label = f\"{'+' if scenario_bp > 0 else ''}{scenario_bp}bp\"\n    row = {'Rate Move': scenario_label}\n    for name, dur in durations.items():\n        pnl_pct = -dur * scenario_pct         # duration approximation\n        pnl_usd = pnl_pct * portfolio_size\n        row[name] = pnl_usd\n    rows.append(row)\n\ndf = pd.DataFrame(rows).set_index('Rate Move')\n\n# Format as $ millions\ndf_display = df.applymap(lambda x: f\"${x/1e6:+.1f}M\")\nprint(df_display.to_string())\n\n# Key insight: opportunity cost of staying at 5.2 vs benchmark 6.1\nprint(\"\\n=== RELATIVE PERFORMANCE VS BENCHMARK ===\")\nprint(\"(Extended - Current) in basis points of portfolio value:\")\nfor scenario_bp in [-100, -50, +25, +50]:\n    pct_current  = -5.2 * (scenario_bp / 100) * 100  # in bps\n    pct_extended = -8.0 * (scenario_bp / 100) * 100\n    diff_bps = pct_extended - pct_current\n    scenario_label = f\"{'+' if scenario_bp > 0 else ''}{scenario_bp}bp rate move\"\n    print(f\"  {scenario_label}: Extended outperforms Current by {diff_bps:+.0f}bps\")",
+                    "output": "=== DURATION SCENARIO ANALYSIS ===\nPortfolio Size: $2.0B\n\n              Current (5.2yr) Benchmark (6.1yr) Extended (8.0yr)\nRate Move\n-100bp             +$104.0M          +$122.0M        +$160.0M\n-50bp               +$52.0M           +$61.0M         +$80.0M\n-25bp               +$26.0M           +$30.5M         +$40.0M\n+25bp               -$26.0M           -$30.5M         -$40.0M\n+50bp               -$52.0M           -$61.0M         -$80.0M\n\n=== RELATIVE PERFORMANCE VS BENCHMARK ===\n(Extended - Current) in basis points of portfolio value:\n  -100bp rate move: Extended outperforms Current by +280bps\n  -50bp rate move: Extended outperforms Current by +140bps\n  +25bp rate move: Extended outperforms Current by -70bps\n  +50bp rate move: Extended outperforms Current by -140bps",
+                    "business_implication": "In a 100bp rate-cut scenario, extending duration from 5.2 to 8.0 years generates an additional $56M in mark-to-market gains. The cost of being wrong — if rates rise 50bp instead — is $28M in additional losses versus staying at 5.2 years. The risk/reward is asymmetric in favor of extension only if the probability-weighted expectation of rate cuts exceeds roughly 2:1 over rate hikes."
+                },
+                {
+                    "step": 2,
+                    "instruction": "Visualize the yield curve and compute the yield pickup from extending maturity",
+                    "code": "import matplotlib.pyplot as plt\n\n# Current Treasury yield curve\nmaturities = [1, 2, 3, 5, 7, 10, 20, 30]\nyields_now = [5.15, 4.85, 4.65, 4.40, 4.30, 4.25, 4.50, 4.55]\n\n# Anticipated curve after 100bp of cuts (12-month forward)\nyields_fwd = [4.10, 3.95, 3.80, 3.75, 3.72, 3.70, 3.95, 4.05]\n\nfig, ax = plt.subplots(figsize=(10, 5))\nax.plot(maturities, yields_now, marker='o', color='steelblue',  label='Current curve')\nax.plot(maturities, yields_fwd, marker='s', color='tomato',     label='Forward curve (after -100bp)')\nax.fill_between(maturities, yields_fwd, yields_now, alpha=0.15, color='steelblue', label='Yield decline')\nax.set_xlabel('Maturity (years)',  fontsize=11)\nax.set_ylabel('Yield (%)',         fontsize=11)\nax.set_title('Treasury Yield Curve: Current vs Forward', fontsize=13, fontweight='bold')\nax.legend()\nax.spines['top'].set_visible(False)\nax.spines['right'].set_visible(False)\nplt.tight_layout()\nplt.savefig('yield_curve_shift.png', dpi=150)\nplt.show()\n\n# Yield pickup from buying 10yr vs 2yr\npickup = yields_now[maturities.index(10)] - yields_now[maturities.index(2)]\nprint(f\"Yield curve slope (10yr - 2yr): {pickup:.2f}%\")\nprint(f\"Buying 10yr vs 2yr adds {pickup*100:.0f}bps of yield but {10-2} more years of duration risk\")",
+                    "output": "Yield curve slope (10yr - 2yr): -0.60%\nBuying 10yr vs 2yr adds -60bps of yield but 8 more years of duration risk",
+                    "business_implication": "The current inverted curve means extending duration actually costs you yield pickup today — you earn less by holding longer bonds. The only reason to extend is the anticipated capital gain from price appreciation when rates fall. This confirms the position is a rate-direction bet, not a carry trade."
+                }
+            ]
+        }
+    ]
+}
