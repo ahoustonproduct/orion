@@ -65,7 +65,6 @@ export default function ModulePage() {
   const totalCount = module.lesson_count ?? 0;
   const masteryPct = moduleStatus?.mastery_pct ?? 0;
   const pct = totalCount ? Math.round((completedCount / totalCount) * 100) : 0;
-  const unlocked = moduleStatus?.unlocked ?? true;
 
   // Get full lesson data for Quick Look (keyed by lesson ID)
   const lessonDataMap: Record<string, LessonSummaryExtended> = Object.fromEntries(
@@ -148,7 +147,7 @@ export default function ModulePage() {
         <ConceptMap
           nodes={module.concept_map}
           lessonProgress={lessonProgressMap}
-          moduleUnlocked={unlocked}
+          moduleUnlocked={true}
         />
       )}
 

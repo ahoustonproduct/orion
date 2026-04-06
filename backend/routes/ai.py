@@ -1,4 +1,5 @@
 import os
+import requests
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -17,8 +18,35 @@ from curriculum_data import ALL_MODULES
 router = APIRouter(prefix="/orion", tags=["orion"])
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5-coder:7b")
+OLLAMA_RAW_URL = OLLAMA_BASE_URL.replace("/v1", "/api/tags")
+
+def get_active_model():
+    """Fallback logic to ensure a working model is used."""
+    requested_model = os.environ.get("OLLAMA_MODEL", "orion-tutor")
+    try:
+        resp = requests.get(OLLAMA_RAW_URL, timeout=2)
+        if resp.status_code == 200:
+            models = [m["name"] for m in resp.json().get("models", [])]
+            if requested_model in models:
+                return requested_model
+            # Fallback priority
+            for fallback in ["gemma-4-E4B-it", "gemma:7b", "llama3"]:
+                if any(m.startswith(fallback) for m in models):
+                    return fallback
+    except Exception:
+        pass
+    return requested_model
+
+MODEL = get_active_model()
 client = OpenAI(base_url=OLLAMA_BASE_URL, api_key="ollama")
+
+
+def get_lesson_by_id(lesson_id: str):
+    for module in ALL_MODULES:
+        for lesson in module["lessons"]:
+            if lesson["id"] == lesson_id:
+                return lesson
+    return None
 
 
 def get_profile(user_key: str, db: Session) -> dict:
@@ -58,12 +86,12 @@ def stream_response(prompt: str, max_tokens: int = 1500):
 
 class ExplainRequest(BaseModel):
     user_key: str
-    lesson: dict
+    lesson_id: str
 
 
 class FeedbackRequest(BaseModel):
     user_key: str
-    lesson: dict
+    lesson_id: str
     student_code: str
     actual_output: str
     expected_output: str
@@ -71,14 +99,14 @@ class FeedbackRequest(BaseModel):
 
 
 class HintRequest(BaseModel):
-    lesson: dict
+    lesson_id: str
     student_code: str
     hint_number: int
 
 
 class RecapRequest(BaseModel):
     user_key: str
-    lesson: dict
+    lesson_id: str
     stars: int
     attempts: int
     student_code: str
@@ -86,12 +114,12 @@ class RecapRequest(BaseModel):
 
 class ChallengeRequest(BaseModel):
     user_key: str
-    lesson: dict
+    lesson_id: str
     variation_index: Optional[int] = 0
 
 
 class ExplainAnswerRequest(BaseModel):
-    lesson: dict
+    lesson_id: str
     question: dict
     chosen_option: str
     student_reasoning: str
@@ -116,17 +144,23 @@ class WhatNextRequest(BaseModel):
 @router.post("/explain")
 def explain_concept(req: ExplainRequest, db: Session = Depends(get_db)):
     """Stream Orion's thorough lesson explanation."""
+    lesson = get_lesson_by_id(req.lesson_id)
+    if not lesson:
+        return {"error": "Lesson not found"}
     profile = get_profile(req.user_key, db)
-    prompt = explain_concept_prompt(req.lesson, profile)
+    prompt = explain_concept_prompt(lesson, profile)
     return stream_response(prompt, max_tokens=1800)
 
 
 @router.post("/feedback")
 def code_feedback(req: FeedbackRequest, db: Session = Depends(get_db)):
     """Stream Orion's code review and feedback."""
+    lesson = get_lesson_by_id(req.lesson_id)
+    if not lesson:
+        return {"error": "Lesson not found"}
     profile = get_profile(req.user_key, db)
     prompt = code_feedback_prompt(
-        req.lesson, req.student_code, req.actual_output,
+        lesson, req.student_code, req.actual_output,
         req.expected_output, req.attempts, profile
     )
     return stream_response(prompt, max_tokens=600)
@@ -135,31 +169,43 @@ def code_feedback(req: FeedbackRequest, db: Session = Depends(get_db)):
 @router.post("/hint")
 def give_hint(req: HintRequest):
     """Stream a progressive hint from Orion."""
-    prompt = give_hint_prompt(req.lesson, req.student_code, req.hint_number)
+    lesson = get_lesson_by_id(req.lesson_id)
+    if not lesson:
+        return {"error": "Lesson not found"}
+    prompt = give_hint_prompt(lesson, req.student_code, req.hint_number)
     return stream_response(prompt, max_tokens=300)
 
 
 @router.post("/recap")
 def lesson_recap(req: RecapRequest, db: Session = Depends(get_db)):
     """Stream Orion's personalized lesson recap."""
+    lesson = get_lesson_by_id(req.lesson_id)
+    if not lesson:
+        return {"error": "Lesson not found"}
     profile = get_profile(req.user_key, db)
-    prompt = lesson_recap_prompt(req.lesson, req.stars, req.attempts, req.student_code, profile)
+    prompt = lesson_recap_prompt(lesson, req.stars, req.attempts, req.student_code, profile)
     return stream_response(prompt, max_tokens=400)
 
 
 @router.post("/generate-challenge")
 def generate_challenge(req: ChallengeRequest, db: Session = Depends(get_db)):
     """Stream a new AI-generated practice challenge."""
+    lesson = get_lesson_by_id(req.lesson_id)
+    if not lesson:
+        return {"error": "Lesson not found"}
     profile = get_profile(req.user_key, db)
-    prompt = generate_challenge_prompt(req.lesson, profile, req.variation_index or 0)
+    prompt = generate_challenge_prompt(lesson, profile, req.variation_index or 0)
     return stream_response(prompt, max_tokens=800)
 
 
 @router.post("/explain-your-answer")
 def explain_your_answer(req: ExplainAnswerRequest):
     """Orion evaluates the student's reasoning behind their quiz answer."""
+    lesson = get_lesson_by_id(req.lesson_id)
+    if not lesson:
+        return {"error": "Lesson not found"}
     prompt = explain_your_answer_prompt(
-        req.lesson, req.question, req.chosen_option, req.student_reasoning
+        lesson, req.question, req.chosen_option, req.student_reasoning
     )
     return stream_response(prompt, max_tokens=300)
 
@@ -202,6 +248,7 @@ def what_next(req: WhatNextRequest, db: Session = Depends(get_db)):
 
 
 class ChatRequest(BaseModel):
+    user_key: str
     user_message: str
     lesson_id: str
     lesson_title: str
@@ -212,7 +259,7 @@ class ChatRequest(BaseModel):
 @router.post("/chat")
 def chat(req: ChatRequest, db: Session = Depends(get_db)):
     """Stream a chat response for the AI Sidebar."""
-    profile = db.query(LearningProfile).filter(LearningProfile.user_key == "default").first()
+    profile = db.query(LearningProfile).filter(LearningProfile.user_key == req.user_key).first()
     weak_topics = profile.weak_topics if profile else []
     
     system_prompt = f"""You are Orion, an AI tutor for a business analytics student. You are helpful, patient, and explain concepts clearly.

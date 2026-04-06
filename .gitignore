@@ -13,3 +13,4 @@ backend/*.db
 .DS_Store
 .env
 .env.local
+tutor-training/orion-fused-safetensors/

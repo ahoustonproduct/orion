@@ -9,22 +9,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#1C1917", // warm deep charcoal
-        surface: "#292524",
-        "surface-2": "#35312C",
-        border: "#44403C",
+        background: "#EDE6DA", // refined ivory
+        surface: "#F5F0E8",    // bone white
+        "surface-2": "#EAE3D6", // deeper ivory for depth
+        border: "#CCC5B6",      // soft parchment border
         accent: {
-          DEFAULT: "#D97706", // muted amber
-          hover: "#B45309",
-          light: "#F59E0B",
+          DEFAULT: "#1C1917",   // deep charcoal for high-contrast accents
+          hover: "#000000",
+          light: "#44403C",
         },
         cyan: {
-          DEFAULT: "#B45309",
-          light: "#FCD34D",
+          DEFAULT: "#1C1917",
+          light: "#44403C",
         },
         text: {
-          primary: "#E7E5E4",
-          secondary: "#A8A29E",
+          primary: "#1C1917",   // deep charcoal readability
+          secondary: "#44403C",
           muted: "#78716C",
         },
         star: "#F59E0B",

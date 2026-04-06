@@ -224,7 +224,6 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {modules.map((module, idx) => {
             const status = progress?.module_status[module.id];
-            const unlocked = true; // All lessons unlocked from the start
             const completedInMod = status?.completed_count ?? 0;
             const masteryPct = status?.mastery_pct ?? 0;
             const pct = module.lesson_count ? (completedInMod / module.lesson_count) * 100 : 0;
@@ -232,65 +231,52 @@ export default function Dashboard() {
 
             return (
               <Link
-                href={unlocked ? `/curriculum/${module.id}` : "#"}
+                href={`/curriculum/${module.id}`}
                 key={module.id}
-                className={`group relative overflow-hidden rounded-2xl transition-all duration-300 ${
-                  unlocked
-                    ? "bg-[var(--color-surface)] border border-[var(--color-border)] hover:-translate-y-1 hover:shadow-xl cursor-pointer p-[1px] block"
-                    : "opacity-60 bg-[var(--color-surface-2)]/40 border border-[var(--color-border)] cursor-not-allowed block p-[1px]"
-                }`}
+                className="group relative overflow-hidden rounded-2xl transition-all duration-300 bg-[var(--color-surface)] border border-[var(--color-border)] hover:-translate-y-1 hover:shadow-xl cursor-pointer p-[1px] block"
               >
                  <div className="bg-[var(--color-surface)] w-full h-full rounded-2xl p-6 relative z-10">
                    {/* Top header row */}
                    <div className="flex justify-between items-start mb-4">
                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-inner
                        ${isCompleted ? "bg-[var(--color-success)]/20 text-[var(--color-success)] border border-[var(--color-success)]/30" :
-                       unlocked ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/20" :
-                       "bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border border-[var(--color-border)]"
+                       "bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/20"
                      }`}
                      >
-                       {unlocked ? (isCompleted ? "✓" : module.order) : <Lock size={14} />}
+                       {isCompleted ? "✓" : module.order}
                      </div>
                      
-                     {unlocked && (
-                       <div className="px-3 py-1 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs font-semibold text-[var(--color-text-secondary)] flex gap-1 items-center">
-                         <span>{completedInMod}</span>
-                         <span className="text-[var(--color-text-muted)]">/</span>
-                         <span className="text-[var(--color-text-muted)]">{module.lesson_count}</span>
-                       </div>
-                     )}
+                     <div className="px-3 py-1 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs font-semibold text-[var(--color-text-secondary)] flex gap-1 items-center">
+                       <span>{completedInMod}</span>
+                       <span className="text-[var(--color-text-muted)]">/</span>
+                       <span className="text-[var(--color-text-muted)]">{module.lesson_count}</span>
+                     </div>
                    </div>
                    
                    {/* Content body */}
                    <div className="space-y-1 mb-5">
-                      <h3 className={`font-bold text-lg truncate ${unlocked ? "text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors" : "text-[var(--color-text-muted)]"}`}>
+                      <h3 className="font-bold text-lg truncate text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">
                         {module.title}
                       </h3>
                       <p className="text-sm text-[var(--color-text-muted)] font-medium truncate">{module.course}</p>
                    </div>
                    
                    {/* Progress footer */}
-                   {unlocked ? (
-                     <div className="flex items-center gap-3">
-                       <div className="flex-1 h-1.5 bg-[var(--color-surface-2)] rounded-full overflow-hidden border border-[var(--color-border)]">
-                         <div
-                           className={`h-full rounded-full transition-all duration-700 ${isCompleted ? 'bg-[var(--color-success)]' : 'bg-[var(--color-accent)]'}`}
-                           style={{ width: `${pct}%` }}
-                         />
-                       </div>
-                       {masteryPct > 0 && (
-                         <span className="text-xs font-mono font-medium text-[var(--color-text-muted)]">{masteryPct}% <span className="text-[10px] text-[var(--color-text-muted)]">MR</span></span>
-                       )}
+                   <div className="flex items-center gap-3">
+                     <div className="flex-1 h-1.5 bg-[var(--color-surface-2)] rounded-full overflow-hidden border border-[var(--color-border)]">
+                       <div
+                         className={`h-full rounded-full transition-all duration-700 ${isCompleted ? 'bg-[var(--color-success)]' : 'bg-[var(--color-accent)]'}`}
+                         style={{ width: `${pct}%` }}
+                       />
                      </div>
-                   ) : (
-                      <div className="h-1.5 w-full bg-[var(--color-surface-2)] rounded-full overflow-hidden border border-[var(--color-border)]" />
-                   )}
+                     {masteryPct > 0 && (
+                       <span className="text-xs font-mono font-medium text-[var(--color-text-muted)]">{masteryPct}% <span className="text-[10px] text-[var(--color-text-muted)]">MR</span></span>
+                     )}
+                   </div>
                  </div>
                  
                  {/* Hover effect gradient */}
-                 {unlocked && (
-                   <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 via-transparent to-yellow-500/5 opacity-0 group-hover:opacity-100 transition-opacity z-0 pointer-events-none" />
-                 )}
+                 <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 via-transparent to-yellow-500/5 opacity-0 group-hover:opacity-100 transition-opacity z-0 pointer-events-none" />
               </Link>
             );
           })}

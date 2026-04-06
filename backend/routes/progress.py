@@ -15,7 +15,7 @@ class ProgressUpdate(BaseModel):
     attempts: int
     hints_used: int
     completed: bool
-    time_spent_minutes: Optional[int] = 0
+    time_spent_minutes: Optional[float] = 0.0
 
 
 class FlagUpdate(BaseModel):
@@ -75,7 +75,7 @@ def get_progress(user_key: str, db: Session = Depends(get_db)):
             "completed_count": len(completed_in_module),
             "total": len(lesson_ids),
             "mastery_pct": round((starred / len(lesson_ids)) * 100) if lesson_ids else 0,
-            "unlocked": i == 0 or _prev_module_done(i, completed_lessons),
+            "unlocked": True,
         }
 
     # Confidence ratings
@@ -107,12 +107,6 @@ def get_progress(user_key: str, db: Session = Depends(get_db)):
     }
 
 
-def _prev_module_done(module_index: int, completed_lessons: set) -> bool:
-    if module_index == 0:
-        return True
-    prev_module = ALL_MODULES[module_index - 1]
-    prev_ids = {l["id"] for l in prev_module["lessons"]}
-    return prev_ids.issubset(completed_lessons)
 
 
 @router.post("/{user_key}/lesson")
@@ -322,9 +316,9 @@ def _update_streak(profile: LearningProfile, minutes: int, db: Session):
 
     if profile.last_active and profile.last_active == today:
         pass
-    elif study_log.get(today_str, 0) >= 30:
-        yesterday = (today - timedelta(days=1)).isoformat()
-        if profile.last_active and profile.last_active.isoformat() == yesterday:
+    else:
+        yesterday = today - timedelta(days=1)
+        if profile.last_active == yesterday:
             profile.streak_count += 1
         else:
             profile.streak_count = 1

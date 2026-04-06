@@ -90,9 +90,12 @@ export const streamFeedback = (
   actualOutput: string, expectedOutput: string, attempts: number,
   onChunk: (t: string) => void
 ) => streamPost("/orion/feedback", {
+  user_key: userKey,
   lesson_id: lesson.id,
-  code: studentCode,
-  expected: expectedOutput,
+  student_code: studentCode,
+  actual_output: actualOutput || "",
+  expected_output: expectedOutput,
+  attempts: attempts,
 }, onChunk);
 
 export const streamHint = (
@@ -103,16 +106,19 @@ export const streamRecap = (
   userKey: string, lesson: Lesson, stars: number,
   attempts: number, studentCode: string, onChunk: (t: string) => void
 ) => streamPost("/orion/recap", {
+  user_key: userKey,
   lesson_id: lesson.id,
-  completed_steps: [`Stars: ${stars}`, `Attempts: ${attempts}`],
+  stars: stars,
+  attempts: attempts,
+  student_code: studentCode,
 }, onChunk);
 
 export const streamChallenge = (
   userKey: string, lesson: Lesson, variationIndex: number, onChunk: (t: string) => void
 ) => streamPost("/orion/generate-challenge", {
+  user_key: userKey,
   lesson_id: lesson.id,
-  concept: lesson.concept,
-  difficulty: variationIndex === 0 ? "easy" : variationIndex === 1 ? "medium" : "hard",
+  variation_index: variationIndex,
 }, onChunk);
 
 export const streamExplainAnswer = (
@@ -145,7 +151,7 @@ export const streamWhatNext = (
   for (const l of progressData.lessons ?? []) {
     progress[l.lesson_id] = { completed: l.completed, stars: l.stars };
   }
-  return streamPost("/orion/what-next", { user_key: userKey, progress }, onChunk);
+  return streamPost("/orion/what-next", { user_key: userKey, progress_data: progress }, onChunk);
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────

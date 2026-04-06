@@ -96,11 +96,11 @@ def execute_python(req: ExecutePythonRequest) -> dict:
     needed_libs = _check_data_science_imports(code)
     
     # Build command with pip install if needed
-    cmd = ["python", "-c", code]
+    cmd = [sys.executable, "-c", code]
     if needed_libs:
         # Prepend pip install to the command
-        install_cmd = f"pip install --quiet {' '.join(needed_libs)} && python -c {repr(code)}"
-        cmd = ["python", "-c", install_cmd]
+        install_cmd = f"pip install --quiet {' '.join(needed_libs)} && {sys.executable} -c {repr(code)}"
+        cmd = [sys.executable, "-c", install_cmd]
     
     start = time.monotonic()
     try:
@@ -160,7 +160,7 @@ def execute_sql(req: ExecuteSQLRequest) -> dict:
         }
     start = time.monotonic()
     try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "orion.db")
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "orion_code.db")
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.execute(query)
@@ -225,11 +225,11 @@ def execute_multi(req: ExecuteMultiFileRequest) -> dict:
         
         # Build command
         main_path = os.path.join(temp_dir, main_file["name"])
-        cmd = ["python", main_path]
-        
+        cmd = [sys.executable, main_path]
+
         if needed_libs:
-            install_cmd = f"pip install --quiet {' '.join(needed_libs)} && python {main_path}"
-            cmd = ["python", "-c", install_cmd]
+            install_cmd = f"pip install --quiet {' '.join(needed_libs)} && {sys.executable} {main_path}"
+            cmd = [sys.executable, "-c", install_cmd]
         
         start = time.monotonic()
         result = subprocess.run(
