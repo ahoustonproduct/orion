@@ -1,0 +1,201 @@
+{
+  "id": "m02_l04",
+  "module_id": "m02",
+  "title": "Aggregations: GROUP BY, HAVING & Summary Statistics",
+  "order": 4,
+  "duration_min": 25,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "aggregation_functions",
+    "group_by",
+    "having_clause",
+    "summary_statistics",
+    "data_analysis",
+    "sql_filtering",
+    "null_handling"
+  ],
+  "learning_objectives": [
+    "Understand how aggregate functions (COUNT, SUM, AVG, MIN, MAX) collapse multiple rows into summary statistics",
+    "Master GROUP BY syntax and the rule that every non-aggregated column in SELECT must appear in GROUP BY",
+    "Distinguish between WHERE (filters before aggregation) and HAVING (filters after aggregation)",
+    "Apply aggregations across multiple GROUP BY dimensions",
+    "Recognize how NULL values behave differently in COUNT(*) vs COUNT(column) and other aggregate functions",
+    "Design queries to detect anomalies and patterns in transactional data"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Square's finance team monitors daily GMV (gross merchandise volume) by merchant category using GROUP BY queries that run millions of times per day. These aggregations power real-time dashboards that track merchant health, category trends, and fraud signals across Square's 3M+ seller ecosystem.",
+      "explanation": {
+        "aggregate_functions": "Aggregate functions collapse multiple rows into single summary values. COUNT counts rows; COUNT(column) counts non-NULL values; COUNT(*) counts all rows including NULLs. SUM adds numeric values (ignores NULLs). AVG calculates mean (ignores NULLs). MIN and MAX find extremes. COUNT(DISTINCT col) counts unique non-NULL values.",
+        "group_by_syntax": "GROUP BY collapses rows sharing identical values in specified columns into one output row per group. Critical rule: every column in SELECT that is NOT inside an aggregate function MUST appear in the GROUP BY clause. This rule exists because SQL cannot determine which row's non-aggregated value to show when multiple rows are grouped.",
+        "having_vs_where": "WHERE filters rows BEFORE aggregation is computed. HAVING filters groups AFTER aggregation is computed. WHERE operates on raw table columns; HAVING operates on aggregate results. Both can appear in the same query: WHERE first (to reduce input rows), then GROUP BY, then HAVING (to filter groups).",
+        "order_by_with_aggregates": "ORDER BY can reference aggregate functions in the SELECT list. Use column alias or repeat the aggregate expression. ORDER BY is applied AFTER GROUP BY and HAVING, so it sorts the final grouped results.",
+        "null_behavior": "Aggregate functions ignore NULL values: COUNT(column) doesn't count NULLs, but COUNT(*) counts all rows. SUM, AVG, MIN, MAX all skip NULLs. If a group contains only NULLs in an aggregated column, the aggregate returns NULL (except COUNT which returns 0).",
+        "multiple_group_by": "GROUP BY can reference multiple columns. This creates groups at the intersection of all specified dimensions. For example, GROUP BY category, status creates separate groups for each (category, status) pair."
+      },
+      "code_example": {
+        "language": "python_sqlite3",
+        "setup": {
+          "import_statements": ["import sqlite3", "import pandas as pd"],
+          "create_table": "CREATE TABLE payments (payment_id INTEGER PRIMARY KEY, merchant_id INTEGER, merchant_category TEXT, amount REAL, status TEXT, payment_date TEXT);",
+          "sample_data": [
+            "(1, 101, 'food', 25.50, 'completed', '2026-04-01')",
+            "(2, 102, 'food', 18.99, 'completed', '2026-04-01')",
+            "(3, 103, 'retail', 125.00, 'completed', '2026-04-01')",
+            "(4, 104, 'food', 22.00, 'completed', '2026-04-02')",
+            "(5, 105, 'retail', 450.00, 'completed', '2026-04-02')",
+            "(6, 101, 'food', 30.75, 'completed', '2026-04-02')",
+            "(7, 106, 'services', 80.00, 'completed', '2026-04-02')",
+            "(8, 107, 'food', 15.25, 'failed', '2026-04-03')",
+            "(9, 108, 'retail', 200.00, 'completed', '2026-04-03')",
+            "(10, 109, 'services', 95.00, 'completed', '2026-04-03')",
+            "(11, 110, 'food', 12.50, 'completed', '2026-04-03')",
+            "(12, 111, 'retail', 875.00, 'completed', '2026-04-03')",
+            "(13, 112, 'food', 28.00, 'completed', '2026-04-04')",
+            "(14, 113, 'services', 150.00, 'completed', '2026-04-04')",
+            "(15, 114, 'food', 21.00, 'completed', '2026-04-04')"
+          ]
+        },
+        "queries": [
+          {
+            "description": "Query 1: Basic aggregation by merchant_category",
+            "sql": "SELECT merchant_category, COUNT(*) as transaction_count, SUM(amount) as total_volume FROM payments GROUP BY merchant_category ORDER BY total_volume DESC;",
+            "output": {
+              "columns": ["merchant_category", "transaction_count", "total_volume"],
+              "rows": [
+                ["retail", 4, 1650.0],
+                ["food", 8, 172.49],
+                ["services", 3, 325.0]
+              ]
+            },
+            "explanation": "This query groups payments by merchant_category and computes transaction count and total volume for each category. Retail dominates by volume despite fewer transactions, while food has highest frequency."
+          },
+          {
+            "description": "Query 2: Average and maximum transaction size by status",
+            "sql": "SELECT status, COUNT(*) as txn_count, AVG(amount) as avg_ticket, MAX(amount) as max_ticket FROM payments GROUP BY status ORDER BY txn_count DESC;",
+            "output": {
+              "columns": ["status", "txn_count", "avg_ticket", "max_ticket"],
+              "rows": [
+                ["completed", 14, 198.52, 875.0],
+                ["failed", 1, 15.25, 15.25]
+              ]
+            },
+            "explanation": "Average transaction for completed payments is $198.52 vs $15.25 for the failed transaction. This suggests failed transactions may be legitimate (lower avg) or represent fraud attempts."
+          },
+          {
+            "description": "Query 3: GROUP BY with HAVING to filter after aggregation",
+            "sql": "SELECT merchant_category, COUNT(DISTINCT merchant_id) as unique_merchants, SUM(amount) as gmv, AVG(amount) as avg_ticket FROM payments GROUP BY merchant_category HAVING SUM(amount) > 500 ORDER BY gmv DESC;",
+            "output": {
+              "columns": ["merchant_category", "unique_merchants", "gmv", "avg_ticket"],
+              "rows": [
+                ["retail", 4, 1650.0, 412.5],
+                ["services", 2, 325.0, 108.33]
+              ]
+            },
+            "explanation": "HAVING SUM(amount) > 500 filters to only categories with more than $500 in total volume. Food category is excluded. Note use of COUNT(DISTINCT merchant_id) to count unique merchants."
+          },
+          {
+            "description": "Query 4: Multiple GROUP BY columns",
+            "sql": "SELECT merchant_category, status, COUNT(*) as txn_count, SUM(amount) as volume FROM payments GROUP BY merchant_category, status ORDER BY volume DESC;",
+            "output": {
+              "columns": ["merchant_category", "status", "txn_count", "volume"],
+              "rows": [
+                ["retail", "completed", 4, 1650.0],
+                ["services", "completed", 3, 325.0],
+                ["food", "completed", 7, 159.99],
+                ["food", "failed", 1, 15.25]
+              ]
+            },
+            "explanation": "Grouping by two dimensions reveals that retail completed transactions dominate, and only the food category has a failed transaction."
+          }
+        ]
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Square (Block Inc.)",
+      "role": "Business Intelligence Analyst",
+      "scenario": "The revenue team needs a weekly summary report showing which merchant categories drove the most GMV (gross merchandise volume), how many unique merchants transacted, and which categories have average transaction size under $50. Low average ticket size could signal fraud (microtransactions to test stolen cards) or legitimately low-cost categories. Your report must identify anomalies for the fraud team.",
+      "constraints": [
+        "Report must complete in < 2 seconds even with 50M+ weekly transactions",
+        "Must separate completed from failed transactions to avoid skewing fraud signals",
+        "Data arrives with up to 4-hour delay; historical reports must be reproducible"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Revenue Director",
+          "pressure": "Wants categories ranked by GMV to identify top performers for merchant acquisition focus"
+        },
+        {
+          "stakeholder": "Fraud Manager",
+          "pressure": "Needs anomalies flagged (categories with avg ticket < $50) to detect testing patterns on stolen payment methods"
+        },
+        {
+          "stakeholder": "Product Manager",
+          "pressure": "Wants merchant count per category to justify platform investments in vertical-specific features"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "introduction": "You are an analyst at Square tasked with creating a weekly merchant category health report. Follow these two steps to build aggregations that answer business questions and detect anomalies.",
+      "steps": [
+        {
+          "step_number": 1,
+          "title": "Build the Merchant Category Summary",
+          "description": "Create a query that groups all completed transactions by merchant category and computes key metrics: unique merchant count, total GMV, and average ticket size. Order by GMV descending.",
+          "task": "Aggregate completed payments by merchant_category. Include COUNT(DISTINCT merchant_id) as unique_merchants, SUM(amount) as weekly_gmv, AVG(amount) as avg_ticket. Filter for status='completed' using WHERE.",
+          "code_solution": {
+            "language": "python_sqlite3",
+            "code": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(':memory:')\ncursor = conn.cursor()\n\n# Create and populate payments table\ncursor.execute('''\n  CREATE TABLE payments (\n    payment_id INTEGER PRIMARY KEY, merchant_id INTEGER, merchant_category TEXT,\n    amount REAL, status TEXT, payment_date TEXT\n  )\n''')\n\npayments_data = [\n  (1, 101, 'food', 25.50, 'completed', '2026-04-01'),\n  (2, 102, 'food', 18.99, 'completed', '2026-04-01'),\n  (3, 103, 'retail', 125.00, 'completed', '2026-04-01'),\n  (4, 104, 'food', 22.00, 'completed', '2026-04-02'),\n  (5, 105, 'retail', 450.00, 'completed', '2026-04-02'),\n  (6, 101, 'food', 30.75, 'completed', '2026-04-02'),\n  (7, 106, 'services', 80.00, 'completed', '2026-04-02'),\n  (8, 107, 'food', 15.25, 'failed', '2026-04-03'),\n  (9, 108, 'retail', 200.00, 'completed', '2026-04-03'),\n  (10, 109, 'services', 95.00, 'completed', '2026-04-03'),\n  (11, 110, 'food', 12.50, 'completed', '2026-04-03'),\n  (12, 111, 'retail', 875.00, 'completed', '2026-04-03'),\n  (13, 112, 'food', 28.00, 'completed', '2026-04-04'),\n  (14, 113, 'services', 150.00, 'completed', '2026-04-04'),\n  (15, 114, 'food', 21.00, 'completed', '2026-04-04')\n]\ncursor.executemany('INSERT INTO payments VALUES (?, ?, ?, ?, ?, ?)', payments_data)\n\n# Step 1: Build merchant category summary\nquery1 = '''\nSELECT \n  merchant_category,\n  COUNT(DISTINCT merchant_id) as unique_merchants,\n  SUM(amount) as weekly_gmv,\n  ROUND(AVG(amount), 2) as avg_ticket\nFROM payments\nWHERE status = 'completed'\nGROUP BY merchant_category\nORDER BY weekly_gmv DESC\n'''\n\ndf1 = pd.read_sql_query(query1, conn)\nprint('Step 1: Merchant Category Summary')\nprint(df1.to_string(index=False))\nprint()\n\nconn.close()"
+          },
+          "expected_output": {
+            "columns": ["merchant_category", "unique_merchants", "weekly_gmv", "avg_ticket"],
+            "rows": [
+              ["retail", 4, 1650.0, 412.5],
+              ["services", 3, 325.0, 108.33],
+              ["food", 7, 159.49, 22.78]
+            ],
+            "formatted_display": "merchant_category | unique_merchants | weekly_gmv | avg_ticket\nretail            | 4                | 1650.0     | 412.50\nservices          | 3                | 325.0      | 108.33\nfood              | 7                | 159.49     | 22.78"
+          },
+          "business_implication": "Retail dominates GMV ($1650) with highest average ticket ($412.50), indicating B2B or high-value transactions. Services performs second at $325. Food has the lowest average ticket ($22.78), which triggers investigation into potential fraud or legitimate low-cost verticals."
+        },
+        {
+          "step_number": 2,
+          "title": "Detect Anomalies with HAVING and Join to Merchant Details",
+          "description": "Add a HAVING clause to filter categories where average ticket size is under $50 (anomaly threshold). Then join with a merchants table to get merchant names and add fraud risk assessment.",
+          "task": "Filter results to categories where AVG(amount) < 50 using HAVING. Join with merchants table (merchant_id, merchant_name) to show which specific merchants drive the low-ticket pattern. Include a business_implication noting fraud risk.",
+          "code_solution": {
+            "language": "python_sqlite3",
+            "code": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(':memory:')\ncursor = conn.cursor()\n\n# Create and populate tables\ncursor.execute('''\n  CREATE TABLE payments (\n    payment_id INTEGER PRIMARY KEY, merchant_id INTEGER, merchant_category TEXT,\n    amount REAL, status TEXT, payment_date TEXT\n  )\n''')\n\ncursor.execute('''\n  CREATE TABLE merchants (\n    merchant_id INTEGER PRIMARY KEY, merchant_name TEXT, category TEXT\n  )\n''')\n\npayments_data = [\n  (1, 101, 'food', 25.50, 'completed', '2026-04-01'),\n  (2, 102, 'food', 18.99, 'completed', '2026-04-01'),\n  (3, 103, 'retail', 125.00, 'completed', '2026-04-01'),\n  (4, 104, 'food', 22.00, 'completed', '2026-04-02'),\n  (5, 105, 'retail', 450.00, 'completed', '2026-04-02'),\n  (6, 101, 'food', 30.75, 'completed', '2026-04-02'),\n  (7, 106, 'services', 80.00, 'completed', '2026-04-02'),\n  (8, 107, 'food', 15.25, 'failed', '2026-04-03'),\n  (9, 108, 'retail', 200.00, 'completed', '2026-04-03'),\n  (10, 109, 'services', 95.00, 'completed', '2026-04-03'),\n  (11, 110, 'food', 12.50, 'completed', '2026-04-03'),\n  (12, 111, 'retail', 875.00, 'completed', '2026-04-03'),\n  (13, 112, 'food', 28.00, 'completed', '2026-04-04'),\n  (14, 113, 'services', 150.00, 'completed', '2026-04-04'),\n  (15, 114, 'food', 21.00, 'completed', '2026-04-04')\n]\n\nmerchants_data = [\n  (101, 'Cafe Express', 'food'),\n  (102, 'Quick Bites', 'food'),\n  (103, 'TechStore Pro', 'retail'),\n  (104, 'Snack Shack', 'food'),\n  (105, 'MegaMart', 'retail'),\n  (106, 'Prime Services', 'services'),\n  (107, 'Street Food Co', 'food'),\n  (108, 'Outlet Plus', 'retail'),\n  (109, 'Consulting Inc', 'services'),\n  (110, 'Vending Kiosk', 'food'),\n  (111, 'Department Store', 'retail'),\n  (112, 'Local Deli', 'food'),\n  (113, 'Audit Firm', 'services'),\n  (114, 'Food Truck', 'food')\n]\n\ncursor.executemany('INSERT INTO payments VALUES (?, ?, ?, ?, ?, ?)', payments_data)\ncursor.executemany('INSERT INTO merchants VALUES (?, ?, ?)', merchants_data)\n\nprint('Step 2: Anomaly Detection with HAVING and Join')\nprint('='*80)\nprint()\n\n# Query 2a: Categories with low average ticket\nquery2a = '''\nSELECT \n  p.merchant_category,\n  COUNT(DISTINCT p.merchant_id) as unique_merchants,\n  SUM(p.amount) as weekly_gmv,\n  ROUND(AVG(p.amount), 2) as avg_ticket,\n  COUNT(*) as transaction_count\nFROM payments p\nWHERE p.status = 'completed'\nGROUP BY p.merchant_category\nHAVING AVG(p.amount) < 50\nORDER BY avg_ticket ASC\n'''\n\ndf2a = pd.read_sql_query(query2a, conn)\nprint('Categories with AVG(amount) < $50 (Anomaly Threshold):')\nprint(df2a.to_string(index=False))\nprint()\n\n# Query 2b: Detailed merchant breakdown for anomalous categories\nquery2b = '''\nSELECT \n  m.merchant_name,\n  p.merchant_category,\n  COUNT(*) as transaction_count,\n  ROUND(AVG(p.amount), 2) as avg_ticket,\n  SUM(p.amount) as total_volume\nFROM payments p\nJOIN merchants m ON p.merchant_id = m.merchant_id\nWHERE p.status = 'completed'\n  AND p.merchant_category IN (\n    SELECT merchant_category FROM payments \n    WHERE status = 'completed'\n    GROUP BY merchant_category \n    HAVING AVG(amount) < 50\n  )\nGROUP BY m.merchant_id\nORDER BY avg_ticket ASC\n'''\n\ndf2b = pd.read_sql_query(query2b, conn)\nprint('Merchants Contributing to Low-Ticket Categories:')\nprint(df2b.to_string(index=False))\nprint()\n\nconn.close()"
+          },
+          "expected_output": {
+            "part_a": {
+              "description": "Categories with HAVING AVG(amount) < 50",
+              "columns": ["merchant_category", "unique_merchants", "weekly_gmv", "avg_ticket", "transaction_count"],
+              "rows": [
+                ["food", 7, 159.49, 22.78, 7]
+              ],
+              "formatted_display": "merchant_category | unique_merchants | weekly_gmv | avg_ticket | transaction_count\nfood              | 7                | 159.49     | 22.78      | 7"
+            },
+            "part_b": {
+              "description": "Merchant-level breakdown of anomalous categories",
+              "columns": ["merchant_name", "merchant_category", "transaction_count", "avg_ticket", "total_volume"],
+              "rows": [
+                ["Vending Kiosk", "food", 1, 12.5, 12.5],
+                ["Street Food Co", "food", 1, 15.25, 15.25],
+                ["Snack Shack", "food", 1, 22.0, 22.0],
+                ["Quick Bites", "food", 1, 18.99, 18.99],
+                ["Food Truck", "food", 1, 21.0, 21.0],
+                ["Cafe Express", "food", 2, 28.125, 56.25],
+                ["Local Deli", "food", 1, 28.0, 28.0]
+              ]
+            }
+          },
+          "business_implication": "Food category has average ticket of $22.78, well below the $50 anomaly threshold. Analysis shows 7 merchants (mostly food kiosks, carts, and casual restaurants) with very low transaction sizes. While this pattern is legitimate for the food vertical, it warrants fraud monitoring because: (1) stolen card testing often uses $15-30 transactions to avoid fraud detection thresholds, (2) rapid-fire low-value transactions from single merchants could indicate carding attempts, (3) merchant account opening in food category is historically vulnerable to fraudster exploitation. Recommendation: apply additional scrutiny to this category—flag accounts with >50 transactions/day under $30, require velocity checks, and monitor for chargebacks."
+        }
+      ]
+    }
+  ]
+}

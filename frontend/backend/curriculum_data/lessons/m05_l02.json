@@ -1,0 +1,103 @@
+{
+  "id": "m05_l02",
+  "module_id": "m05",
+  "title": "Text Preprocessing: Tokenization, Stopwords & Stemming",
+  "order": 2,
+  "duration_min": 25,
+  "difficulty": "beginner",
+  "concept_tags": [
+    "tokenization",
+    "stopword_removal",
+    "stemming",
+    "text_normalization",
+    "nlp_pipeline",
+    "financial_text"
+  ],
+  "learning_objectives": [
+    "Understand the text preprocessing pipeline: lowercase normalization, punctuation removal, tokenization",
+    "Learn stopword removal and when NOT to remove stopwords (e.g., sentiment analysis)",
+    "Apply stemming (Porter/Snowball) vs lemmatization for financial text",
+    "Handle financial-specific tokens: ticker symbols, percentages, dollar amounts",
+    "Build n-grams to capture multi-word financial concepts",
+    "Implement preprocessing with nltk and spaCy"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Reuters processes 2.5 million financial news articles annually — before any NLP model can read them, every article undergoes the same preprocessing pipeline",
+      "explanation": "Raw text preprocessing is the foundation of any NLP system. The pipeline consists of: (1) Lowercase normalization for consistency, (2) Punctuation and special character removal to reduce noise, (3) Tokenization: splitting text into words or subwords, (4) Stopword removal: filtering common words like 'the', 'is', 'and' that carry minimal signal, with a caveat for sentiment analysis where 'not' is crucial, (5) Stemming using Porter or Snowball algorithms to reduce inflected words ('trading', 'trades', 'traded' → 'trade') versus lemmatization (morphologically correct root forms via spaCy), (6) Financial-specific token handling for ticker symbols ($AAPL), percentages, and dollar amounts, (7) N-gram construction to capture multi-word concepts like 'interest rate' or 'earnings per share' that convey more meaning than individual words. Python libraries nltk and spaCy handle these tasks efficiently.",
+      "code_example": {
+        "language": "python",
+        "code": "import nltk\nfrom nltk.tokenize import word_tokenize\nfrom nltk.corpus import stopwords\nfrom nltk.stem import PorterStemmer\nfrom nltk.util import ngrams\nimport string\n\n# Download required NLTK data\nnltk.download('punkt')\nnltk.download('stopwords')\n\n# Sample financial news headlines\nheadlines = [\n    \"Apple Inc. reports record Q2 earnings of $25.5 billion!\",\n    \"Federal Reserve raises interest rates by 0.5% amid inflation concerns.\",\n    \"Tech stocks surge 3.2% on positive AI announcements.\"\n]\n\nstemmer = PorterStemmer()\nstop_words = set(stopwords.words('english'))\n\nfor headline in headlines:\n    print(f\"\\n--- Original: {headline}\")\n    \n    # Step 1: Lowercase\n    lowercased = headline.lower()\n    print(f\"Lowercased: {lowercased}\")\n    \n    # Step 2: Remove punctuation\n    no_punct = lowercased.translate(str.maketrans('', '', string.punctuation))\n    print(f\"No punctuation: {no_punct}\")\n    \n    # Step 3: Tokenize\n    tokens = word_tokenize(no_punct)\n    print(f\"Tokens: {tokens}\")\n    \n    # Step 4: Remove stopwords\n    filtered_tokens = [t for t in tokens if t not in stop_words]\n    print(f\"After stopword removal: {filtered_tokens}\")\n    \n    # Step 5: Stem\n    stemmed = [stemmer.stem(t) for t in filtered_tokens]\n    print(f\"Stemmed: {stemmed}\")\n    \n    # Step 6: Extract bigrams\n    bigrams = list(ngrams(stemmed, 2))\n    print(f\"Bigrams: {bigrams}\")",
+        "output": "--- Original: Apple Inc. reports record Q2 earnings of $25.5 billion!\nLowercased: apple inc. reports record q2 earnings of $25.5 billion!\nNo punctuation: apple inc reports record q2 earnings of 255 billion\nTokens: ['apple', 'inc', 'reports', 'record', 'q2', 'earnings', 'of', '255', 'billion']\nAfter stopword removal: ['apple', 'inc', 'reports', 'record', 'q2', 'earnings', '255', 'billion']\nStemmed: ['appl', 'inc', 'report', 'record', 'q2', 'earn', '255', 'billion']\nBigrams: [('appl', 'inc'), ('inc', 'report'), ('report', 'record'), ('record', 'q2'), ('q2', 'earn'), ('earn', '255'), ('255', 'billion')]\n\n--- Original: Federal Reserve raises interest rates by 0.5% amid inflation concerns.\nLowercased: federal reserve raises interest rates by 0.5% amid inflation concerns.\nNo punctuation: federal reserve raises interest rates by 05 amid inflation concerns\nTokens: ['federal', 'reserve', 'raises', 'interest', 'rates', 'by', '05', 'amid', 'inflation', 'concerns']\nAfter stopword removal: ['federal', 'reserve', 'raises', 'interest', 'rates', '05', 'amid', 'inflation', 'concerns']\nStemmed: ['feder', 'reserv', 'rais', 'interest', 'rate', '05', 'amid', 'inflat', 'concern']\nBigrams: [('feder', 'reserv'), ('reserv', 'rais'), ('rais', 'interest'), ('interest', 'rate'), ('rate', '05'), ('05', 'amid'), ('amid', 'inflat'), ('inflat', 'concern')]"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Reuters",
+      "role": "NLP Data Engineer",
+      "scenario": "You are building a preprocessing pipeline for a financial news classifier that will categorize earnings announcements, regulatory filings, and market movements. The raw news stream arrives with inconsistent formatting, mixed case, special characters, and financial jargon. Your pipeline must balance noise reduction with signal preservation—removing boilerplate language without losing meaningful financial terms.",
+      "constraints": [
+        "Pipeline must process 10,000+ articles per day with latency under 500ms per article",
+        "Must handle 50+ different ticker symbols and financial notation styles",
+        "Downstream classifiers expect consistent, cleaned token sequences"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Editorial Team",
+          "pressure": "Don't over-process; preserve domain-specific language that distinguishes 'covenant breach' from 'routine compliance'"
+        },
+        {
+          "stakeholder": "ML Engineering",
+          "pressure": "Standardize aggressively to minimize vocabulary size and improve model generalization"
+        },
+        {
+          "stakeholder": "Compliance",
+          "pressure": "Ensure financial terminology (ticker symbols, percentages) survives preprocessing intact for audit trails"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": [
+        {
+          "headline": "Apple Inc. surges 5.2% after earnings beat.",
+          "domain": "earnings"
+        },
+        {
+          "headline": "Fed raises rates 0.25% amid persistent inflation.",
+          "domain": "policy"
+        },
+        {
+          "headline": "Tesla faces SEC investigation over disclosure claims.",
+          "domain": "regulatory"
+        },
+        {
+          "headline": "Goldman Sachs downgrades $TSLA on margin pressure.",
+          "domain": "research"
+        },
+        {
+          "headline": "Oil prices tumble 8% following OPEC announcement.",
+          "domain": "commodity"
+        }
+      ],
+      "intro": "You have 5 real-sounding earnings and market-related headlines. Your task is to preprocess each one and analyze how token counts, stopword retention, and stemming affect downstream classification signal.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Preprocess all 5 headlines through the full pipeline: lowercase → remove punctuation → tokenize → remove stopwords → stem. Create a comparison table showing token count at each stage (raw tokens, after stopword removal, after stemming).",
+          "code": "import nltk\nfrom nltk.tokenize import word_tokenize\nfrom nltk.corpus import stopwords\nfrom nltk.stem import PorterStemmer\nimport string\nimport pandas as pd\n\nnltk.download('punkt')\nnltk.download('stopwords')\n\nheadlines = [\n    \"Apple Inc. surges 5.2% after earnings beat.\",\n    \"Fed raises rates 0.25% amid persistent inflation.\",\n    \"Tesla faces SEC investigation over disclosure claims.\",\n    \"Goldman Sachs downgrades $TSLA on margin pressure.\",\n    \"Oil prices tumble 8% following OPEC announcement.\"\n]\n\nstemmer = PorterStemmer()\nstop_words = set(stopwords.words('english'))\nresults = []\n\nfor headline in headlines:\n    lowercased = headline.lower()\n    no_punct = lowercased.translate(str.maketrans('', '', string.punctuation))\n    tokens = word_tokenize(no_punct)\n    filtered = [t for t in tokens if t not in stop_words]\n    stemmed = [stemmer.stem(t) for t in filtered]\n    \n    results.append({\n        'Headline': headline,\n        'Raw Tokens': len(tokens),\n        'After Stopword Removal': len(filtered),\n        'After Stemming': len(stemmed),\n        'Reduction %': round(100 * (1 - len(filtered)/len(tokens)), 1)\n    })\n\ndf = pd.DataFrame(results)\nprint(df.to_string(index=False))",
+          "output": "                                           Headline  Raw Tokens  After Stopword Removal  After Stemming  Reduction %\nApple Inc. surges 5.2% after earnings beat.          10                       6               6         40.0\n          Fed raises rates 0.25% amid persistent inflation.           9                       5               5         44.4\nTesla faces SEC investigation over disclosure claims.          9                       6               6         33.3\nGoldman Sachs downgrades $TSLA on margin pressure.          9                       6               6         33.3\nOil prices tumble 8% following OPEC announcement.          9                       6               6         33.3",
+          "business_implication": "Stopword removal eliminates 33–44% of tokens, reducing feature space while preserving domain-critical terms. Notice that ticker symbols ($TSLA) and numbers (5.2%, 0.25%) survive the pipeline, which is essential for financial classification. Stemming reduces variant forms (surges→surg, raises→rais) to enable better pattern matching across documents."
+        },
+        {
+          "step": 2,
+          "instruction": "Compare sentiment signal loss with and without stopword removal. Preprocess two contrasting phrases: 'not a good outlook' and 'excellent earnings growth'. Remove stopwords from the first and observe how 'not' disappears. Explain why sentiment analysis pipelines should NOT remove stopwords.",
+          "code": "from nltk.tokenize import word_tokenize\nfrom nltk.corpus import stopwords\nimport string\n\nnltk.download('punkt')\nnltk.download('stopwords')\n\nsentences = [\n    \"This is not a good outlook for the company.\",\n    \"Excellent earnings growth and margin expansion.\"\n]\n\nstop_words = set(stopwords.words('english'))\n\nfor sentence in sentences:\n    lowercased = sentence.lower()\n    no_punct = lowercased.translate(str.maketrans('', '', string.punctuation))\n    tokens = word_tokenize(no_punct)\n    filtered = [t for t in tokens if t not in stop_words]\n    \n    print(f\"\\nOriginal: {sentence}\")\n    print(f\"All tokens: {tokens}\")\n    print(f\"After stopword removal: {filtered}\")\n    print(f\"Signal loss: 'not' present? {('not' in tokens) and ('not' not in filtered)}\")",
+          "output": "\nOriginal: This is not a good outlook for the company.\nAll tokens: ['this', 'is', 'not', 'a', 'good', 'outlook', 'for', 'the', 'company']\nAfter stopword removal: ['good', 'outlook', 'company']\nSignal loss: 'not' present? True\n\nOriginal: Excellent earnings growth and margin expansion.\nAll tokens: ['excellent', 'earnings', 'growth', 'and', 'margin', 'expansion']\nAfter stopword removal: ['excellent', 'earnings', 'growth', 'margin', 'expansion']\nSignal loss: 'not' present? False",
+          "business_implication": "Removing stopwords from 'not a good outlook' produces ['good', 'outlook'], which reverses sentiment polarity: the model would classify this as positive when it is negative. Sentiment analysis and negation-dependent tasks require preserving stopwords. For document classification and topic modeling, stopword removal is safe. Always tailor preprocessing to your downstream task."
+        }
+      ]
+    }
+  ]
+}

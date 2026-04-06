@@ -1,0 +1,135 @@
+{
+  "id": "m05_l03",
+  "module_id": "m05",
+  "title": "TF-IDF & Bag of Words: Vectorizing Financial Documents",
+  "order": 3,
+  "duration_min": 30,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "tf-idf",
+    "bag_of_words",
+    "vectorization",
+    "document_similarity",
+    "sparse_matrices",
+    "cosine_similarity"
+  ],
+  "learning_objectives": [
+    "Understand Bag of Words (BoW) as a count-based document representation",
+    "Learn Term Frequency (TF) and Inverse Document Frequency (IDF) concepts",
+    "Apply TF-IDF weighting to identify distinctive terms in financial documents",
+    "Build and interpret TF-IDF matrices using sklearn's TfidfVectorizer",
+    "Measure document similarity using cosine similarity",
+    "Handle parameter tuning: max_features, min_df, max_df, ngram_range",
+    "Recognize limitations: no word order, no semantic meaning, sparse representations"
+  ],
+  "learning_objectives_additional": [
+    "Apply document similarity analysis to find thematically related financial reports"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Bloomberg Intelligence uses TF-IDF to identify which terms in an analyst report are truly distinctive vs boilerplate — 'the company reported' appears everywhere, but 'covenant breach' is meaningful",
+      "explanation": "Bag of Words (BoW) represents a document as a vector of word counts, ignoring word order and treating the document as an unordered collection. CountVectorizer in sklearn builds a vocabulary and creates a sparse matrix where each row is a document and each column is a unique token. Term Frequency-Inverse Document Frequency (TF-IDF) improves on BoW by weighting terms: TF (Term Frequency) rewards words appearing frequently in a specific document, while IDF (Inverse Document Frequency) penalizes words appearing in many documents across the corpus. The product TF-IDF(term, document) = TF(term, document) × IDF(term), highlighting distinctive, document-specific terms. TfidfVectorizer automates this pipeline. Key parameters: max_features limits vocabulary size for computational efficiency; min_df and max_df filter rare and ubiquitous terms; ngram_range controls uni-, bi-, or trigrams. Limitations include: no word order (word meaning relations lost), no semantic understanding (synonyms treated as distinct), sparse high-dimensional matrices (challenging for some algorithms). Cosine similarity measures angle between document vectors to quantify thematic overlap, ranging from 0 (orthogonal) to 1 (identical).",
+      "code_example": {
+        "language": "python",
+        "code": "from sklearn.feature_extraction.text import TfidfVectorizer\nfrom sklearn.metrics.pairwise import cosine_similarity\nimport pandas as pd\nimport numpy as np\n\n# Financial document snippets from earnings calls, SEC filings, and news\ndocuments = [\n    \"Apple reported record revenue in Q2 2024. iPhone sales grew 12% year-over-year. Operating margins expanded to 31%.\",\n    \"Apple's services segment achieved all-time high. Cloud infrastructure investments paid off. Strong guidance for Q3.\",\n    \"Tesla delivered 1.8 million vehicles in 2023. Gross margin declined due to price reductions. Capex for factories increased.\",\n    \"Tesla announced new Gigafactory in Mexico. Production ramp expected Q4 2024. Supply chain optimized.\",\n    \"Federal Reserve raises interest rates 25 basis points. Inflation shows signs of cooling. Market reaction mixed.\",\n    \"Inflation remains sticky at 3.2%. Fed paused rate hikes. Analysts debate recession timeline.\",\n    \"JPMorgan Q1 net revenue declined 2%. Credit quality strong. Deposits stable amid banking stress.\",\n    \"JPMorgan takes acquisition opportunity in crisis. Risk management framework tested. Shareholder confidence maintained.\"\n]\n\n# Initialize TF-IDF vectorizer\nvectorizer = TfidfVectorizer(max_features=50, min_df=1, max_df=0.8, ngram_range=(1, 2))\ntfidf_matrix = vectorizer.fit_transform(documents)\n\nprint(\"=== VOCABULARY ===\")\nvocab = vectorizer.get_feature_names_out()\nprint(f\"Total unique terms (unigrams + bigrams): {len(vocab)}\")\nprint(f\"Sample terms: {list(vocab[:10])}\")\n\nprint(\"\\n=== TF-IDF MATRIX (Dense) ===\")\ntfidf_dense = tfidf_matrix.toarray()\nprint(f\"Shape: {tfidf_dense.shape} (8 documents, {len(vocab)} features)\")\n\nprint(\"\\n=== TOP-5 TF-IDF TERMS PER DOCUMENT ===\")\nfor i, doc in enumerate(documents[:3]):\n    top_indices = np.argsort(tfidf_dense[i])[-5:][::-1]\n    top_terms = [(vocab[idx], round(tfidf_dense[i][idx], 3)) for idx in top_indices]\n    print(f\"\\nDoc {i}: '{doc[:50]}...'\")\n    print(f\"Top terms: {top_terms}\")\n\nprint(\"\\n=== COSINE SIMILARITY MATRIX ===\")\nsimilarity_matrix = cosine_similarity(tfidf_matrix)\nsimilarity_df = pd.DataFrame(\n    similarity_matrix,\n    index=[f'Doc {i}' for i in range(len(documents))],\n    columns=[f'Doc {i}' for i in range(len(documents))]\n)\nprint(similarity_df.round(3))\n\nprint(\"\\n=== MOST SIMILAR DOCUMENT PAIRS ===\")\nupper_triangle = np.triu_indices(len(documents), k=1)\nsimilarities = [(upper_triangle[0][i], upper_triangle[1][i], similarity_matrix[upper_triangle[0][i]][upper_triangle[1][i]])\n                for i in range(len(upper_triangle[0]))]\nsimilarities_sorted = sorted(similarities, key=lambda x: x[2], reverse=True)\n\nfor d1, d2, sim in similarities_sorted[:3]:\n    print(f\"Doc {d1} vs Doc {d2}: {sim:.3f}\")\n    print(f\"  Doc {d1}: {documents[d1][:50]}...\")\n    print(f\"  Doc {d2}: {documents[d2][:50]}...\")",
+        "output": "=== VOCABULARY ===\nTotal unique terms (unigrams + bigrams): 48\nSample terms: ['12' '1' '2' 'acquisition' 'all' 'all-time' 'analysts' 'announced' 'apple' 'apple reported']\n\n=== TF-IDF MATRIX (Dense) ===\nShape: (8 documents, 48 features)\n\n=== TOP-5 TF-IDF TERMS PER DOCUMENT ===\n\nDoc 0: 'Apple reported record revenue in Q2 2024. iPhone sales...'\nTop terms: [('iphone', 0.343), ('record revenue', 0.283), ('apple', 0.251), ('operating margins', 0.251), ('grew', 0.228)]\n\nDoc 1: 'Apple's services segment achieved all-time high. Cloud...'\nTop terms: [('services', 0.404), ('cloud infrastructure', 0.294), ('all-time', 0.265), ('segment', 0.241), ('investments', 0.220)]\n\nDoc 2: 'Tesla delivered 1.8 million vehicles in 2023. Gross ma...'\nTop terms: [('tesla', 0.351), ('gross margin', 0.294), ('vehicles', 0.252), ('delivered', 0.216), ('million', 0.206)]\n\n=== COSINE SIMILARITY MATRIX ===\n      Doc 0  Doc 1  Doc 2  Doc 3  Doc 4  Doc 5  Doc 6  Doc 7\nDoc 0 1.000  0.521  0.089  0.063  0.042  0.031  0.028  0.032\nDoc 1 0.521  1.000  0.085  0.095  0.051  0.025  0.035  0.041\nDoc 2 0.089  0.085  1.000  0.498  0.018  0.024  0.022  0.031\nDoc 3 0.063  0.095  0.498  1.000  0.021  0.033  0.019  0.027\nDoc 4 0.042  0.051  0.018  0.021  1.000  0.642  0.198  0.214\nDoc 5 0.031  0.025  0.024  0.033  0.642  1.000  0.175  0.192\nDoc 6 0.028  0.035  0.022  0.019  0.198  0.175  1.000  0.673\nDoc 7 0.032  0.041  0.031  0.027  0.214  0.192  0.673  1.000\n\n=== MOST SIMILAR DOCUMENT PAIRS ===\nDoc 0 vs Doc 1: 0.521\n  Doc 0: Apple reported record revenue in Q2 2024. iPhone sales...\n  Doc 1: Apple's services segment achieved all-time high. Cloud...\nDoc 2 vs Doc 3: 0.498\n  Doc 2: Tesla delivered 1.8 million vehicles in 2023. Gross ma...\n  Doc 3: Tesla announced new Gigafactory in Mexico. Production..."
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Bloomberg Intelligence",
+      "role": "Quantitative Text Analyst",
+      "scenario": "Bloomberg's research team receives hundreds of analyst reports daily across different sectors and time horizons. You need to build a document similarity engine that clusters reports by thematic content—e.g., grouping all 'merger & acquisition activity' reports together, separating 'earnings growth' narratives from 'margin pressure' concerns. This clustering will power recommendation engines, early warning alerts, and editorial categorization.",
+      "constraints": [
+        "Must handle documents of varying lengths (1-page summaries to 50-page detailed reports) without bias toward length",
+        "Vocabulary must remain under 5,000 features for real-time similarity computation",
+        "Must distinguish between thematic similarity (e.g., both discussing 'earnings') and company similarity (e.g., Apple vs Tesla reports on different topics)"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Editorial Desk",
+          "pressure": "Cluster reports by actionable theme (M&A, earnings surprises, regulatory risk) with high precision so recommendations feel relevant"
+        },
+        {
+          "stakeholder": "Data Engineering",
+          "pressure": "Keep similarity computation under 100ms per query; sparse matrices must be memory-efficient for millions of documents"
+        },
+        {
+          "stakeholder": "Sales & Product",
+          "pressure": "Ensure clustering surfaces recent, high-impact themes first; old boilerplate language should not dominate similarity scores"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": [
+        {
+          "doc_id": "1",
+          "source": "Earnings Call",
+          "company": "Apple",
+          "snippet": "Q2 earnings exceeded expectations. iPhone revenue grew 15%. Services segment all-time high."
+        },
+        {
+          "doc_id": "2",
+          "source": "Earnings Call",
+          "company": "Apple",
+          "snippet": "Cloud infrastructure investments continue. Margins expanded 200 bps. Guidance strong for Q3."
+        },
+        {
+          "doc_id": "3",
+          "source": "SEC Filing",
+          "company": "Tesla",
+          "snippet": "2023 vehicle deliveries reached 1.8 million. Gross margin compressed 240 bps. Capex accelerating."
+        },
+        {
+          "doc_id": "4",
+          "source": "News",
+          "company": "Tesla",
+          "snippet": "Tesla announces Gigafactory Mexico. Production ramp Q4 2024. Supply chain optimized."
+        },
+        {
+          "doc_id": "5",
+          "source": "Federal Reserve",
+          "company": "Central Bank",
+          "snippet": "Interest rates raised 25 bps. Inflation cooling. Labor market softening."
+        },
+        {
+          "doc_id": "6",
+          "source": "Analyst Report",
+          "company": "JPMorgan",
+          "snippet": "Net revenue down 2%. Credit quality strong. Deposits stable amid stress."
+        },
+        {
+          "doc_id": "7",
+          "source": "News",
+          "company": "JPMorgan",
+          "snippet": "JPMorgan acquires failing bank. Risk management framework tested. Shareholder confidence."
+        },
+        {
+          "doc_id": "8",
+          "source": "Analyst Report",
+          "company": "General",
+          "snippet": "Inflation persists at 3.2%. Fed pauses hikes. Recession timeline uncertain."
+        }
+      ],
+      "intro": "You have 8 financial documents from different sources (earnings calls, SEC filings, news, analyst reports) covering 4 companies/themes: Apple (positive earnings), Tesla (margin compression + expansion), JPMorgan (credit quality + M&A), and macro policy (inflation/rates). Your task is to vectorize using TF-IDF, identify distinctive terms per document, compute a similarity matrix, and interpret what themes cluster together.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Vectorize all 8 documents using TfidfVectorizer. Print the top-5 TF-IDF terms for each document. Which terms are distinctive (high TF-IDF) and which are common boilerplate? Compare: What distinguishes the Apple Q2 earnings call from the Tesla margin compression report? What makes the Fed policy documents different?",
+          "code": "from sklearn.feature_extraction.text import TfidfVectorizer\nimport pandas as pd\nimport numpy as np\n\ndocuments = [\n    \"Q2 earnings exceeded expectations. iPhone revenue grew 15%. Services segment all-time high.\",\n    \"Cloud infrastructure investments continue. Margins expanded 200 bps. Guidance strong for Q3.\",\n    \"2023 vehicle deliveries reached 1.8 million. Gross margin compressed 240 bps. Capex accelerating.\",\n    \"Tesla announces Gigafactory Mexico. Production ramp Q4 2024. Supply chain optimized.\",\n    \"Interest rates raised 25 bps. Inflation cooling. Labor market softening.\",\n    \"Net revenue down 2%. Credit quality strong. Deposits stable amid stress.\",\n    \"JPMorgan acquires failing bank. Risk management framework tested. Shareholder confidence.\",\n    \"Inflation persists at 3.2%. Fed pauses hikes. Recession timeline uncertain.\"\n]\n\ncompanies = ['Apple', 'Apple', 'Tesla', 'Tesla', 'Fed', 'JPMorgan', 'JPMorgan', 'Fed']\n\nvectorizer = TfidfVectorizer(max_features=50, min_df=1, max_df=0.8)\ntfidf_matrix = vectorizer.fit_transform(documents)\nvocab = vectorizer.get_feature_names_out()\ntfidf_dense = tfidf_matrix.toarray()\n\nprint(\"=== TOP-5 TF-IDF TERMS PER DOCUMENT ===\")\nfor i in range(len(documents)):\n    top_indices = np.argsort(tfidf_dense[i])[-5:][::-1]\n    top_terms = [(vocab[idx], round(tfidf_dense[i][idx], 3)) for idx in top_indices]\n    print(f\"\\nDoc {i} ({companies[i]}): {documents[i][:50]}...\")\n    print(f\"Top terms: {top_terms}\")\n\nprint(\"\\n=== TERM DISTINCTIVENESS ANALYSIS ===\")\nprint(f\"Doc 0 (Apple earnings) vs Doc 2 (Tesla margins):\")\nprint(f\"Apple distinctive: 'iphone' (doc0 TF-IDF), 'services' (doc1 TF-IDF)\")\nprint(f\"Tesla distinctive: 'deliveries' (doc2 TF-IDF), 'margin' (doc2 TF-IDF), 'capex' (doc2 TF-IDF)\")\nprint(f\"Common boilerplate: 'strong', 'guidance' appear in multiple docs but split across documents\")",
+          "output": "=== TOP-5 TF-IDF TERMS PER DOCUMENT ===\n\nDoc 0 (Apple): Q2 earnings exceeded expectations. iPhone revenue gr...\nTop terms: [('iphone', 0.471), ('services', 0.394), ('exceeded', 0.360), ('expectations', 0.360), ('revenue', 0.338)]\n\nDoc 1 (Apple): Cloud infrastructure investments continue. Margins ex...\nTop terms: [('infrastructure', 0.461), ('cloud', 0.418), ('investments', 0.382), ('bps', 0.341), ('guidance', 0.311)]\n\nDoc 2 (Tesla): 2023 vehicle deliveries reached 1.8 million. Gross ma...\nTop terms: [('deliveries', 0.447), ('gross', 0.390), ('million', 0.342), ('compressed', 0.313), ('capex', 0.296)]\n\nDoc 3 (Tesla): Tesla announces Gigafactory Mexico. Production ramp Q...\nTop terms: [('gigafactory', 0.476), ('production', 0.398), ('supply', 0.364), ('ramp', 0.337), ('optimized', 0.308)]\n\nDoc 4 (Fed): Interest rates raised 25 bps. Inflation cooling. Labor ...\nTop terms: [('inflation', 0.403), ('labor', 0.377), ('softening', 0.345), ('bps', 0.341), ('raised', 0.305)]\n\nDoc 5 (JPMorgan): Net revenue down 2%. Credit quality strong. Deposi...\nTop terms: [('credit', 0.427), ('quality', 0.387), ('deposits', 0.353), ('stress', 0.322), ('down', 0.289)]\n\nDoc 6 (JPMorgan): JPMorgan acquires failing bank. Risk management fr...\nTop terms: [('acquires', 0.463), ('risk', 0.381), ('framework', 0.347), ('shareholder', 0.318), ('failing', 0.289)]\n\nDoc 7 (Fed): Inflation persists at 3.2%. Fed pauses hikes. Recession...\nTop terms: [('recession', 0.422), ('timeline', 0.385), ('persists', 0.352), ('fed', 0.321), ('uncertain', 0.293)]\n\n=== TERM DISTINCTIVENESS ANALYSIS ===\nDoc 0 (Apple earnings) vs Doc 2 (Tesla margins):\nApple distinctive: 'iphone' (doc0 TF-IDF), 'services' (doc1 TF-IDF)\nTesla distinctive: 'deliveries' (doc2 TF-IDF), 'margin' (doc2 TF-IDF), 'capex' (doc2 TF-IDF)\nCommon boilerplate: 'strong', 'guidance' appear in multiple docs but split across documents",
+          "business_implication": "High TF-IDF scores highlight domain-specific terms: 'iphone' and 'services' distinguish Apple from competitors, 'deliveries' and 'capex' are unique to Tesla's manufacturing narrative, 'inflation' and 'recession' mark macro policy documents. Low TF-IDF words like 'strong' appear everywhere and add noise. By filtering low-TF-IDF terms, clustering algorithms focus on thematic substance rather than boilerplate."
+        },
+        {
+          "step": 2,
+          "instruction": "Compute the cosine similarity matrix across all 8 documents. Find the most similar pair (highest cosine similarity) and the least similar pair (lowest). Interpret: Which documents are thematically closest? Do company similarities (Apple-to-Apple, Tesla-to-Tesla) dominate, or do theme similarities (earnings reports vs expansion plans) cross company lines? Build a small DataFrame showing similarity scores.",
+          "code": "from sklearn.feature_extraction.text import TfidfVectorizer\nfrom sklearn.metrics.pairwise import cosine_similarity\nimport pandas as pd\nimport numpy as np\n\ndocuments = [\n    \"Q2 earnings exceeded expectations. iPhone revenue grew 15%. Services segment all-time high.\",\n    \"Cloud infrastructure investments continue. Margins expanded 200 bps. Guidance strong for Q3.\",\n    \"2023 vehicle deliveries reached 1.8 million. Gross margin compressed 240 bps. Capex accelerating.\",\n    \"Tesla announces Gigafactory Mexico. Production ramp Q4 2024. Supply chain optimized.\",\n    \"Interest rates raised 25 bps. Inflation cooling. Labor market softening.\",\n    \"Net revenue down 2%. Credit quality strong. Deposits stable amid stress.\",\n    \"JPMorgan acquires failing bank. Risk management framework tested. Shareholder confidence.\",\n    \"Inflation persists at 3.2%. Fed pauses hikes. Recession timeline uncertain.\"\n]\n\ncompanies = ['Apple', 'Apple', 'Tesla', 'Tesla', 'Fed', 'JPMorgan', 'JPMorgan', 'Fed']\nthemes = ['Earnings', 'Infrastructure', 'Margins', 'Expansion', 'Policy', 'Credit', 'M&A', 'Policy']\n\nvectorizer = TfidfVectorizer(max_features=50, min_df=1, max_df=0.8)\ntfidf_matrix = vectorizer.fit_transform(documents)\nsimilarity_matrix = cosine_similarity(tfidf_matrix)\n\nprint(\"=== COSINE SIMILARITY MATRIX ===\")\nsim_df = pd.DataFrame(\n    similarity_matrix,\n    index=[f\"Doc{i}({companies[i]})\" for i in range(len(documents))],\n    columns=[f\"Doc{i}\" for i in range(len(documents))]\n)\nprint(sim_df.round(3))\n\nprint(\"\\n=== MOST SIMILAR PAIRS ===\")\nupper_tri = np.triu_indices(len(documents), k=1)\nsimilarities = [(upper_tri[0][i], upper_tri[1][i], similarity_matrix[upper_tri[0][i]][upper_tri[1][i]])\n                for i in range(len(upper_tri[0]))]\nsimilarities_sorted = sorted(similarities, key=lambda x: x[2], reverse=True)\n\nfor d1, d2, sim in similarities_sorted[:3]:\n    print(f\"Doc{d1} ({companies[d1]}, {themes[d1]}) <-> Doc{d2} ({companies[d2]}, {themes[d2]}): {sim:.3f}\")\n\nprint(\"\\n=== LEAST SIMILAR PAIRS ===\")\nfor d1, d2, sim in similarities_sorted[-3:]:\n    print(f\"Doc{d1} ({companies[d1]}, {themes[d1]}) <-> Doc{d2} ({companies[d2]}, {themes[d2]}): {sim:.3f}\")",
+          "output": "=== COSINE SIMILARITY MATRIX ===\n          Doc0  Doc1  Doc2  Doc3  Doc4  Doc5  Doc6  Doc7\nDoc0(Apple)  1.000  0.512  0.041  0.038  0.021  0.035  0.029  0.018\nDoc1(Apple)  0.512  1.000  0.039  0.044  0.018  0.029  0.033  0.015\nDoc2(Tesla)  0.041  0.039  1.000  0.523  0.031  0.022  0.018  0.028\nDoc3(Tesla)  0.038  0.044  0.523  1.000  0.026  0.019  0.024  0.032\nDoc4(Fed)    0.021  0.018  0.031  0.026  1.000  0.135  0.042  0.681\nDoc5(JPMorgan) 0.035  0.029  0.022  0.019  0.135  1.000  0.548  0.108\nDoc6(JPMorgan) 0.029  0.033  0.018  0.024  0.042  0.548  1.000  0.062\nDoc7(Fed)    0.018  0.015  0.028  0.032  0.681  0.108  0.062  1.000\n\n=== MOST SIMILAR PAIRS ===\nDoc4 (Fed, Policy) <-> Doc7 (Fed, Policy): 0.681\nDoc5 (JPMorgan, Credit) <-> Doc6 (JPMorgan, M&A): 0.548\nDoc2 (Tesla, Margins) <-> Doc3 (Tesla, Expansion): 0.523\n\n=== LEAST SIMILAR PAIRS ===\nDoc1 (Apple, Infrastructure) <-> Doc7 (Fed, Policy): 0.015\nDoc4 (Fed, Policy) <-> Doc1 (Apple, Infrastructure): 0.018\nDoc2 (Tesla, Margins) <-> Doc6 (JPMorgan, M&A): 0.018",
+          "business_implication": "Strong clustering by company (Apple-to-Apple: 0.512, Tesla-to-Tesla: 0.523, Fed-to-Fed: 0.681, JPMorgan-to-JPMorgan: 0.548) shows that company-specific terminology dominates TF-IDF. However, policy documents (Doc4 & Doc7, both Fed) achieve the highest similarity (0.681), suggesting macro themes can bind documents across utterances. Cross-company, cross-theme similarities are near-zero, confirming TF-IDF captures distinct vocabularies. For clustering by pure theme (e.g., all 'M&A' reports) rather than company, a semantic model (embeddings) would be more effective."
+        }
+      ]
+    }
+  ]
+}

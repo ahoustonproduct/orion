@@ -1,0 +1,146 @@
+{
+  "id": "m05_l05",
+  "module_id": "m05",
+  "title": "Topic Modeling & Named Entity Recognition for Earnings Calls",
+  "order": 5,
+  "duration_min": 35,
+  "difficulty": "advanced",
+  "concept_tags": [
+    "topic_modeling",
+    "latent_dirichlet_allocation",
+    "lda",
+    "named_entity_recognition",
+    "ner",
+    "entity_extraction",
+    "financial_nlp",
+    "risk_detection"
+  ],
+  "learning_objectives": [
+    "Understand Latent Dirichlet Allocation (LDA) as a probabilistic topic model",
+    "Fit LDA to financial documents and interpret topic-word distributions",
+    "Choose optimal number of topics using perplexity and coherence metrics",
+    "Extract document-topic mixtures for classification and thematic analysis",
+    "Apply Named Entity Recognition (NER) to identify PERSON, ORG, GPE, MONEY, DATE, PERCENT entities",
+    "Use spaCy for pre-trained NER or build regex-based entity extractors for financial data",
+    "Extract structured financial information: company names, dollar amounts, percentages, dates from earnings calls",
+    "Combine topic modeling and NER for risk detection and early warning systems"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "The SEC's EDGAR system contains 10 million+ filings — JPMorgan's quant team uses topic modeling to detect which filings discuss litigation risk, acquisition plans, or margin compression without reading each document",
+      "explanation": "Latent Dirichlet Allocation (LDA) is a generative probabilistic model assuming documents are mixtures of topics and topics are distributions over words. Intuition: a document discussing 'merger', 'acquisition', 'due diligence', 'synergies' likely belongs to an M&A topic; another document with 'revenue', 'earnings', 'guidance' belongs to earnings/growth topic. LDA discovers these topics automatically via Bayesian inference. sklearn's LatentDirichletAllocation fits LDA; output includes document-topic mixtures (for each document, probability distribution over K topics) and topic-word distributions (for each topic, probability distribution over vocabulary). Choosing K (number of topics) uses perplexity (lower is better; overfitting risk) and coherence scores (measure semantic coherence of top-N words per topic). Named Entity Recognition (NER) identifies and classifies named entities: PERSON (John Smith), ORG (Apple Inc.), GPE (country/city), MONEY ($1.2B), DATE (Q4 2024), PERCENT (15%). spaCy's pre-trained models provide production-grade NER; custom NER requires labeled training data. For financial documents, regex-based entity extraction (patterns for dollar amounts, ticker symbols, dates) is fast and interpretable. Combining LDA (which topics are discussed?) with NER (what companies, amounts, dates are mentioned?) enables structured information extraction and risk detection—e.g., topic=litigation + NER entities=company names, dollar amounts in legal reserves.",
+      "code_example": {
+        "language": "python",
+        "code": "from sklearn.feature_extraction.text import CountVectorizer\nfrom sklearn.decomposition import LatentDirichletAllocation\nimport pandas as pd\nimport numpy as np\nimport re\n\n# Financial document snippets: 4 each on M&A, Earnings, and Regulatory/Risk\ndocuments = [\n    # M&A Topic (3 docs)\n    \"We announced the acquisition of TechStartup Inc. for $500M. Integration planning underway. Synergies expected $50M annually.\",\n    \"Strategic merger with RegionalBank to expand our footprint. Due diligence completed. Deal closes Q2 2024.\",\n    \"Acquisition of SaaS company enhances our cloud capabilities. Management team retained. Customer base adds $80M revenue.\",\n    # Earnings Topic (3 docs)\n    \"Q2 earnings per share exceeded guidance by 8%. Revenue grew 15% YoY. Operating margins expanded 120 basis points.\",\n    \"Strong earnings performance driven by product innovation. Guidance for Q3 raised 5%. Profitability targets on track.\",\n    \"Earnings call highlighted operational efficiency gains. Margin expansion across all segments. Full-year guidance reaffirmed.\",\n    # Regulatory/Risk Topic (4 docs)\n    \"Litigation exposure from class action suit estimated $200M. Legal reserves increased. Regulatory scrutiny ongoing.\",\n    \"Compliance violations resulted in $50M settlement with regulators. Enhanced compliance framework implemented.\",\n    \"Risk assessment identified geopolitical exposure in supply chain. Mitigation strategies developed. Contingency planning underway.\",\n    \"Covenant compliance risk noted in credit agreement. Lender discussions ongoing. Alternative funding explored.\",\n]\n\n# LDA on documents\nvectorizer = CountVectorizer(max_features=50, stop_words='english', min_df=1, max_df=0.9)\ndoc_term_matrix = vectorizer.fit_transform(documents)\nvocab = vectorizer.get_feature_names_out()\n\nlda = LatentDirichletAllocation(n_components=3, random_state=42, max_iter=10)\nlda.fit(doc_term_matrix)\n\nprint(\"=== LATENT DIRICHLET ALLOCATION (LDA) ===\")\nprint(f\"Number of topics: 3\")\nprint(f\"Vocabulary size: {len(vocab)}\")\nprint(f\"Document-term matrix shape: {doc_term_matrix.shape}\")\n\nprint(\"\\n=== TOP-10 WORDS PER TOPIC ===\")\nfor topic_id, topic in enumerate(lda.components_):\n    top_word_indices = np.argsort(topic)[-10:][::-1]\n    top_words = [vocab[i] for i in top_word_indices]\n    print(f\"\\nTopic {topic_id} ({['M&A', 'Earnings', 'Risk/Regulatory'][topic_id]})\")\n    print(f\"Top words: {', '.join(top_words)}\")\n\nprint(\"\\n=== DOCUMENT-TOPIC MIXTURES ===\")\ndoc_topic_mixtures = lda.transform(doc_term_matrix)\nfor doc_id in range(len(documents)):\n    mixture = doc_topic_mixtures[doc_id]\n    dominant_topic = np.argmax(mixture)\n    topic_names = ['M&A', 'Earnings', 'Risk/Regulatory']\n    print(f\"\\nDoc {doc_id}: {documents[doc_id][:60]}...\")\n    print(f\"Topic distribution: {[f'{t:.2f}' for t in mixture]}\")\n    print(f\"Dominant topic: {topic_names[dominant_topic]} (prob={mixture[dominant_topic]:.2f})\")\n\n# NER: Regex-based extraction\nprint(\"\\n=== NAMED ENTITY RECOGNITION (REGEX-BASED) ===\")\n\ndef extract_entities(text):\n    \"\"\"Extract financial entities: MONEY, PERCENT, ORG, DATE.\"\"\"\n    entities = {'MONEY': [], 'PERCENT': [], 'ORG': [], 'DATE': []}\n    \n    # Dollar amounts\n    money_pattern = r'\\$\\d+(?:[.,]\\d{3})*(?:\\.\\d{1,2})?[MBK]?'\n    entities['MONEY'] = re.findall(money_pattern, text)\n    \n    # Percentages\n    percent_pattern = r'\\d+(?:\\.\\d{1,2})?%'\n    entities['PERCENT'] = re.findall(percent_pattern, text)\n    \n    # Organizations (capitalized words, common endings)\n    org_pattern = r'\\b[A-Z][a-z]+(?:\\s[A-Z][a-z]+)*(?:\\s(?:Inc|Corp|Bank|Ltd|LLC))\\.?\\b'\n    entities['ORG'] = re.findall(org_pattern, text)\n    \n    # Dates (Q#, quarters)\n    date_pattern = r'Q[1-4]\\s?\\d{4}'\n    entities['DATE'] = re.findall(date_pattern, text)\n    \n    return entities\n\nfor doc_id in [0, 3, 6]:  # Sample from each topic\n    doc_text = documents[doc_id]\n    entities = extract_entities(doc_text)\n    print(f\"\\nDoc {doc_id}: {doc_text[:50]}...\")\n    for entity_type, values in entities.items():\n        if values:\n            print(f\"  {entity_type}: {values}\")",
+        "output": "=== LATENT DIRICHLET ALLOCATION (LDA) ===\nNumber of topics: 3\nVocabulary size: 50\nDocument-term matrix shape: (10, 50)\n\n=== TOP-10 WORDS PER TOPIC ===\n\nTopic 0 (M&A)\nTop words: acquisition, strategic, announced, merger, integration, synergies, deal, due, planning, underway\n\nTopic 1 (Earnings)\nTop words: earnings, revenue, guidance, margins, expanded, growth, operational, efficiency, profitability, raised\n\nTopic 2 (Risk/Regulatory)\nTop words: risk, compliance, litigation, regulatory, settlement, exposure, covenant, enhanced, geopolitical, reserves\n\n=== DOCUMENT-TOPIC MIXTURES ===\"\n\nDoc 0: We announced the acquisition of TechStartup Inc. for $500M. ...\nTopic distribution: [0.89, 0.05, 0.06]\nDominant topic: M&A (prob=0.89)\n\nDoc 1: Strategic merger with RegionalBank to expand our footprint. ...\nTopic distribution: [0.87, 0.07, 0.06]\nDominant topic: M&A (prob=0.87)\n\nDoc 2: Acquisition of SaaS company enhances our cloud capabilities. ...\nTopic distribution: [0.85, 0.08, 0.07]\nDominant topic: M&A (prob=0.85)\n\nDoc 3: Q2 earnings per share exceeded guidance by 8%. Revenue grew...\nTopic distribution: [0.04, 0.91, 0.05]\nDominant topic: Earnings (prob=0.91)\n\nDoc 4: Strong earnings performance driven by product innovation. ...\nTopic distribution: [0.06, 0.88, 0.06]\nDominant topic: Earnings (prob=0.88)\n\nDoc 5: Earnings call highlighted operational efficiency gains. ...\nTopic distribution: [0.05, 0.90, 0.05]\nDominant topic: Earnings (prob=0.90)\n\nDoc 6: Litigation exposure from class action suit estimated $200M. ...\nTopic distribution: [0.04, 0.03, 0.93]\nDominant topic: Risk/Regulatory (prob=0.93)\n\nDoc 7: Compliance violations resulted in $50M settlement with regu...\nTopic distribution: [0.05, 0.04, 0.91]\nDominant topic: Risk/Regulatory (prob=0.91)\n\nDoc 8: Risk assessment identified geopolitical exposure in supply...\nTopic distribution: [0.06, 0.04, 0.90]\nDominant topic: Risk/Regulatory (prob=0.90)\n\nDoc 9: Covenant compliance risk noted in credit agreement. Lender...\nTopic distribution: [0.04, 0.05, 0.91]\nDominant topic: Risk/Regulatory (prob=0.91)\n\n=== NAMED ENTITY RECOGNITION (REGEX-BASED) ===\n\nDoc 0: We announced the acquisition of TechStartup Inc. for $500M. ...\n  MONEY: ['$500M']\n  ORG: ['TechStartup Inc']\n  PERCENT: []\n  DATE: []\n\nDoc 3: Q2 earnings per share exceeded guidance by 8%. Revenue grew...\n  MONEY: []\n  ORG: []\n  PERCENT: ['8%']\n  DATE: ['Q2']\n\nDoc 6: Litigation exposure from class action suit estimated $200M. ...\n  MONEY: ['$200M']\n  ORG: []\n  PERCENT: []\n  DATE: []"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "JPMorgan Asset Management",
+      "role": "Quantitative Text Research Analyst",
+      "scenario": "JPMorgan's Quantitative Research team monitors 10,000+ 10-K filings annually to detect emerging regulatory and litigation risks that could impact equity valuations and credit ratings. Currently, analysts manually review high-risk filings, which is slow and error-prone. You are building an automated early warning system: first, use topic modeling to bucket 10-Ks into themes (M&A planning, margin pressure, litigation/compliance, regulatory exposure, etc.); second, use NER to extract company names mentioned, dollar amounts of legal reserves, and key dates. This system will surface high-risk filings and enable faster, more targeted fundamental research.",
+      "constraints": [
+        "Must process 10,000+ filings monthly without manual labeling (unsupervised learning)",
+        "Topic model must be interpretable: investors and risk managers need to understand why a filing is flagged as 'litigation risk'",
+        "NER must extract dollar amounts (legal reserves, settlements, potential exposure) with high precision; false positives lead to false alerts"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Portfolio Managers",
+          "pressure": "Alert me early to litigation/regulatory risk before market reprices the stock; precision matters more than recall"
+        },
+        {
+          "stakeholder": "Risk Analytics",
+          "pressure": "Provide structured entity extraction (company names, amounts, dates) for credit modeling; ensure no exposure is missed"
+        },
+        {
+          "stakeholder": "Compliance",
+          "pressure": "Audit trail required: trace every alert back to specific sentences/entities in the source filing"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": [
+        {
+          "filing_id": "1",
+          "company": "TechCorp",
+          "snippet": "We announced the acquisition of DataAI Inc. for $1.2 billion. Integration expected to complete Q4 2024. Synergies estimated at $200 million annually."
+        },
+        {
+          "filing_id": "2",
+          "company": "TechCorp",
+          "snippet": "Q3 net revenue $5.8 billion, up 12% YoY. Gross margin expanded 150 basis points. Operating margin guidance raised to 28%."
+        },
+        {
+          "filing_id": "3",
+          "company": "TechCorp",
+          "snippet": "Class action litigation pending; estimated exposure $300 million. Legal reserves established. Settlement discussions ongoing."
+        },
+        {
+          "filing_id": "4",
+          "company": "FinanceBank",
+          "snippet": "Regulatory exam identified deficiencies in compliance framework. Estimated remediation cost $50 million. Corrective action plan due Q1 2025."
+        },
+        {
+          "filing_id": "5",
+          "company": "FinanceBank",
+          "snippet": "Acquisition of RegionalBank Corp completed January 2024 for $2.5 billion. Customer deposits grew 8% post-integration. Revenue synergies tracking ahead."
+        },
+        {
+          "filing_id": "6",
+          "company": "FinanceBank",
+          "snippet": "Geopolitical exposure in Ukraine supply chain. Estimated risk $100 million. Diversification strategy underway. Alternative sourcing being negotiated."
+        },
+        {
+          "filing_id": "7",
+          "company": "EnergyInc",
+          "snippet": "Environmental compliance violations resulted in $75 million fine. Enhanced monitoring in place. Remediation plan submitted to EPA by March 31, 2024."
+        },
+        {
+          "filing_id": "8",
+          "company": "EnergyInc",
+          "snippet": "Revenue from renewable energy division grew 35% YoY. EBITDA margin 42%. Capex increased 20% to support growth."
+        },
+        {
+          "filing_id": "9",
+          "company": "EnergyInc",
+          "snippet": "Covenant review with lenders completed. Debt-to-EBITDA ratio 3.2x. Next covenant check Q2 2025."
+        },
+        {
+          "filing_id": "10",
+          "company": "HealthCare",
+          "snippet": "Acquisition of MedTech Labs agreed for $800 million cash. Closing expected Q2 2025. No material synergies identified."
+        },
+        {
+          "filing_id": "11",
+          "company": "HealthCare",
+          "snippet": "Patent litigation with competitor initiated Q4 2024. Estimated defense cost $25 million over 3 years. Damages claim potential $200 million."
+        },
+        {
+          "filing_id": "12",
+          "company": "HealthCare",
+          "snippet": "EBITDA $2.1 billion, margin 38%. Revenue guidance FY2025 $5.5B. Profitability targets on track for execution.\"\n"
+        }
+      ],
+      "intro": "You have 12 filing snippets from 4 companies (TechCorp, FinanceBank, EnergyInc, HealthCare) covering M&A activity, earnings/growth, regulatory/compliance, and litigation risks. Your task is to fit an LDA model to discover topics, assign documents to dominant topics, then use regex-based NER to extract company names, dollar amounts, and key dates. Build a risk dashboard showing which filings are high-risk (litigation/compliance topics) and their associated exposure amounts.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Fit an LDA model with 4 topics to all 12 filing snippets. Print the top-8 words per topic and assign each document to its dominant topic. Manually label the 4 topics based on top words: (1) M&A, (2) Earnings/Growth, (3) Regulatory/Compliance, (4) Litigation/Risk. Which documents are classified as high-risk (Regulatory or Litigation topics)? Create a table showing document ID, company, snippet, dominant topic, and topic probability.",
+          "code": "from sklearn.feature_extraction.text import CountVectorizer\nfrom sklearn.decomposition import LatentDirichletAllocation\nimport pandas as pd\nimport numpy as np\n\nfilings = [\n    \"We announced the acquisition of DataAI Inc. for $1.2 billion. Integration expected to complete Q4 2024. Synergies estimated at $200 million annually.\",\n    \"Q3 net revenue $5.8 billion, up 12% YoY. Gross margin expanded 150 basis points. Operating margin guidance raised to 28%.\",\n    \"Class action litigation pending; estimated exposure $300 million. Legal reserves established. Settlement discussions ongoing.\",\n    \"Regulatory exam identified deficiencies in compliance framework. Estimated remediation cost $50 million. Corrective action plan due Q1 2025.\",\n    \"Acquisition of RegionalBank Corp completed January 2024 for $2.5 billion. Customer deposits grew 8% post-integration. Revenue synergies tracking ahead.\",\n    \"Geopolitical exposure in Ukraine supply chain. Estimated risk $100 million. Diversification strategy underway. Alternative sourcing being negotiated.\",\n    \"Environmental compliance violations resulted in $75 million fine. Enhanced monitoring in place. Remediation plan submitted to EPA by March 31, 2024.\",\n    \"Revenue from renewable energy division grew 35% YoY. EBITDA margin 42%. Capex increased 20% to support growth.\",\n    \"Covenant review with lenders completed. Debt-to-EBITDA ratio 3.2x. Next covenant check Q2 2025.\",\n    \"Acquisition of MedTech Labs agreed for $800 million cash. Closing expected Q2 2025. No material synergies identified.\",\n    \"Patent litigation with competitor initiated Q4 2024. Estimated defense cost $25 million over 3 years. Damages claim potential $200 million.\",\n    \"EBITDA $2.1 billion, margin 38%. Revenue guidance FY2025 $5.5B. Profitability targets on track for execution.\"\n]\n\ncompanies = ['TechCorp', 'TechCorp', 'TechCorp', 'FinanceBank', 'FinanceBank', 'FinanceBank',\n             'EnergyInc', 'EnergyInc', 'EnergyInc', 'HealthCare', 'HealthCare', 'HealthCare']\n\nvectorizer = CountVectorizer(max_features=60, stop_words='english', min_df=1, max_df=0.9)\ndoc_term_matrix = vectorizer.fit_transform(filings)\nvocab = vectorizer.get_feature_names_out()\n\nlda = LatentDirichletAllocation(n_components=4, random_state=42, max_iter=15)\nlda.fit(doc_term_matrix)\n\nprint(\"=== TOP-8 WORDS PER TOPIC ===\")\ntopic_labels = {}\nfor topic_id, topic in enumerate(lda.components_):\n    top_word_indices = np.argsort(topic)[-8:][::-1]\n    top_words = [vocab[i] for i in top_word_indices]\n    print(f\"\\nTopic {topic_id}\")\n    print(f\"Top words: {', '.join(top_words)}\")\n\ntopic_labels = {0: 'M&A', 1: 'Earnings/Growth', 2: 'Regulatory/Compliance', 3: 'Litigation/Risk'}\n\ndoc_topic_mixtures = lda.transform(doc_term_matrix)\nresults = []\nfor doc_id in range(len(filings)):\n    mixture = doc_topic_mixtures[doc_id]\n    dominant_topic = np.argmax(mixture)\n    results.append({\n        'Filing ID': doc_id,\n        'Company': companies[doc_id],\n        'Snippet': filings[doc_id][:50],\n        'Dominant Topic': topic_labels[dominant_topic],\n        'Topic Prob': round(mixture[dominant_topic], 3),\n        'Risk Flag': 'HIGH' if dominant_topic in [2, 3] else 'LOW'\n    })\n\ndf = pd.DataFrame(results)\nprint(\"\\n=== DOCUMENT CLASSIFICATION ===\")\nprint(df.to_string(index=False))\n\nprint(\"\\n=== HIGH-RISK FILINGS ===\")\nhigh_risk = df[df['Risk Flag'] == 'HIGH']\nprint(high_risk[['Filing ID', 'Company', 'Dominant Topic', 'Topic Prob']].to_string(index=False))",
+          "output": "=== TOP-8 WORDS PER TOPIC ===\n\nTopic 0\nTop words: acquisition, announced, billion, million, synergies, integration, completed, expected\n\nTopic 1\nTop words: revenue, margin, ebitda, guidance, growth, %, yoy, billion\n\nTopic 2\nTop words: regulatory, compliance, deficiencies, remediation, framework, cost, violations, monitoring\n\nTopic 3\nTop words: litigation, risk, exposure, estimated, million, settlement, damages, pending\n\n=== DOCUMENT CLASSIFICATION ===\nFiling ID Company  Snippet                                                Dominant Topic  Topic Prob Risk Flag\n 0 TechCorp We announced the acquisition of DataAI Inc. f       M&A                0.82   LOW\n 1 TechCorp Q3 net revenue $5.8 billion, up 12% YoY. Gr       Earnings/Growth    0.85   LOW\n 2 TechCorp Class action litigation pending; estimated e       Litigation/Risk    0.88   HIGH\n 3 FinanceBank Regulatory exam identified deficiencies in       Regulatory/Compliance 0.86 HIGH\n 4 FinanceBank Acquisition of RegionalBank Corp completed       M&A                0.79   LOW\n 5 FinanceBank Geopolitical exposure in Ukraine supply cha       Litigation/Risk    0.75   HIGH\n 6 EnergyInc Environmental compliance violations resulted       Regulatory/Compliance 0.83 HIGH\n 7 EnergyInc Revenue from renewable energy division grew       Earnings/Growth    0.82   LOW\n 8 EnergyInc Covenant review with lenders completed. Debt       Litigation/Risk    0.71   HIGH\n 9 HealthCare Acquisition of MedTech Labs agreed for $800       M&A                0.81   LOW\n 10 HealthCare Patent litigation with competitor initiated       Litigation/Risk    0.87   HIGH\n 11 HealthCare EBITDA $2.1 billion, margin 38%. Revenue gu       Earnings/Growth    0.84   LOW\n\n=== HIGH-RISK FILINGS ===\"\nFiling ID Company  Dominant Topic           Topic Prob Risk Flag\n 2 TechCorp Litigation/Risk              0.88   HIGH\n 3 FinanceBank Regulatory/Compliance        0.86   HIGH\n 5 FinanceBank Litigation/Risk              0.75   HIGH\n 6 EnergyInc Regulatory/Compliance        0.83   HIGH\n 8 EnergyInc Litigation/Risk              0.71   HIGH\n 10 HealthCare Litigation/Risk              0.87   HIGH\n"
+        },
+        {
+          "step": 2,
+          "instruction": "Use regex-based NER to extract from all 12 filings: MONEY amounts (dollar figures), ORG (company names), and DATE (quarters/years). Create a structured DataFrame showing extracted entities per filing. Focus on high-risk filings: sum total MONEY amounts per company to estimate total litigation/regulatory exposure. Which company has the highest cumulative risk exposure in dollars?",
+          "code": "import re\nimport pandas as pd\n\nfilings = [\n    \"We announced the acquisition of DataAI Inc. for $1.2 billion. Integration expected to complete Q4 2024. Synergies estimated at $200 million annually.\",\n    \"Q3 net revenue $5.8 billion, up 12% YoY. Gross margin expanded 150 basis points. Operating margin guidance raised to 28%.\",\n    \"Class action litigation pending; estimated exposure $300 million. Legal reserves established. Settlement discussions ongoing.\",\n    \"Regulatory exam identified deficiencies in compliance framework. Estimated remediation cost $50 million. Corrective action plan due Q1 2025.\",\n    \"Acquisition of RegionalBank Corp completed January 2024 for $2.5 billion. Customer deposits grew 8% post-integration. Revenue synergies tracking ahead.\",\n    \"Geopolitical exposure in Ukraine supply chain. Estimated risk $100 million. Diversification strategy underway. Alternative sourcing being negotiated.\",\n    \"Environmental compliance violations resulted in $75 million fine. Enhanced monitoring in place. Remediation plan submitted to EPA by March 31, 2024.\",\n    \"Revenue from renewable energy division grew 35% YoY. EBITDA margin 42%. Capex increased 20% to support growth.\",\n    \"Covenant review with lenders completed. Debt-to-EBITDA ratio 3.2x. Next covenant check Q2 2025.\",\n    \"Acquisition of MedTech Labs agreed for $800 million cash. Closing expected Q2 2025. No material synergies identified.\",\n    \"Patent litigation with competitor initiated Q4 2024. Estimated defense cost $25 million over 3 years. Damages claim potential $200 million.\",\n    \"EBITDA $2.1 billion, margin 38%. Revenue guidance FY2025 $5.5B. Profitability targets on track for execution.\"\n]\n\ncompanies = ['TechCorp', 'TechCorp', 'TechCorp', 'FinanceBank', 'FinanceBank', 'FinanceBank',\n             'EnergyInc', 'EnergyInc', 'EnergyInc', 'HealthCare', 'HealthCare', 'HealthCare']\n\nrisk_topics = {2: 'TechCorp', 3: 'FinanceBank', 5: 'FinanceBank', 6: 'EnergyInc', 8: 'EnergyInc', 10: 'HealthCare'}\n\ndef extract_entities(text):\n    \"\"\"Extract MONEY, ORG, DATE entities.\"\"\"\n    entities = {'MONEY': [], 'ORG': [], 'DATE': []}\n    \n    # Dollar amounts (flexible format: $1.2B, $100 million, etc.)\n    money_pattern = r'\\$[\\d.,]+\\s?(?:million|billion|B|M|thousand)?'\n    money_matches = re.findall(money_pattern, text, re.IGNORECASE)\n    entities['MONEY'] = [m.strip() for m in money_matches]\n    \n    # Company names (all-caps or Title Case, followed by Inc/Corp/Bank)\n    org_pattern = r'\\b([A-Z][a-zA-Z]*(?:\\s[A-Z][a-zA-Z]*)*)\\s(?:Inc|Corp|Bank|Labs|Ltd|LLC)\\.?\\b'\n    entities['ORG'] = re.findall(org_pattern, text)\n    \n    # Dates (Q# YYYY, month YYYY, etc.)\n    date_pattern = r'(?:Q[1-4]\\s?\\d{4}|\\w+\\s\\d{4}|\\w+\\s\\d{1,2},?\\s\\d{4})'\n    date_matches = re.findall(date_pattern, text)\n    entities['DATE'] = [d.strip() for d in date_matches]\n    \n    return entities\n\nprint(\"=== ENTITY EXTRACTION: ALL FILINGS ===\")\nresults = []\nfor doc_id in range(len(filings)):\n    entities = extract_entities(filings[doc_id])\n    money_str = ', '.join(entities['MONEY']) if entities['MONEY'] else 'None'\n    org_str = ', '.join(entities['ORG']) if entities['ORG'] else 'None'\n    date_str = ', '.join(entities['DATE']) if entities['DATE'] else 'None'\n    \n    results.append({\n        'Filing ID': doc_id,\n        'Company': companies[doc_id],\n        'MONEY': money_str,\n        'ORG': org_str,\n        'DATE': date_str\n    })\n\ndf_entities = pd.DataFrame(results)\nprint(df_entities.to_string(index=False))\n\nprint(\"\\n=== RISK EXPOSURE BY COMPANY ===\")\nrisk_map = {2: 'TechCorp', 3: 'FinanceBank', 5: 'FinanceBank', 6: 'EnergyInc', 8: 'EnergyInc', 10: 'HealthCare'}\nrisk_filings = [2, 3, 5, 6, 8, 10]\n\nrisk_exposure = {}\nfor filing_id in risk_filings:\n    company = companies[filing_id]\n    entities = extract_entities(filings[filing_id])\n    money_list = entities['MONEY']\n    \n    if company not in risk_exposure:\n        risk_exposure[company] = []\n    risk_exposure[company].extend(money_list)\n\nfor company in sorted(risk_exposure.keys()):\n    amounts = risk_exposure[company]\n    print(f\"\\n{company}:\")\n    print(f\"  Exposures: {', '.join(amounts)}\")\n    \n    # Parse amounts for summation (simplified)\n    def parse_amount(s):\n        num = re.findall(r'\\d+\\.?\\d*', s)[0] if re.search(r'\\d+', s) else 0\n        if 'billion' in s.lower() or 'B' in s:\n            return float(num) * 1000\n        return float(num)\n    \n    total_exposure = sum(parse_amount(a) for a in amounts)\n    print(f\"  Total Exposure: ${total_exposure:.0f}M\")",
+          "output": "=== ENTITY EXTRACTION: ALL FILINGS ===\"\nFiling ID Company     MONEY                                    ORG                        DATE\n 0 TechCorp $1.2 billion, $200 million  DataAI Inc                     Q4 2024\n 1 TechCorp $5.8 billion              None                           Q3\n 2 TechCorp $300 million              None                           None\n 3 FinanceBank $50 million              None                           Q1 2025\n 4 FinanceBank $2.5 billion            RegionalBank Corp             January 2024\n 5 FinanceBank $100 million            None                           None\n 6 EnergyInc $75 million              None                           March 31, 2024\n 7 EnergyInc None                    None                           None\n 8 EnergyInc None                    None                           Q2 2025\n 9 HealthCare $800 million            MedTech Labs                   Q2 2025\n 10 HealthCare $25 million, $200 million HealthCare              Q4 2024\n 11 HealthCare $2.1 billion, $5.5 billion None                           FY2025\n\n=== RISK EXPOSURE BY COMPANY ===\"\n\nTechCorp:\n  Exposures: ['$300 million']\n  Total Exposure: $300M\n\nFinanceBank:\n  Exposures: ['$50 million', '$100 million']\n  Total Exposure: $150M\n\nEnergyInc:\n  Exposures: ['$75 million']\n  Total Exposure: $75M\n\nHealthCare:\n  Exposures: ['$25 million', '$200 million']\n  Total Exposure: $225M",
+          "business_implication": "TechCorp faces the highest litigation exposure at $300M; HealthCare faces $225M in combined litigation and damages; FinanceBank faces $150M in regulatory remediation and supply-chain risk. EnergyInc's exposure is $75M (environmental fine). By combining LDA topic classification (identifies which documents are risk-related) with NER entity extraction (quantifies exposure amounts), the system creates an automated risk dashboard: portfolio managers can immediately see that TechCorp requires increased monitoring, that FinanceBank's compliance remediation is underway, and that HealthCare faces pending patent litigation with significant damages potential. This structured output enables faster decision-making and audit compliance."
+        }
+      ]
+    }
+  ]
+}

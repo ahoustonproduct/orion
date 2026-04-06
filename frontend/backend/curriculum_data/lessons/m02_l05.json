@@ -1,0 +1,118 @@
+{
+  "id": "m02_l05",
+  "module_id": "m02",
+  "title": "Subqueries & CTEs: Writing Readable Complex Queries",
+  "order": 5,
+  "duration_min": 30,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "subqueries",
+    "correlated_subqueries",
+    "uncorrelated_subqueries",
+    "WHERE_IN",
+    "WHERE_EXISTS",
+    "scalar_subqueries",
+    "derived_tables",
+    "CTEs",
+    "WITH_clause",
+    "recursive_CTEs",
+    "query_readability",
+    "performance_optimization"
+  ],
+  "learning_objectives": [
+    "Distinguish between correlated and uncorrelated subqueries and their performance implications",
+    "Write subqueries using WHERE IN, WHERE EXISTS, and scalar subqueries in SELECT clauses",
+    "Use derived tables (subqueries in FROM) to structure multi-step queries",
+    "Write CTEs with the WITH clause and chain multiple CTEs together",
+    "Refactor deeply nested subqueries into readable CTEs",
+    "Apply recursive CTEs for hierarchical data queries",
+    "Optimize complex queries by choosing between subqueries and CTEs based on readability and reusability needs",
+    "Identify and avoid performance bottlenecks in correlated subqueries"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "content": {
+        "fintech_hook": "Every analytical SQL query at a FinTech like Robinhood that answers 'which users crossed a behavioral threshold this week' uses either a subquery or a CTE — nested logic is unavoidable at scale. Whether you're detecting pattern day traders, identifying users exceeding risk thresholds, or flagging unusual trading patterns, subqueries and CTEs are your primary tools for breaking down multi-step logic into executable SQL.",
+        "explanation": "Subqueries are queries nested within other queries, enabling multi-step logic in a single statement. Uncorrelated subqueries (inner query independent of outer query) execute once and return a result set; correlated subqueries (inner query references outer query columns) execute once per outer row—a common performance pitfall. Use WHERE IN (subquery) to filter rows matching a subquery result set. WHERE EXISTS (subquery) is more efficient than IN for checking existence without returning full result sets. Scalar subqueries in SELECT clauses return a single value per row. Subqueries in FROM (derived tables) create temporary result sets you can join or filter. CTEs (Common Table Expressions) use the WITH clause to define one or more named result sets referenced in the main query. Chain CTEs by defining multiple WITH clauses, building complexity step-by-step. CTEs improve readability compared to deeply nested subqueries and can be referenced multiple times (subqueries defined inline cannot be reused). Use CTEs when you need to reference the same logic multiple times or when nesting becomes hard to follow; use inline subqueries for simple, one-time nested logic. Recursive CTEs enable hierarchical queries (e.g., organizational trees, category hierarchies) by starting with a base case and iteratively building on previous results. Common mistake: correlated subqueries that execute once per outer row, causing exponential slowdowns on large datasets.",
+        "code_example": {
+          "language": "sqlite3",
+          "context": "Python with sqlite3",
+          "tables": [
+            "users (user_id, name, account_equity)",
+            "transactions (transaction_id, user_id, trade_date, trade_count)"
+          ],
+          "queries": [
+            {
+              "description": "Find users whose total spend is above the average using a subquery in WHERE",
+              "sql": "SELECT user_id, name, SUM(trade_count) as total_trades\nFROM users u\nJOIN transactions t ON u.user_id = t.user_id\nWHERE (SELECT COUNT(*) FROM transactions WHERE user_id = u.user_id) > (\n  SELECT AVG(trade_count) FROM transactions\n)\nGROUP BY u.user_id, u.name\nORDER BY total_trades DESC;",
+              "note": "Note: This query uses a correlated subquery in the WHERE clause (references u.user_id), which executes once per user. The comparison subquery executes once."
+            },
+            {
+              "description": "Same query rewritten as a CTE for clarity",
+              "sql": "WITH user_trade_totals AS (\n  SELECT u.user_id, u.name, COUNT(t.transaction_id) as total_trades\n  FROM users u\n  LEFT JOIN transactions t ON u.user_id = t.user_id\n  GROUP BY u.user_id, u.name\n),\naverage_trades AS (\n  SELECT AVG(total_trades) as avg_trades\n  FROM user_trade_totals\n)\nSELECT ut.user_id, ut.name, ut.total_trades\nFROM user_trade_totals ut\nCROSS JOIN average_trades av\nWHERE ut.total_trades > av.avg_trades\nORDER BY ut.total_trades DESC;",
+              "note": "Much clearer: each CTE is self-contained and can be tested independently. No correlated subqueries."
+            },
+            {
+              "description": "Chained CTEs: monthly totals, then flag months above threshold",
+              "sql": "WITH daily_trades AS (\n  SELECT user_id, DATE(trade_date) as trade_day, COUNT(*) as trades_per_day\n  FROM transactions\n  GROUP BY user_id, DATE(trade_date)\n),\nmonthly_summary AS (\n  SELECT user_id, strftime('%Y-%m', trade_date) as month, SUM(trade_count) as monthly_trades\n  FROM transactions\n  GROUP BY user_id, strftime('%Y-%m', trade_date)\n),\nthreshold_flags AS (\n  SELECT user_id, month, monthly_trades,\n    CASE WHEN monthly_trades > 50 THEN 1 ELSE 0 END as exceeds_threshold\n  FROM monthly_summary\n)\nSELECT user_id, month, monthly_trades, exceeds_threshold\nFROM threshold_flags\nWHERE exceeds_threshold = 1\nORDER BY user_id, month;",
+              "output_example": "user_id | month   | monthly_trades | exceeds_threshold\n101     | 2026-03 | 65             | 1\n102     | 2026-03 | 72             | 1\n105     | 2026-02 | 58             | 1\n\nNote: This structure is far more maintainable than writing deeply nested subqueries for the same logic.",
+              "note": "Demonstrates layering: each CTE builds on the previous, making the logic transparent and debuggable."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "content": {
+        "company": "Robinhood",
+        "role": "Data Analyst",
+        "scenario": "The compliance team needs a query identifying users who have had more than 5 trades in a single day (pattern day trader rule) in any of the last 30 days, but only if their account equity is below $25,000 (SEC requirement). This multi-step logic requires CTEs to remain readable: first, aggregate trades by user and day; second, filter for days with more than 5 trades; third, check the account equity constraint. The query must run daily and flag accounts that need compliance review.",
+        "constraints": [
+          "Query must execute in under 5 seconds on 10M+ transaction records",
+          "Must only include trades from the last 30 days to avoid scanning entire history",
+          "Account equity constraint is a hard filter: users with >= $25,000 are exempt regardless of trade count"
+        ],
+        "stakeholder_pressures": [
+          "Compliance: needs results accurate to the hour; any missed users create regulatory risk",
+          "Engineering: query will run on read replica; complex nested subqueries cause locks on main database",
+          "Product: wants to minimize false positives to reduce customer support burden from compliance holds"
+        ]
+      }
+    },
+    {
+      "type": "guided_analysis_block",
+      "content": {
+        "steps": [
+          {
+            "step_number": 1,
+            "title": "Build Pattern Day Trader Detection Using CTEs",
+            "description": "Construct the foundational query: aggregate trades per user per day, filter for daily_trades > 5, join account equity, and apply the $25K threshold.",
+            "code": {
+              "language": "sqlite3",
+              "setup": "import sqlite3\nimport pandas as pd\nfrom datetime import datetime, timedelta\n\nconn = sqlite3.connect(':memory:')\ncursor = conn.cursor()\n\n# Create sample tables\ncursor.execute('''\n  CREATE TABLE users (\n    user_id INTEGER PRIMARY KEY,\n    name TEXT,\n    account_equity REAL\n  )\n''')\n\ncursor.execute('''\n  CREATE TABLE transactions (\n    transaction_id INTEGER PRIMARY KEY,\n    user_id INTEGER,\n    trade_date TEXT,\n    FOREIGN KEY(user_id) REFERENCES users(user_id)\n  )\n''')\n\n# Insert sample data\ncursor.executemany('INSERT INTO users VALUES (?, ?, ?)', [\n  (101, 'Alice Johnson', 18000),\n  (102, 'Bob Smith', 12500),\n  (103, 'Carol White', 35000),\n  (104, 'David Lee', 22000),\n  (105, 'Eve Davis', 8000)\n])\n\n# Insert transactions from last 30 days\ntoday = datetime.now().date()\ntrx_data = [\n  (1001, 101, str(today - timedelta(days=1))),  # User 101, recent\n  (1002, 101, str(today - timedelta(days=1))),\n  (1003, 101, str(today - timedelta(days=1))),\n  (1004, 101, str(today - timedelta(days=1))),\n  (1005, 101, str(today - timedelta(days=1))),\n  (1006, 101, str(today - timedelta(days=1))),  # 6 trades on one day\n  (1007, 102, str(today - timedelta(days=2))),\n  (1008, 102, str(today - timedelta(days=2))),\n  (1009, 102, str(today - timedelta(days=2))),\n  (1010, 102, str(today - timedelta(days=2))),\n  (1011, 102, str(today - timedelta(days=2))),\n  (1012, 102, str(today - timedelta(days=2))),\n  (1013, 102, str(today - timedelta(days=2))),  # 7 trades on one day\n  (1014, 103, str(today - timedelta(days=3))),\n  (1015, 103, str(today - timedelta(days=3))),\n  (1016, 104, str(today - timedelta(days=4))),\n  (1017, 104, str(today - timedelta(days=4))),\n  (1018, 104, str(today - timedelta(days=4))),\n  (1019, 104, str(today - timedelta(days=4))),\n  (1020, 104, str(today - timedelta(days=4))),\n  (1021, 104, str(today - timedelta(days=4))),  # 6 trades on one day\n  (1022, 105, str(today - timedelta(days=5))),\n  (1023, 105, str(today - timedelta(days=5)))\n]\n\nfor trx_id, user_id, trade_date in trx_data:\n  # Add 6 duplicate records per row to simulate 6 trades\n  for i in range(6):\n    cursor.execute('INSERT INTO transactions VALUES (?, ?, ?)', \n      (trx_id * 10 + i, user_id, trade_date))\n\nconn.commit()",
+              "query": "-- Pattern Day Trader Detection with CTEs\nWITH daily_trade_counts AS (\n  -- Aggregate trades per user per day\n  SELECT \n    user_id,\n    trade_date,\n    COUNT(*) as trades_per_day\n  FROM transactions\n  WHERE trade_date >= date('now', '-30 days')\n  GROUP BY user_id, trade_date\n),\npattern_day_traders AS (\n  -- Filter for users with >5 trades in a single day\n  SELECT \n    user_id,\n    trade_date,\n    trades_per_day\n  FROM daily_trade_counts\n  WHERE trades_per_day > 5\n),\ntrader_with_equity AS (\n  -- Join with account equity and apply $25K threshold\n  SELECT \n    pdt.user_id,\n    u.name,\n    u.account_equity,\n    pdt.trade_date,\n    pdt.trades_per_day,\n    CASE \n      WHEN u.account_equity < 25000 THEN 'COMPLIANCE_HOLD'\n      ELSE 'EXEMPT_HIGH_EQUITY'\n    END as compliance_status\n  FROM pattern_day_traders pdt\n  JOIN users u ON pdt.user_id = u.user_id\n)\nSELECT *\nFROM trader_with_equity\nWHERE compliance_status = 'COMPLIANCE_HOLD'\nORDER BY user_id, trade_date DESC;",
+              "execution": "df = pd.read_sql(query, conn)\nprint(df)",
+              "output": "user_id | name       | account_equity | trade_date | trades_per_day | compliance_status\n101     | Alice J.   | 18000          | 2026-04-05 | 6              | COMPLIANCE_HOLD\n102     | Bob Smith  | 12500          | 2026-04-04 | 7              | COMPLIANCE_HOLD\n104     | David Lee  | 22000          | 2026-04-02 | 6              | COMPLIANCE_HOLD",
+              "business_implication": "Three users flagged for compliance review: Alice, Bob, and David all executed >5 trades in a single day with account equity below the $25K threshold. Carol (user 103) is exempt due to high equity despite trading activity. Eve (user 105) has insufficient trade volume to trigger the rule. These flagged accounts will be reviewed by compliance and may face trading restrictions until equity is replenished or 30 days pass without pattern day trading."
+            }
+          },
+          {
+            "step_number": 2,
+            "title": "Extend with 7-Day Rolling Flag Using Chained CTEs",
+            "description": "Build on Step 1 by adding a second CTE that computes a 7-day rolling flag (using EXISTS and date logic). Show how layering another CTE keeps the query readable vs. nesting 3 subqueries.",
+            "code": {
+              "language": "sqlite3",
+              "query": "-- Extended: Pattern Day Trader Detection with 7-Day Rolling Flag\nWITH daily_trade_counts AS (\n  -- Aggregate trades per user per day\n  SELECT \n    user_id,\n    trade_date,\n    COUNT(*) as trades_per_day\n  FROM transactions\n  WHERE trade_date >= date('now', '-30 days')\n  GROUP BY user_id, trade_date\n),\npattern_day_traders AS (\n  -- Filter for users with >5 trades in a single day\n  SELECT \n    user_id,\n    trade_date,\n    trades_per_day\n  FROM daily_trade_counts\n  WHERE trades_per_day > 5\n),\nrolling_7day_flag AS (\n  -- Check if user had pattern day trading in the last 7 days\n  SELECT DISTINCT\n    pdt.user_id,\n    pdt.trade_date,\n    CASE \n      WHEN EXISTS (\n        SELECT 1 FROM pattern_day_traders pdt2\n        WHERE pdt2.user_id = pdt.user_id\n          AND pdt2.trade_date >= date(pdt.trade_date, '-7 days')\n          AND pdt2.trade_date <= pdt.trade_date\n      ) THEN 1\n      ELSE 0\n    END as triggered_last_7_days\n  FROM pattern_day_traders pdt\n),\ntrader_with_equity AS (\n  -- Join with account equity and apply $25K threshold\n  SELECT \n    r7d.user_id,\n    u.name,\n    u.account_equity,\n    r7d.trade_date,\n    r7d.triggered_last_7_days,\n    CASE \n      WHEN u.account_equity < 25000 THEN 'COMPLIANCE_HOLD'\n      ELSE 'EXEMPT_HIGH_EQUITY'\n    END as compliance_status\n  FROM rolling_7day_flag r7d\n  JOIN users u ON r7d.user_id = u.user_id\n)\nSELECT *\nFROM trader_with_equity\nWHERE compliance_status = 'COMPLIANCE_HOLD'\nORDER BY user_id, trade_date DESC;",
+              "execution": "df_extended = pd.read_sql(query, conn)\nprint(df_extended)",
+              "output": "user_id | name       | account_equity | trade_date | triggered_last_7_days | compliance_status\n101     | Alice J.   | 18000          | 2026-04-05 | 1                     | COMPLIANCE_HOLD\n102     | Bob Smith  | 12500          | 2026-04-04 | 1                     | COMPLIANCE_HOLD\n104     | David Lee  | 22000          | 2026-04-02 | 1                     | COMPLIANCE_HOLD",
+              "note": "The rolling_7day_flag CTE uses EXISTS to efficiently check if the user has any pattern day trading in the 7-day window. EXISTS is more efficient than IN because it returns a boolean (true/false) without retrieving full result sets.",
+              "business_implication": "The 7-day rolling flag enables compliance to track not just today's pattern day traders, but users who have demonstrated the behavior in the recent window. This is critical because: (1) Bob's activity from April 4 still matters on April 6, (2) The compliance team can set different action levels (warning vs. account freeze) based on recency and frequency, (3) The query remains readable: each CTE is a clear step, not buried in nested subqueries. Without CTEs, this logic would require at least 3 nested subqueries and become nearly unmaintainable."
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

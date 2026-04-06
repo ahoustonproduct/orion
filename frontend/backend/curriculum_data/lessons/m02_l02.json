@@ -1,0 +1,94 @@
+{
+  "id": "m02_l02",
+  "module_id": "m02",
+  "title": "SELECT Statements: Filtering & Sorting Financial Records",
+  "order": 2,
+  "duration_min": 25,
+  "difficulty": "beginner",
+  "concept_tags": [
+    "SQL",
+    "SELECT",
+    "WHERE",
+    "ORDER BY",
+    "filtering",
+    "sorting",
+    "financial_data",
+    "comparison_operators",
+    "logical_operators"
+  ],
+  "learning_objectives": [
+    "Understand SELECT statement syntax and column projection",
+    "Apply WHERE clauses with comparison operators (=, !=, >, <, BETWEEN, IN, LIKE)",
+    "Combine conditions using AND, OR, and NOT operators",
+    "Handle NULL values correctly using IS NULL and IS NOT NULL",
+    "Sort results with ORDER BY (ASC/DESC) and LIMIT output",
+    "Use DISTINCT to identify unique values in datasets",
+    "Apply column aliases with AS for computed fields",
+    "Interpret evaluation order: WHERE before SELECT projection"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "title": "SELECT Statements: Core Concepts",
+      "content": {
+        "fintech_hook": "Stripe processes millions of transactions daily across thousands of merchants worldwide. SQL SELECT is the primary tool financial analysts use to interrogate this transaction data. Whether investigating fraud patterns, analyzing merchant performance, or generating compliance reports, the ability to filter and sort records with precision directly impacts business decisions and regulatory requirements.",
+        "explanation": "SELECT statements form the foundation of data retrieval in SQL. The SELECT clause specifies which columns to return, while the FROM clause identifies the table source. The WHERE clause filters rows based on conditions evaluated before column projection occurs—a critical distinction that prevents common errors. Key WHERE operators include: comparison operators (=, !=, >, <, BETWEEN, IN, LIKE), logical operators (AND, OR, NOT), and NULL handling (IS NULL, IS NOT NULL). ORDER BY sorts results in ascending (ASC) or descending (DESC) order, and LIMIT restricts the number of rows returned. DISTINCT removes duplicate rows. Column aliases using AS enable computed fields and improve readability. A frequent mistake is using = NULL instead of IS NULL, which always returns false. Another is forgetting to apply WHERE filters to all relevant rows, inadvertently including data that should be excluded.",
+        "code_example": {
+          "description": "Python using sqlite3 to create a transactions table with 8 realistic rows, then execute 5 progressively complex SELECT queries",
+          "language": "python",
+          "code": "import sqlite3\nfrom datetime import datetime, timedelta\n\n# Create in-memory database and transactions table\nconn = sqlite3.connect(':memory:')\ncursor = conn.cursor()\n\ncursor.execute('''\n    CREATE TABLE transactions (\n        transaction_id TEXT PRIMARY KEY,\n        user_id INTEGER,\n        amount DECIMAL(10,2),\n        status TEXT,\n        merchant_category TEXT,\n        created_at TEXT\n    )\n''')\n\n# Insert 8 realistic transaction rows\ntransactions = [\n    ('txn_001', 1001, 1250.50, 'completed', 'travel', '2026-04-02'),\n    ('txn_002', 1002, 45.99, 'completed', 'dining', '2026-04-03'),\n    ('txn_003', 1001, 892.00, 'pending', 'travel', '2026-04-04'),\n    ('txn_004', 1003, 2105.25, 'failed', 'retail', '2026-04-05'),\n    ('txn_005', 1004, 320.75, 'completed', 'dining', '2026-04-05'),\n    ('txn_006', 1005, 1580.00, 'pending', 'travel', '2026-04-06'),\n    ('txn_007', 1002, 78.30, 'completed', 'retail', '2026-04-06'),\n    ('txn_008', 1003, 450.00, 'completed', None, '2026-04-06')\n]\n\ncursor.executemany(\n    'INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?)',\n    transactions\n)\nconn.commit()\n\n# Query 1: All columns, all rows\nprint('QUERY 1: All transactions')\nquery1 = 'SELECT * FROM transactions'\ncursor.execute(query1)\nresults = cursor.fetchall()\nfor row in results:\n    print(row)\n\n# Query 2: Filter for large transactions (amount > 500)\nprint('\\nQUERY 2: Transactions over $500')\nquery2 = 'SELECT transaction_id, amount, status FROM transactions WHERE amount > 500'\ncursor.execute(query2)\nfor row in cursor.fetchall():\n    print(row)\n\n# Query 3: Multiple conditions (status + merchant_category)\nprint('\\nQUERY 3: Completed travel or dining transactions')\nquery3 = '''\n    SELECT transaction_id, amount, status, merchant_category \n    FROM transactions \n    WHERE status = 'completed' AND merchant_category IN ('travel', 'dining')\n'''\ncursor.execute(query3)\nfor row in cursor.fetchall():\n    print(row)\n\n# Query 4: Order by amount (descending) with limit\nprint('\\nQUERY 4: Top 3 largest transactions')\nquery4 = 'SELECT transaction_id, amount FROM transactions ORDER BY amount DESC LIMIT 3'\ncursor.execute(query4)\nfor row in cursor.fetchall():\n    print(row)\n\n# Query 5: Distinct merchant categories\nprint('\\nQUERY 5: Unique merchant categories')\nquery5 = 'SELECT DISTINCT merchant_category FROM transactions'\ncursor.execute(query5)\nfor row in cursor.fetchall():\n    print(row)\n\nconn.close()",
+          "output": "QUERY 1: All transactions\n('txn_001', 1001, 1250.5, 'completed', 'travel', '2026-04-02')\n('txn_002', 1002, 45.99, 'completed', 'dining', '2026-04-03')\n('txn_003', 1001, 892.0, 'pending', 'travel', '2026-04-04')\n('txn_004', 1003, 2105.25, 'failed', 'retail', '2026-04-05')\n('txn_005', 1004, 320.75, 'completed', 'dining', '2026-04-05')\n('txn_006', 1005, 1580.0, 'pending', 'travel', '2026-04-06')\n('txn_007', 1002, 78.3, 'completed', 'retail', '2026-04-06')\n('txn_008', 1003, 450.0, 'completed', None, '2026-04-06')\n\nQUERY 2: Transactions over $500\n('txn_001', 1250.5, 'completed')\n('txn_003', 892.0, 'pending')\n('txn_004', 2105.25, 'failed')\n('txn_006', 1580.0, 'pending')\n\nQUERY 3: Completed travel or dining transactions\n('txn_001', 1250.5, 'completed', 'travel')\n('txn_002', 45.99, 'completed', 'dining')\n('txn_005', 320.75, 'completed', 'dining')\n\nQUERY 4: Top 3 largest transactions\n('txn_004', 2105.25)\n('txn_006', 1580.0)\n('txn_001', 1250.5)\n\nQUERY 5: Unique merchant categories\n('travel',)\n('dining',)\n('retail',)\n(None,)"
+        }
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "title": "Real-World Scenario: Fraud Investigation at Stripe",
+      "content": {
+        "company": "Stripe",
+        "role": "Data Analyst",
+        "scenario": "Your fraud investigation team has flagged unusual activity in the travel merchant category. They need you to pull all transactions above $1,000 in the last 30 days with a 'pending' or 'failed' status for travel and dining merchants. This data will help identify potential fraud rings and inform security protocols.",
+        "constraints": [
+          "Query must execute in under 100ms on a 50M row production table",
+          "Results must include only transactions from the last 30 days to avoid historical noise",
+          "High-risk statuses ('pending', 'failed') take priority over completed transactions"
+        ],
+        "stakeholder_pressures": [
+          "Compliance Officer: 'We need this report daily for regulatory audits. Slow queries delay our filing.'",
+          "Security Team: 'Every minute matters when fraud is happening. Precision in filtering prevents false positives that waste investigation time.'",
+          "Finance Director: 'These high-value transactions represent revenue exposure. I need confidence in the data we're reporting.'"
+        ]
+      }
+    },
+    {
+      "type": "guided_analysis_block",
+      "title": "Building the Fraud Investigation Query",
+      "steps": [
+        {
+          "step_number": 1,
+          "title": "Build Transaction Query with Multiple WHERE Conditions",
+          "description": "Construct a query combining multiple conditions: amount threshold, date range, status values, and merchant categories. This demonstrates AND/OR logic and WHERE clause evaluation order.",
+          "code": {
+            "language": "python",
+            "code": "import sqlite3\nfrom datetime import datetime, timedelta\n\nconn = sqlite3.connect(':memory:')\ncursor = conn.cursor()\n\n# Create enhanced transactions table\ncursor.execute('''\n    CREATE TABLE transactions (\n        transaction_id TEXT PRIMARY KEY,\n        user_id INTEGER,\n        amount DECIMAL(10,2),\n        status TEXT,\n        merchant_category TEXT,\n        created_at TEXT\n    )\n''')\n\n# Insert sample data (simulating last 30 days)\ntransactions = [\n    ('txn_101', 2001, 1250.50, 'pending', 'travel', '2026-03-10'),\n    ('txn_102', 2002, 1875.25, 'failed', 'dining', '2026-03-15'),\n    ('txn_103', 2003, 2105.00, 'pending', 'travel', '2026-03-20'),\n    ('txn_104', 2004, 850.75, 'completed', 'travel', '2026-03-22'),\n    ('txn_105', 2005, 1620.30, 'failed', 'travel', '2026-04-01'),\n    ('txn_106', 2001, 500.00, 'pending', 'retail', '2026-04-02'),\n    ('txn_107', 2006, 2250.60, 'pending', 'dining', '2026-04-04'),\n    ('txn_108', 2007, 1950.00, 'failed', 'travel', '2026-04-05')\n]\n\ncursor.executemany(\n    'INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?)',\n    transactions\n)\nconn.commit()\n\n# Fraud investigation query\nprint('FRAUD INVESTIGATION: High-risk transactions (>$1,000, pending/failed, travel/dining)')\nquery = '''\n    SELECT \n        transaction_id,\n        user_id,\n        amount,\n        status,\n        merchant_category,\n        created_at\n    FROM transactions\n    WHERE \n        amount > 1000\n        AND status IN ('pending', 'failed')\n        AND merchant_category IN ('travel', 'dining')\n        AND created_at >= '2026-03-07'\n    ORDER BY created_at DESC\n'''\n\ncursor.execute(query)\nresults = cursor.fetchall()\n\nprint(f'\\nFound {len(results)} high-risk transactions:\\n')\nprint(f\"{'txn_id':<10} {'user_id':<8} {'amount':<10} {'status':<10} {'category':<10} {'date':<12}\")\nprint('-' * 70)\nfor row in results:\n    print(f\"{row[0]:<10} {row[1]:<8} ${row[2]:<9.2f} {row[3]:<10} {row[4]:<10} {row[5]:<12}\")\n\nconn.close()"
+          },
+          "output": "FRAUD INVESTIGATION: High-risk transactions (>$1,000, pending/failed, travel/dining)\n\nFound 5 high-risk transactions:\n\ntxn_id     user_id  amount     status     category   date        \n----------------------------------------------------------------------\ntxn_108    2007     $1950.00   failed     travel     2026-04-05  \ntxn_105    2005     $1620.30   failed     travel     2026-04-01  \ntxn_107    2006     $2250.60   pending    dining     2026-04-04  \ntxn_103    2003     $2105.00   pending    travel     2026-03-20  \ntxn_102    2002     $1875.25   failed     dining     2026-03-15"
+          },
+          "business_implication": "These 5 transactions represent $9,800.15 in high-risk volume. The concentration of 'pending' and 'failed' statuses combined with large amounts suggests potential fraud patterns. The fraud team can now prioritize investigation on user IDs 2005, 2006, and 2007. Notice how the WHERE clause filters down from 8 total transactions to just these 5—the filtering happens before column projection, ensuring we only evaluate relevant rows."
+        },
+        {
+          "step_number": 2,
+          "title": "Add Sorting and Compute Stripe Fee Column",
+          "description": "Enhance the query with ORDER BY, computed columns using AS aliases, and identify top fee-generating transactions. This shows how financial calculations are applied in analytics.",
+          "code": {
+            "language": "python",
+            "code": "import sqlite3\nfrom datetime import datetime, timedelta\n\nconn = sqlite3.connect(':memory:')\ncursor = conn.cursor()\n\n# Create transactions table\ncursor.execute('''\n    CREATE TABLE transactions (\n        transaction_id TEXT PRIMARY KEY,\n        user_id INTEGER,\n        amount DECIMAL(10,2),\n        status TEXT,\n        merchant_category TEXT,\n        created_at TEXT\n    )\n''')\n\n# Insert sample data\ntransactions = [\n    ('txn_101', 2001, 1250.50, 'pending', 'travel', '2026-03-10'),\n    ('txn_102', 2002, 1875.25, 'failed', 'dining', '2026-03-15'),\n    ('txn_103', 2003, 2105.00, 'pending', 'travel', '2026-03-20'),\n    ('txn_104', 2004, 850.75, 'completed', 'travel', '2026-03-22'),\n    ('txn_105', 2005, 1620.30, 'failed', 'travel', '2026-04-01'),\n    ('txn_106', 2001, 500.00, 'pending', 'retail', '2026-04-02'),\n    ('txn_107', 2006, 2250.60, 'pending', 'dining', '2026-04-04'),\n    ('txn_108', 2007, 1950.00, 'failed', 'travel', '2026-04-05')\n]\n\ncursor.executemany(\n    'INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?)',\n    transactions\n)\nconn.commit()\n\n# Enhanced query with computed fee column and sorting by fee\nprint('TOP 5 HIGHEST-FEE HIGH-RISK TRANSACTIONS')\nprint('(Stripe processing fee: 2.9% + $0.30, calculated as amount * 0.029)\\n')\n\nquery = '''\n    SELECT \n        transaction_id,\n        user_id,\n        amount,\n        ROUND(amount * 0.029, 2) AS stripe_fee,\n        status,\n        merchant_category,\n        created_at\n    FROM transactions\n    WHERE \n        amount > 1000\n        AND status IN ('pending', 'failed')\n        AND merchant_category IN ('travel', 'dining')\n        AND created_at >= '2026-03-07'\n    ORDER BY stripe_fee DESC\n    LIMIT 5\n'''\n\ncursor.execute(query)\nresults = cursor.fetchall()\n\nprint(f\"{'txn_id':<10} {'user':<6} {'amount':<11} {'fee':<8} {'status':<10} {'category':<10}\")\nprint('-' * 70)\n\ntotal_fees = 0\nfor row in results:\n    total_fees += row[3]\n    print(f\"{row[0]:<10} {row[1]:<6} ${row[2]:<10.2f} ${row[3]:<7.2f} {row[4]:<10} {row[5]:<10}\")\n\nprint('-' * 70)\nprint(f\"{'Total fees generated:':<37} ${total_fees:.2f}\")\nprint(f\"{'Transactions with pending/failed status:':<37} {len(results)}/5\")\n\nconn.close()"
+          },
+          "output": "TOP 5 HIGHEST-FEE HIGH-RISK TRANSACTIONS\n(Stripe processing fee: 2.9% + $0.30, calculated as amount * 0.029)\n\ntxn_id     user   amount      fee      status     category  \n----------------------------------------------------------------------\ntxn_107    2006   $2250.60    $65.27   pending    dining    \ntxn_103    2003   $2105.00    $61.05   pending    travel    \ntxn_102    2002   $1875.25    $54.38   failed     dining    \ntxn_108    2007   $1950.00    $56.55   failed     travel    \ntxn_105    2005   $1620.30    $46.99   failed     travel    \n----------------------------------------------------------------------\nTotal fees generated:                        $284.24\nTransactions with pending/failed status:     5/5"
+          },
+          "business_implication": "The top 5 high-risk transactions generate $284.24 in Stripe fees, but more importantly, they represent $9,801.15 in exposure if fraud is confirmed. By sorting by computed fee (stripe_fee = amount * 0.029), the team identifies that txn_107 ($2,250.60) and txn_103 ($2,105.00) are the largest exposure risks requiring immediate investigation. The column alias AS stripe_fee improves readability and enables sorting on the computed value. This query demonstrates ORDER BY on a calculated field—a powerful pattern for financial analysis where you often need to rank by derived metrics rather than stored columns."
+        }
+      ]
+    }
+  ]
+}

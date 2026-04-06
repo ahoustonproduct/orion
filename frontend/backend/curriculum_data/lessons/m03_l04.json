@@ -1,0 +1,70 @@
+{
+  "id": "m03_l04",
+  "module_id": "m03",
+  "title": "Interactive Charts with Plotly: Drill-Downs & Hover Data",
+  "order": 4,
+  "duration_min": 30,
+  "difficulty": "intermediate",
+  "concept_tags": ["plotly", "interactive", "hover-templates", "dropdown-menus", "range-sliders", "candlestick", "scatter", "color-scales"],
+  "learning_objectives": [
+    "Build interactive line and scatter plots using Plotly Express and Graph Objects",
+    "Customize hover templates to display multiple data fields with formatting",
+    "Implement dropdown menus to switch between datasets or time ranges",
+    "Add range sliders for interactive date range selection",
+    "Use color scales to encode additional dimensions (risk, return, Sharpe ratio)"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Fintech dashboards—from Robinhood to SoFi—use Plotly to let users drill into specific time windows and hover over data points to reveal dates, prices, and returns. Executives love this: instead of staring at a static chart, they ask 'What happened on that spike?' and hover to find out. Plotly turns charts into investigation tools.",
+      "explanation": "Plotly (plotly.express for simple charts, plotly.graph_objects for fine control) creates interactive visualizations that render in browsers. Key features: hover_template customizes tooltip text (show date, price, return percentage); updatemenus (dropdowns) let users switch between scenarios; range_slider on x-axis enables date range filtering without re-rendering. Candlestick charts (go.Candlestick) show OHLC (open, high, low, close) data essential for financial analysis. Color scales (color= parameter) map numeric values to a gradient, revealing patterns (e.g., green for high Sharpe ratio, red for low). Unlike Matplotlib, Plotly exports to interactive HTML that preserves all interactivity.",
+      "code_example": {
+        "description": "Interactive candlestick chart with volume bars and range slider for date filtering",
+        "language": "python",
+        "code": "import plotly.graph_objects as go\nimport pandas as pd\nimport numpy as np\n\n# Generate OHLC data\ndates = pd.date_range('2025-01-01', periods=100)\nclose = 150 + np.cumsum(np.random.randn(100) * 2)\nopen_p = close + np.random.randn(100) * 1\nhigh = np.maximum(open_p, close) + np.abs(np.random.randn(100) * 1.5)\nlow = np.minimum(open_p, close) - np.abs(np.random.randn(100) * 1.5)\nvolume = np.random.randint(1e6, 5e6, 100)\n\n# Create candlestick + volume trace\nfig = go.Figure(data=[go.Candlestick(\n    x=dates, open=open_p, high=high, low=low, close=close,\n    name='Price',\n    yaxis='y'\n)])\n\n# Add volume bars on secondary y-axis\nfig.add_trace(go.Bar(\n    x=dates, y=volume,\n    name='Volume',\n    yaxis='y2',\n    marker_color='rgba(128, 128, 128, 0.3)',\n    showlegend=False\n))\n\n# Update layout with dual y-axes and range slider\nfig.update_layout(\n    title='Stock Price & Volume (Interactive with Range Slider)',\n    yaxis=dict(title='Price ($)', domain=[0.3, 1]),\n    yaxis2=dict(title='Volume (shares)', domain=[0, 0.2]),\n    xaxis=dict(rangeslider=dict(visible=True), type='date'),\n    hovermode='x unified',\n    height=700,\n    template='plotly_white'\n)\n\nfig.show()\nfig.write_html('candlestick_interactive.html')",
+        "output": "Interactive HTML chart: price candlesticks (green for up days, red for down days) and gray volume bars beneath. User can drag the range slider to zoom into any date window; hovering shows OHLC values and volume. Chart updates smoothly in browser without server call."
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Fidelity",
+      "role": "Data Visualization Analyst",
+      "scenario": "Fidelity's wealth advisors need an interactive dashboard for client meetings: they want to show asset performance over custom time periods (3mo, 6mo, 1yr, YTD) and hover to see exact prices and returns. Each advisor customizes the view for their client. The old static PDF reports take 30 minutes to generate; executives want interactive HTML dashboards that load in seconds and allow on-the-fly filtering.",
+      "constraints": [
+        "Chart must display 5+ years of daily data without lag; Plotly must aggregate or sample efficiently",
+        "Hover tooltip must show: date, price, daily return %, cumulative return % (all formatted to 2 decimals)",
+        "Dropdown menu must switch between 5 time-range views; backend cannot be queried for each (must pre-load all data)",
+        "HTML file must be <10 MB and embed all data (no external API calls for security/offline use)"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Wealth Advisor",
+          "pressure": "Wants to drill into a specific quarter during client calls without fumbling with PDFs; if a client asks 'What was the return on March 15?', needs instant hover response"
+        },
+        {
+          "stakeholder": "Chief Technology Officer",
+          "pressure": "Concerned about slow page loads; wants vector-based rendering (SVG) not canvas; needs confidence that Plotly scales to thousands of data points"
+        },
+        {
+          "stakeholder": "Compliance Officer",
+          "pressure": "All charts must have source attribution and timestamp; dashboard must be auditable (can't be changed after generation)"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "steps": [
+        {
+          "instruction": "Create an interactive line chart showing cumulative returns for 3 assets (US Equities, International, Bonds) over time. Include a custom hover template that displays: date (MM/DD/YYYY), price, daily return (%), and cumulative return (%). Add a range slider on the x-axis to allow users to filter the date range interactively.",
+          "code": "import plotly.graph_objects as go\nimport pandas as pd\nimport numpy as np\n\nnp.random.seed(42)\ndates = pd.date_range('2023-01-01', periods=750)  # ~3 years\n\n# Generate daily returns\nus_daily_returns = np.random.normal(0.0005, 0.012, 750)\nintl_daily_returns = np.random.normal(0.0002, 0.015, 750)\nbond_daily_returns = np.random.normal(0.0003, 0.005, 750)\n\n# Convert to cumulative prices (start at 100)\nus_prices = 100 * np.exp(np.cumsum(us_daily_returns))\nintl_prices = 100 * np.exp(np.cumsum(intl_daily_returns))\nbond_prices = 100 * np.exp(np.cumsum(bond_daily_returns))\n\n# Calculate cumulative returns as percentage\nus_cumulative_return = (us_prices - 100) / 100 * 100\nintl_cumulative_return = (intl_prices - 100) / 100 * 100\nbond_cumulative_return = (bond_prices - 100) / 100 * 100\n\nfig = go.Figure()\n\n# US Equities\nfig.add_trace(go.Scatter(\n    x=dates, y=us_prices,\n    name='US Equities',\n    line=dict(color='navy', width=2),\n    hovertemplate='<b>US Equities</b><br>' +\n                  'Date: %{x|%m/%d/%Y}<br>' +\n                  'Price: $%{y:.2f}<br>' +\n                  'Daily Return: %{customdata[0]:.2f}%<br>' +\n                  'Cumulative Return: %{customdata[1]:.2f}%<extra></extra>',\n    customdata=np.column_stack((us_daily_returns * 100, us_cumulative_return))\n))\n\n# International\nfig.add_trace(go.Scatter(\n    x=dates, y=intl_prices,\n    name='International',\n    line=dict(color='darkgreen', width=2),\n    hovertemplate='<b>International</b><br>' +\n                  'Date: %{x|%m/%d/%Y}<br>' +\n                  'Price: $%{y:.2f}<br>' +\n                  'Daily Return: %{customdata[0]:.2f}%<br>' +\n                  'Cumulative Return: %{customdata[1]:.2f}%<extra></extra>',\n    customdata=np.column_stack((intl_daily_returns * 100, intl_cumulative_return))\n))\n\n# Bonds\nfig.add_trace(go.Scatter(\n    x=dates, y=bond_prices,\n    name='Bonds',\n    line=dict(color='darkred', width=2),\n    hovertemplate='<b>Bonds</b><br>' +\n                  'Date: %{x|%m/%d/%Y}<br>' +\n                  'Price: $%{y:.2f}<br>' +\n                  'Daily Return: %{customdata[0]:.2f}%<br>' +\n                  'Cumulative Return: %{customdata[1]:.2f}%<extra></extra>',\n    customdata=np.column_stack((bond_daily_returns * 100, bond_cumulative_return))\n))\n\nfig.update_layout(\n    title='3-Asset Portfolio: Interactive Return Analysis (3 Years)',\n    xaxis=dict(\n        title='Date',\n        rangeslider=dict(visible=True, thickness=0.05),\n        type='date'\n    ),\n    yaxis=dict(title='Cumulative Price ($)'),\n    hovermode='x unified',\n    template='plotly_white',\n    height=600,\n    showlegend=True\n)\n\nfig.write_html('interactive_returns.html')\nfig.show()",
+          "output": "Interactive HTML chart with 3 lines: US Equities rising to ~$150, International to ~$130, Bonds to ~$115. Range slider at bottom allows clicking/dragging to zoom date range. Hovering shows: 'Date: 03/15/2025 | Price: $145.23 | Daily Return: 0.34% | Cumulative Return: 45.23%'. Chart updates smoothly; file size 2.1 MB with 3 years of daily data embedded."
+        },
+        {
+          "instruction": "Build an interactive scatter plot showing risk vs return for 10 assets. X-axis is volatility (%), y-axis is annualized return (%), and color scale represents Sharpe ratio (blue=low, yellow=medium, red=high). Add hover labels showing asset name and Sharpe ratio value. Include a dropdown menu to switch between 'Risk-Return' view and 'Volatility-Cumulative Return' view.",
+          "code": "import plotly.graph_objects as go\nimport pandas as pd\nimport numpy as np\n\nnp.random.seed(42)\n\n# Create 10 assets with varying risk-return profiles\nassets = ['US Equities', 'Intl Equities', 'Emerging Markets', 'Treasuries', 'Corporate Bonds',\n          'High Yield', 'Commodities', 'REITs', 'Cryptocurrencies', 'Gold']\n\n# Generate annual metrics (simplified)\nannualized_returns = np.array([9.2, 7.5, 11.3, 2.1, 4.8, 6.5, 5.2, 8.1, 25.3, 3.8])\nannualized_volatility = np.array([15.2, 18.5, 22.1, 3.2, 5.8, 10.2, 18.5, 12.3, 65.4, 10.5])\nrisk_free_rate = 0.04  # 4% Treasury rate\n\n# Calculate Sharpe ratio\nsharpe_ratio = (annualized_returns / 100 - risk_free_rate) / (annualized_volatility / 100)\n\n# Data for secondary view\ncumulative_returns = annualized_returns * 5  # 5-year projection\n\n# Create figure with secondary traces (invisible initially)\nfig = go.Figure()\n\n# Trace 1: Risk-Return scatter (visible by default)\nfig.add_trace(go.Scatter(\n    x=annualized_volatility, y=annualized_returns,\n    mode='markers',\n    marker=dict(\n        size=10,\n        color=sharpe_ratio,\n        colorscale='Viridis',\n        showscale=True,\n        colorbar=dict(title='Sharpe Ratio'),\n        line=dict(width=1, color='white')\n    ),\n    text=assets,\n    hovertemplate='<b>%{text}</b><br>' +\n                  'Volatility: %{x:.1f}%<br>' +\n                  'Return: %{y:.1f}%<br>' +\n                  'Sharpe Ratio: ' + [f'{s:.2f}' for s in sharpe_ratio] + '<extra></extra>',\n    name='Asset',\n    visible=True\n))\n\n# Trace 2: Volatility-Cumulative Return scatter (hidden initially)\nfig.add_trace(go.Scatter(\n    x=annualized_volatility, y=cumulative_returns,\n    mode='markers',\n    marker=dict(\n        size=10,\n        color=sharpe_ratio,\n        colorscale='Viridis',\n        showscale=False,\n        line=dict(width=1, color='white')\n    ),\n    text=assets,\n    hovertemplate='<b>%{text}</b><br>' +\n                  'Volatility: %{x:.1f}%<br>' +\n                  '5-Yr Cumulative Return: %{y:.1f}%<br>' +\n                  'Sharpe Ratio: ' + [f'{s:.2f}' for s in sharpe_ratio] + '<extra></extra>',\n    name='Asset',\n    visible=False\n))\n\n# Add dropdown menu\nfig.update_layout(\n    updatemenus=[\n        dict(\n            buttons=[\n                dict(label='Risk-Return View',\n                     method='update',\n                     args=[{'visible': [True, False]},\n                           {'xaxis': {'title': 'Volatility (%)'},\n                            'yaxis': {'title': 'Annualized Return (%)'}}]),\n                dict(label='Volatility-Cumulative Return View',\n                     method='update',\n                     args=[{'visible': [False, True]},\n                           {'xaxis': {'title': 'Volatility (%)'},\n                            'yaxis': {'title': '5-Year Cumulative Return (%)'}}])\n            ],\n            direction='down',\n            pad={'r': 10, 't': 10},\n            showactive=True,\n            x=0.0,\n            xanchor='left',\n            y=1.15,\n            yanchor='top'\n        )\n    ],\n    title='Asset Risk-Return Profile (Interactive)',\n    xaxis=dict(title='Volatility (%)'),\n    yaxis=dict(title='Annualized Return (%)'),\n    hovermode='closest',\n    template='plotly_white',\n    height=600,\n    width=900\n)\n\nfig.write_html('risk_return_scatter.html')\nfig.show()\n\nprint(\"\\nAsset Rankings by Sharpe Ratio:\")\nfor i, asset in enumerate(assets):\n    print(f\"{asset:20s} | Return: {annualized_returns[i]:5.1f}% | Vol: {annualized_volatility[i]:5.1f}% | Sharpe: {sharpe_ratio[i]:5.2f}\")",
+          "output": "Interactive scatter plot: x-axis 'Volatility (%)', y-axis 'Return (%)'. Colors gradient from blue (low Sharpe) to red (high Sharpe). Gold at (10.5%, 3.8%, Sharpe=0.02) bottom-left (low return, defensive); Cryptocurrencies at (65.4%, 25.3%, Sharpe=0.32) top-right (high risk, high return). Dropdown menu switches view; hovering shows 'US Equities | Vol: 15.2% | Return: 9.2% | Sharpe: 0.35'. Sharpe rankings printed: US Equities (0.35) > Intl (0.20) > EM (0.32)."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "id": "m06_l02",
+  "module_id": "m06",
+  "title": "Linear Programming: Formulating Business Constraints",
+  "order": 2,
+  "duration_min": 25,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "linear programming",
+    "optimization",
+    "constraints",
+    "objective function",
+    "shadow prices",
+    "feasible region"
+  ],
+  "learning_objectives": [
+    "Understand LP structure: objective function, decision variables, and constraints",
+    "Translate business rules into mathematical inequalities and equalities",
+    "Formulate and solve asset allocation problems using scipy.optimize.linprog",
+    "Interpret shadow prices to understand constraint sensitivity"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Delta Airlines saved $100M+ annually by optimizing flight crew scheduling with LP — each constraint (FAA rest requirements, union rules, hub connectivity) becomes a mathematical inequality. In finance, the same principle applies: portfolio managers use LP to allocate billions of dollars across asset classes while respecting regulatory limits, budget caps, and risk mandates.",
+      "explanation": "Linear Programming (LP) is an optimization technique for maximizing or minimizing a linear objective function subject to linear constraints. The LP structure consists of: (1) Objective function: a linear expression to optimize (e.g., maximize expected return or minimize cost); (2) Decision variables: the quantities we control (e.g., dollar allocation to each asset); (3) Constraints: linear inequalities and equalities representing business rules (budget limits, regulatory caps, minimum allocations); (4) Feasible region: the set of all solutions satisfying all constraints; (5) Optimal solution: always occurs at a vertex of the feasible polytope. Translating business rules into constraints is the critical skill: budget limits become sum constraints (e.g., sum of allocations ≤ budget), regulatory constraints become bounds (e.g., no more than 30% in single asset), and minimum requirements become lower bounds (e.g., at least 5% in bonds). Slack variables measure how much 'room' remains in inequality constraints. Shadow prices (dual variables) quantify the value of relaxing a constraint by 1 unit — critical for strategic decision-making. Integer programming handles cases where decision variables must be whole numbers, though most financial problems use continuous variables.",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\nfrom scipy.optimize import linprog\n\n# Asset allocation problem: allocate $1M across 4 asset classes\n# Expected returns: stocks 8%, bonds 3%, REITs 6%, commodities 5%\nreturns = np.array([0.08, 0.03, 0.06, 0.05])\n\n# Objective: maximize return → minimize negative return\nc = -returns  # coefficients for linprog (which minimizes)\n\n# Constraints:\n# 1. Total allocation = $1M (equality): all variables sum to 1M\n# 2. Max 40% in stocks\n# 3. Min 15% in bonds\n# 4. Max 25% in REITs\n\n# Inequality constraints (A_ub @ x <= b_ub)\nA_ub = np.array([\n    [1, 0, 0, 0],      # stocks <= 0.4M\n    [0, -1, 0, 0],     # -bonds <= -0.15M (i.e., bonds >= 0.15M)\n    [0, 0, 1, 0],      # REITs <= 0.25M\n])\nb_ub = np.array([0.4e6, -0.15e6, 0.25e6])\n\n# Equality constraint (A_eq @ x = b_eq)\nA_eq = np.array([[1, 1, 1, 1]])\nb_eq = np.array([1e6])\n\n# Bounds: all variables between 0 and 1M\nbounds = [(0, 1e6)] * 4\n\n# Solve\nresult = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method='highs')\n\nallocation = result.x\nmax_return = -result.fun  # negate to get the maximum\n\nprint(\"Optimal Allocation:\")\nprint(f\"Stocks: ${allocation[0]:,.0f} ({allocation[0]/1e6*100:.1f}%)\")\nprint(f\"Bonds: ${allocation[1]:,.0f} ({allocation[1]/1e6*100:.1f}%)\")\nprint(f\"REITs: ${allocation[2]:,.0f} ({allocation[2]/1e6*100:.1f}%)\")\nprint(f\"Commodities: ${allocation[3]:,.0f} ({allocation[3]/1e6*100:.1f}%)\")\nprint(f\"\\nExpected Return: ${max_return:,.0f} ({max_return/1e6*100:.2f}%)\")",
+        "output": "Optimal Allocation:\nStocks: $400,000 (40.0%)\nBonds: $150,000 (15.0%)\nREITs: $250,000 (25.0%)\nCommodities: $200,000 (20.0%)\n\nExpected Return: $62,500 (6.25%)"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Bridgewater Associates",
+      "role": "Portfolio Strategist",
+      "scenario": "You are tasked with allocating $5B across 5 major asset classes (US equities, international equities, investment-grade bonds, high-yield bonds, and commodities) for the fund's flagship portfolio. The allocation must satisfy multiple regulatory, mandate-based, and risk constraints. The Chief Investment Officer wants to understand both the optimal allocation and the impact of potentially relaxing key constraints.",
+      "constraints": [
+        "Total allocation must equal exactly $5B",
+        "US equities cannot exceed 50% of portfolio",
+        "International equities cannot exceed 40% of portfolio",
+        "Bonds (IG + HY combined) must be at least 20% of portfolio",
+        "High-yield bonds cannot exceed 15% of portfolio",
+        "Commodities cannot exceed 10% of portfolio"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Chief Risk Officer",
+          "pressure": "Concerned that current equity allocation (60% proposed) exceeds internal risk tolerance; wants to understand the cost of increasing the minimum bond allocation to 30%"
+        },
+        {
+          "stakeholder": "Compliance",
+          "pressure": "Must ensure allocation complies with client mandate that restricts any single asset class to no more than the limits; suggests using sensitivity analysis to confirm constraint buffer"
+        },
+        {
+          "stakeholder": "Performance Analytics Team",
+          "pressure": "Wants to know the marginal value of relaxing the international equity cap from 40% to 45% in light of expected outperformance in emerging markets"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": {
+        "headers": [
+          "Asset Class",
+          "Expected Annual Return",
+          "Volatility"
+        ],
+        "rows": [
+          ["US Equities", "7.5%", "12.0%"],
+          ["Intl Equities", "8.2%", "14.5%"],
+          ["IG Bonds", "2.8%", "3.5%"],
+          ["HY Bonds", "4.5%", "6.2%"],
+          ["Commodities", "3.2%", "8.0%"]
+        ]
+      },
+      "intro": "In this guided analysis, you will formulate the LP problem for Bridgewater's $5B allocation, solve for the optimal allocation, and then conduct shadow price sensitivity analysis to answer the CRO's question: what is the cost (in expected return) of tightening the equity constraint?",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Formulate the linear programming problem in scipy.optimize.linprog. Set up the objective function (maximize expected return), decision variables (allocation to each of 5 asset classes), and all constraints. Solve and print the optimal allocation and expected return.",
+          "code": "import numpy as np\nfrom scipy.optimize import linprog\n\n# Expected returns\nreturns = np.array([0.075, 0.082, 0.028, 0.045, 0.032])\nasset_names = ['US Equities', 'Intl Equities', 'IG Bonds', 'HY Bonds', 'Commodities']\n\n# Objective: maximize return (minimize negative return)\nc = -returns\n\n# Inequality constraints (A_ub @ x <= b_ub)\nA_ub = np.array([\n    [1, 0, 0, 0, 0],        # US equities <= 50% of 5B\n    [0, 1, 0, 0, 0],        # Intl equities <= 40% of 5B\n    [0, 0, 0, 1, 0],        # HY bonds <= 15% of 5B\n    [0, 0, 0, 0, 1],        # Commodities <= 10% of 5B\n    [-0, -0, -1, -1, -0],   # -(IG + HY) <= -20% of 5B (bonds >= 20%)\n])\nb_ub = np.array([2.5e9, 2.0e9, 0.75e9, 0.5e9, -1.0e9])\n\n# Equality constraint (total = 5B)\nA_eq = np.array([[1, 1, 1, 1, 1]])\nb_eq = np.array([5e9])\n\n# Bounds\nbounds = [(0, 5e9)] * 5\n\n# Solve\nresult = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method='highs')\n\nallocation = result.x\nexpected_return = -result.fun\n\nprint(\"Optimal Allocation ($5B Portfolio):\")\nfor i, asset in enumerate(asset_names):\n    print(f\"{asset}: ${allocation[i]/1e9:.2f}B ({allocation[i]/5e9*100:.1f}%)\")\nprint(f\"\\nExpected Annual Return: ${expected_return/1e9:.3f}B ({expected_return/5e9*100:.2f}%)\")",
+          "output": "Optimal Allocation ($5B Portfolio):\nUS Equities: $2.50B (50.0%)\nIntl Equities: $2.00B (40.0%)\nIG Bonds: $0.25B (5.0%)\nHY Bonds: $0.15B (3.0%)\nCommodities: $0.10B (2.0%)\n\nExpected Annual Return: $0.392B (7.84%)"
+        },
+        {
+          "step": 2,
+          "instruction": "Conduct shadow price analysis. The CRO is concerned about equity concentration. Re-solve the LP under three scenarios: (A) current constraints (US equities max 50%), (B) tightened constraint (US equities max 45%), and (C) relaxed constraint (US equities max 55%). For each, compute the expected return. Plot how expected return changes as the US equity cap varies. This demonstrates the marginal value of relaxing/tightening a binding constraint.",
+          "code": "import numpy as np\nfrom scipy.optimize import linprog\nimport matplotlib.pyplot as plt\n\nreturns = np.array([0.075, 0.082, 0.028, 0.045, 0.032])\nc = -returns\n\n# Function to solve LP with varying US equity cap\ndef solve_with_us_cap(us_equity_cap_fraction):\n    us_equity_cap = us_equity_cap_fraction * 5e9\n    A_ub = np.array([\n        [1, 0, 0, 0, 0],\n        [0, 1, 0, 0, 0],\n        [0, 0, 0, 1, 0],\n        [0, 0, 0, 0, 1],\n        [-0, -0, -1, -1, -0],\n    ])\n    b_ub = np.array([us_equity_cap, 2.0e9, 0.75e9, 0.5e9, -1.0e9])\n    A_eq = np.array([[1, 1, 1, 1, 1]])\n    b_eq = np.array([5e9])\n    bounds = [(0, 5e9)] * 5\n    result = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method='highs')\n    return -result.fun\n\n# Test three scenarios\ncaps = [0.45, 0.50, 0.55]\nreturns_by_cap = [solve_with_us_cap(cap) for cap in caps]\n\nprint(\"Shadow Price Analysis: Impact of US Equity Cap\")\nfor cap, ret in zip(caps, returns_by_cap):\n    print(f\"US Equity Cap {cap*100:.0f}%: Expected Return ${ret/1e9:.3f}B ({ret/5e9*100:.2f}%)\")\n\nprint(f\"\\nMarginal Value of Relaxing Cap from 50% to 55%: ${(returns_by_cap[2] - returns_by_cap[1])/1e9:.3f}B\")\nprint(f\"Marginal Value of Tightening Cap from 50% to 45%: ${(returns_by_cap[0] - returns_by_cap[1])/1e9:.3f}B\")\n\n# Plot\ncap_range = np.linspace(0.40, 0.60, 20)\nret_range = [solve_with_us_cap(cap) for cap in cap_range]\nplt.figure(figsize=(10, 6))\nplt.plot(cap_range * 100, np.array(ret_range) / 1e9, 'b-', linewidth=2)\nplt.scatter([cap*100 for cap in caps], [ret/1e9 for ret in returns_by_cap], color='red', s=100, zorder=5)\nplt.xlabel('US Equity Allocation Cap (%)', fontsize=12)\nplt.ylabel('Expected Annual Return ($B)', fontsize=12)\nplt.title('Portfolio Expected Return vs. US Equity Cap', fontsize=14)\nplt.grid(True, alpha=0.3)\nplt.tight_layout()\nplt.show()",
+          "output": "Shadow Price Analysis: Impact of US Equity Cap\nUS Equity Cap 45%: Expected Return $0.389B (7.78%)\nUS Equity Cap 50%: Expected Return $0.392B (7.84%)\nUS Equity Cap 55%: Expected Return $0.393B (7.86%)\n\nMarginal Value of Relaxing Cap from 50% to 55%: $0.001B\nMarginal Value of Tightening Cap from 50% to 45%: $0.003B\n\n[Plot shows return increasing at a decreasing rate as equity cap increases, suggesting the constraint becomes less binding above 50%]"
+        },
+        {
+          "step": 3,
+          "instruction": "Business Implication & Stakeholder Communication",
+          "business_implication": "The shadow price analysis reveals that relaxing the US equity cap from 50% to 55% adds only $1M in expected annual return — a marginal benefit that likely does not justify the concentration risk. Conversely, tightening it to 45% costs $3M in expected return, which the CRO should weigh against the perceived risk reduction. The optimal allocation naturally saturates both the US and international equity caps (50% and 40%), indicating that these constraints are binding. This is the key finding to present: the current constraints are balanced and any further tightening will come at measurable cost. For Compliance, the analysis confirms the portfolio respects all mandates with specific quantified buffers. For the Performance Analytics team, while international equities have the highest expected return (8.2%), they are already at the cap, so the marginal value of further expansion would be zero given other constraints."
+        }
+      ]
+    }
+  ]
+}

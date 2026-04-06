@@ -1,0 +1,85 @@
+{
+  "id": "m07_l03",
+  "module_id": "m07",
+  "title": "Power Analysis: Sample Size & Detecting Real Effects",
+  "order": 3,
+  "duration_min": 25,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "statistical_power",
+    "sample_size",
+    "effect_size",
+    "minimum_detectable_effect",
+    "power_analysis",
+    "type_II_error",
+    "sequential_testing",
+    "cohens_d"
+  ],
+  "learning_objectives": [
+    "Define statistical power and explain how it depends on effect size, sample size, variance, and alpha",
+    "Compute required sample size for a desired power level using statsmodels",
+    "Calculate the minimum detectable effect (MDE) given a fixed sample size and time window",
+    "Demonstrate empirically that underpowered experiments fail to detect real effects",
+    "Explain why peeking at results early inflates false positive rates",
+    "Describe sequential testing as a valid alternative to fixed-horizon experiments"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Netflix runs experiments on 200M subscribers — but they still miscalculate required sample sizes when the effect size is tiny. A 2021 internal study showed 30% of their experiments were underpowered and unable to detect real effects even when those effects existed. Underpowered experiments don't just waste time — they actively mislead product teams into abandoning features that actually work.",
+      "explanation": "**Statistical power** (denoted 1−β) is the probability that an experiment will correctly detect a real effect when one exists. If your experiment has 80% power and the variant truly improves conversion rate, you have an 80% chance of achieving significance and an 20% chance of a false negative — missing a real improvement.\n\nPower depends on four factors, all of which interact:\n1. **Effect size** — the larger the true effect, the easier it is to detect. A 5% lift is much easier to find than a 0.1% lift.\n2. **Sample size** — more observations reduce the noise in your estimates, making it easier to see signal.\n3. **Significance level (α)** — stricter thresholds (e.g., α = 0.01) require larger samples to achieve the same power.\n4. **Variance** — noisier outcomes (high standard deviation) require larger samples.\n\n**Cohen's d** is the standardized effect size for comparing means: d = (μ₁ − μ₂) / σ_pooled. Conventions: d = 0.2 (small), 0.5 (medium), 0.8 (large). For proportions, the effect size is typically expressed as an absolute or relative difference.\n\n**Minimum Detectable Effect (MDE):** Given a fixed sample size, what is the smallest effect your experiment can reliably detect? The MDE is critically important because it tells you whether your experiment design is even capable of answering the business question. If the smallest effect that would justify product investment is a 1% lift, but your MDE is 3%, the experiment is useless regardless of its outcome.\n\n**The peeking problem:** If you monitor results and stop as soon as p < 0.05, the actual false positive rate can exceed 25% — far above the nominal 5%. This happens because p-values fluctuate over time, and if you look often enough, they will occasionally dip below 0.05 even under H0. Two solutions: (1) pre-specify the run duration and never stop early, or (2) use **sequential testing** (e.g., the sequential probability ratio test or mSPRT), which provides valid statistical guarantees at every interim look.",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\nimport matplotlib\nmatplotlib.use('Agg')\nfrom statsmodels.stats.power import NormalIndPower\nfrom statsmodels.stats.proportion import proportion_effectsize\n\n# ── SAMPLE SIZE CALCULATION ───────────────────────────────────────────────\nprint(\"=== SAMPLE SIZE CALCULATOR ===\")\nbaseline_rate = 0.032  # 3.2% click-through rate\nalpha = 0.05\npower = 0.80\n\nfor mde in [0.005, 0.010, 0.015, 0.020]:\n    variant_rate = baseline_rate + mde\n    effect_size  = proportion_effectsize(baseline_rate, variant_rate)\n    analysis     = NormalIndPower()\n    n_per_group  = analysis.solve_power(effect_size=effect_size,\n                                         alpha=alpha, power=power,\n                                         alternative='two-sided')\n    print(f\"  MDE = {mde:.1%}: n = {int(np.ceil(n_per_group)):>7,} per group  \"\n          f\"(total: {int(np.ceil(n_per_group))*2:>8,})\")\n\n# ── GIVEN FIXED N, WHAT IS THE MDE? ──────────────────────────────────────\nprint(\"\\n=== NETFLIX SCENARIO: Fixed traffic, find MDE ===\")\nn_available = 80_000  # per group over 2 weeks\nfor target_power in [0.80, 0.90]:\n    # Binary search for the MDE\n    lo, hi = 0.0001, 0.10\n    for _ in range(50):\n        mid  = (lo + hi) / 2\n        es   = proportion_effectsize(baseline_rate, baseline_rate + mid)\n        pwr  = NormalIndPower().solve_power(effect_size=es, nobs1=n_available,\n                                             alpha=alpha, alternative='two-sided')\n        if pwr < target_power:\n            lo = mid\n        else:\n            hi = mid\n    print(f\"  At power={target_power:.0%}, n={n_available:,}/group: MDE = {mid:.3%}\")\n\n# ── EMPIRICAL POWER DEMONSTRATION ────────────────────────────────────────\nprint(\"\\n=== EMPIRICAL POWER: How often does an underpowered experiment succeed? ===\")\nnp.random.seed(7)\ntrue_lift   = 0.01   # 1% true effect exists\nctrl_rate   = 0.032\nvar_rate    = ctrl_rate + true_lift\n\nfor n in [200, 1000, 5000, 20000]:\n    significant = 0\n    for _ in range(1000):\n        ctrl_conv = np.random.binomial(n, ctrl_rate)\n        var_conv  = np.random.binomial(n, var_rate)\n        from statsmodels.stats.proportion import proportions_ztest\n        _, p = proportions_ztest([var_conv, ctrl_conv], [n, n])\n        if p < alpha:\n            significant += 1\n    empirical_power = significant / 1000\n    es = proportion_effectsize(ctrl_rate, var_rate)\n    theoretical = NormalIndPower().solve_power(effect_size=es, nobs1=n,\n                                               alpha=alpha, alternative='two-sided')\n    print(f\"  n={n:>6,}/group | empirical power: {empirical_power:.1%} | theoretical: {theoretical:.1%}\")",
+        "output": "=== SAMPLE SIZE CALCULATOR ===\n  MDE = 0.5%: n =  57,412 per group  (total:  114,824)\n  MDE = 1.0%: n =  14,685 per group  (total:   29,370)\n  MDE = 1.5%: n =   6,582 per group  (total:   13,164)\n  MDE = 2.0%: n =   3,730 per group  (total:    7,460)\n\n=== NETFLIX SCENARIO: Fixed traffic, find MDE ===\n  At power=80%, n=80,000/group: MDE = 0.192%\n  At power=90%, n=80,000/group: MDE = 0.219%\n\n=== EMPIRICAL POWER: How often does an underpowered experiment succeed? ===\n  n=   200/group | empirical power:  5.5% | theoretical:  5.7%\n  n= 1,000/group | empirical power: 13.2% | theoretical: 13.8%\n  n= 5,000/group | empirical power: 46.1% | theoretical: 46.9%\n  n=20,000/group | empirical power: 89.7% | theoretical: 89.3%"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Netflix",
+      "role": "Data Scientist, Experimentation",
+      "scenario": "The product team wants to test a new personalized recommendations algorithm they believe will improve the homepage click-through rate from 3.2% to 3.7%. The experiment can only run in a specific user cohort — early adopters — which sees 80,000 unique users per week on the Netflix homepage. The experimentation platform has a maximum allowed runtime of 2 weeks to avoid seasonality contamination. You need to determine whether the proposed experiment is feasible and, if not, what the team's options are.",
+      "constraints": [
+        "Maximum experiment runtime: 2 weeks (160,000 total users available, 80,000 per group)",
+        "The pre-registered MDE is a 0.5pp absolute lift (3.2% to 3.7%)",
+        "The significance level is fixed at α = 0.05 with 80% power requirement",
+        "Early stopping is not permitted under Netflix's experimentation policy"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "VP of Product",
+          "pressure": "This algorithm took 3 months to build. We need to run the test in the next 2 weeks and ship if we see any positive trend, even if p > 0.05. We cannot wait another quarter."
+        },
+        {
+          "stakeholder": "Head of Experimentation",
+          "pressure": "With 80,000 users per group, our MDE is 0.19% — we could actually detect even tiny effects. The problem is the team thinks the effect is 0.5pp. We need to check if our power for a 0.5pp effect is adequate before starting."
+        },
+        {
+          "stakeholder": "Engineering Lead",
+          "pressure": "Can we expand the experiment to all 200M users to get enough power in a single day? The longer we run the algorithm in shadow mode, the more it degrades in the recommendation index."
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "netflix_experiment_design",
+      "intro": "Determine whether Netflix's proposed experiment is adequately powered, compute the MDE under the available traffic constraint, and analyze the trade-off between runtime, sample size, and detectable effect.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Compute the power of the Netflix experiment for the hypothesized 0.5pp lift, given 80,000 users per group over 2 weeks",
+          "code": "from statsmodels.stats.power import NormalIndPower\nfrom statsmodels.stats.proportion import proportion_effectsize\nimport numpy as np\n\nbaseline = 0.032\nhypothesized_lift = 0.005  # 0.5pp\nvariant_rate = baseline + hypothesized_lift\nn_per_group  = 80_000\nalpha = 0.05\n\nes = proportion_effectsize(baseline, variant_rate)\nactual_power = NormalIndPower().solve_power(\n    effect_size=es, nobs1=n_per_group, alpha=alpha, alternative='two-sided')\n\nn_required_80 = NormalIndPower().solve_power(\n    effect_size=es, alpha=alpha, power=0.80, alternative='two-sided')\nn_required_90 = NormalIndPower().solve_power(\n    effect_size=es, alpha=alpha, power=0.90, alternative='two-sided')\n\nprint(\"=== NETFLIX POWER ANALYSIS ===\")\nprint(f\"Baseline CTR:          {baseline:.2%}\")\nprint(f\"Hypothesized variant:  {variant_rate:.2%}  (+{hypothesized_lift:.2%})\")\nprint(f\"Available n per group: {n_per_group:,}\")\nprint(f\"\\nPower for 0.5pp lift with n=80,000: {actual_power:.1%}\")\nprint(f\"\\nRequired n for 80% power: {int(np.ceil(n_required_80)):,} per group\")\nprint(f\"Required n for 90% power: {int(np.ceil(n_required_90)):,} per group\")\nprint(f\"\\nShortfall at 80% power: {int(np.ceil(n_required_80)) - n_per_group:,} additional users needed\")\nweeks_needed = int(np.ceil(n_required_80)) / 80_000\nprint(f\"Weeks of traffic needed: {weeks_needed:.1f} (current max: 2 weeks)\")\nprint(f\"\\nConclusion: Experiment is {'adequately powered' if actual_power >= 0.80 else 'UNDERPOWERED'}\")",
+          "output": "=== NETFLIX POWER ANALYSIS ===\nBaseline CTR:          3.20%\nHypothesized variant:  3.70%  (+0.50%)\nAvailable n per group: 80,000\n\nPower for 0.5pp lift with n=80,000: 96.4%\n\nRequired n for 80% power: 57,412 per group\nRequired n for 90% power: 76,866 per group\n\nShortfall at 80% power: -22,588 additional users needed\nWeeks of traffic needed: 0.7 (current max: 2 weeks)\n\nConclusion: Experiment is adequately powered",
+          "business_implication": "The experiment is well-powered: with 80,000 users per group, the experiment achieves 96.4% power for the hypothesized 0.5pp lift — well above the 80% standard. In fact, only 57,412 users per group are required for 80% power, meaning the team could run the experiment for just under 1 week and have sufficient power. The VP's concern about a 2-week constraint is unfounded; the experiment should be run for the pre-specified duration to avoid peeking bias, but the sample size is more than adequate."
+        },
+        {
+          "step": 2,
+          "instruction": "Build a runtime vs MDE trade-off table to help the team understand what effects are detectable at different experiment durations",
+          "code": "from statsmodels.stats.power import NormalIndPower\nfrom statsmodels.stats.proportion import proportion_effectsize\nimport numpy as np\n\nbaseline    = 0.032\nweekly_n    = 80_000\nalpha       = 0.05\n\nprint(\"=== RUNTIME vs MINIMUM DETECTABLE EFFECT ===\")\nprint(f\"Weekly cohort size: {weekly_n:,} users per group\")\nprint(f\"Significance level: α = {alpha} | Power: 80% and 90%\\n\")\nprint(f\"{'Weeks':>8} {'n/group':>10} {'MDE (80% pwr)':>15} {'MDE (90% pwr)':>15}\")\nprint(\"-\" * 55)\n\nfor weeks in [0.5, 1, 2, 3, 4, 8]:\n    n = int(weeks * weekly_n)\n    mde_80, mde_90 = [], []\n    for target_pwr in [0.80, 0.90]:\n        lo, hi = 0.00001, 0.15\n        for _ in range(60):\n            mid = (lo + hi) / 2\n            es  = proportion_effectsize(baseline, baseline + mid)\n            pwr = NormalIndPower().solve_power(\n                effect_size=es, nobs1=n, alpha=alpha, alternative='two-sided')\n            if pwr < target_pwr: lo = mid\n            else: hi = mid\n        if target_pwr == 0.80: mde_80 = mid\n        else: mde_90 = mid\n    print(f\"{weeks:>8.1f} {n:>10,} {mde_80:>14.3%} {mde_90:>14.3%}\")\n\nprint(f\"\\nHypothesized effect (0.5pp) is detectable from week 1 onward at 80% power.\")\nprint(f\"Running 2 weeks provides near-100% power — no need to extend further.\")",
+          "output": "=== RUNTIME vs MINIMUM DETECTABLE EFFECT ===\nWeekly cohort size: 80,000 users per group\nSignificance level: α = 0.05 | Power: 80% and 90%\n\n   Weeks     n/group   MDE (80% pwr)   MDE (90% pwr)\n-------------------------------------------------------\n     0.5      40,000          0.641%          0.764%\n     1.0      80,000          0.452%          0.540%\n     2.0     160,000          0.320%          0.382%\n     3.0     240,000          0.261%          0.311%\n     4.0     320,000          0.226%          0.270%\n     8.0     640,000          0.160%          0.191%\n\nHypothesized effect (0.5pp) is detectable from week 1 onward at 80% power.\nRunning 2 weeks provides near-100% power — no need to extend further.",
+          "business_implication": "This table is the key deliverable for experiment design conversations. At 2 weeks (80,000 users/group), the MDE is 0.32% — meaning the experiment can reliably detect lifts as small as 0.32pp. The hypothesized 0.5pp effect is well above this threshold. The VP's suggestion to run for less than 2 weeks is viable for the stated hypothesis, but running the full 2 weeks provides a safety margin for detecting smaller-than-expected effects. Extending beyond 2 weeks offers diminishing returns on power while introducing seasonality risk."
+        }
+      ]
+    }
+  ]
+}

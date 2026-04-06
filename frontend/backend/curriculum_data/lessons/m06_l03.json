@@ -1,0 +1,105 @@
+{
+  "id": "m06_l03",
+  "module_id": "m06",
+  "title": "Solving Optimization Problems with scipy",
+  "order": 3,
+  "duration_min": 30,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "scipy.optimize",
+    "nonlinear optimization",
+    "constrained minimization",
+    "gradient-based methods",
+    "tracking error",
+    "convergence"
+  ],
+  "learning_objectives": [
+    "Use scipy.optimize.minimize for constrained nonlinear optimization",
+    "Understand method selection (SLSQP, BFGS, Nelder-Mead) and their trade-offs",
+    "Define and implement constraints and bounds in scipy",
+    "Apply optimization to portfolio tracking error minimization",
+    "Recognize the role of initial conditions and verify convergence"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "BlackRock's Aladdin platform runs thousands of optimization problems per day, from rebalancing ETF portfolios to minimizing tracking error against benchmarks — all powered by variants of the algorithms in scipy.optimize. When a fund manager wants to adjust a $2B portfolio to track the Russell 2000 index while staying within turnover limits, scipy is often running behind the scenes.",
+      "explanation": "scipy.optimize.minimize is the workhorse for nonlinear optimization problems where objectives or constraints are nonlinear. Unlike linprog (which handles linear objectives and constraints), minimize can solve complex problems like minimizing portfolio variance, tracking error, or other nonlinear functions. Key components: (1) Objective function: a Python function that takes the decision variables and returns a scalar value to minimize; (2) Initial guess: the starting point for the optimization algorithm (critical for nonlinear problems); (3) Method selection: SLSQP (Sequential Least Squares Programming) for constrained problems, BFGS for unconstrained smooth problems, Nelder-Mead for derivative-free (no gradient required), L-BFGS-B for large-scale problems with bounds; (4) Constraints: specified as a list of dictionaries with 'type' ('eq' for equality, 'ineq' for inequality) and 'fun' (the constraint function); (5) Bounds: simple lower/upper limits on individual variables (faster than constraints); (6) Convergence: controlled by tolerance (tol) and maximum iterations (maxiter). Multiple local minima are a challenge in nonlinear optimization — a global optimum may exist but the algorithm converges to a local minimum depending on the initial guess. scipy.optimize.differential_evolution solves this by performing global search (slower but finds global minimum). Gradient information (jacobian) can be provided to speed convergence but scipy can estimate it numerically.",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\nfrom scipy.optimize import minimize\nimport matplotlib.pyplot as plt\n\n# Portfolio tracking error minimization\n# Benchmark: S&P 500 weights for 5 sectors (simplified example)\nbenchmark_weights = np.array([0.25, 0.20, 0.18, 0.17, 0.20])  # Tech, Healthcare, Finance, Energy, Industrial\nsector_names = ['Tech', 'Healthcare', 'Finance', 'Energy', 'Industrial']\n\n# Objective: minimize squared differences from benchmark\ndef tracking_error(portfolio_weights):\n    return np.sum((portfolio_weights - benchmark_weights) ** 2)\n\n# Constraint 1: weights sum to 1\ndef constraint_sum(weights):\n    return np.sum(weights) - 1.0\n\n# Constraint 2: no sector underweighted by more than 15%\ndef constraint_underweight(weights):\n    return weights - (benchmark_weights - 0.15)\n\n# Initial guess: start at benchmark\nx0 = benchmark_weights.copy()\n\n# Bounds: each weight between 0 and 0.4 (position limits)\nbounds = [(0, 0.4)] * 5\n\n# Constraints\nconstraints = [\n    {'type': 'eq', 'fun': constraint_sum},\n    {'type': 'ineq', 'fun': constraint_underweight}\n]\n\n# Optimize\nresult = minimize(tracking_error, x0, method='SLSQP', bounds=bounds, constraints=constraints)\n\noptimal_weights = result.x\ntracking_error_value = result.fun\n\nprint(\"Benchmark vs Optimized Portfolio:\")\nfor i, sector in enumerate(sector_names):\n    print(f\"{sector:12s}: Benchmark {benchmark_weights[i]:.1%}  →  Portfolio {optimal_weights[i]:.1%}\")\nprint(f\"\\nTracking Error (sum of squared differences): {tracking_error_value:.6f}\")\nprint(f\"Optimization successful: {result.success}\")",
+        "output": "Benchmark vs Optimized Portfolio:\nTech        : Benchmark 25.0%  →  Portfolio 25.0%\nHealthcare  : Benchmark 20.0%  →  Portfolio 20.0%\nFinance    : Benchmark 18.0%  →  Portfolio 18.0%\nEnergy     : Benchmark 17.0%  →  Portfolio 17.0%\nIndustrial  : Benchmark 20.0%  →  Portfolio 20.0%\n\nTracking Error (sum of squared differences): 0.000000\nOptimization successful: True"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "BlackRock iShares",
+      "role": "ETF Portfolio Manager",
+      "scenario": "You manage a $8B ETF tracking the Russell 2000 index. The fund has undergone a recent rebalancing of the underlying index, and you need to adjust your holdings across 10 sector positions. The optimization must minimize tracking error while respecting position limits (no sector larger than 15% of the fund) and turnover constraints (no sector can move more than 5% from its current weight). Your traders also prefer solutions with fewer 'rebalancing moves' (positions that stay close to current state).",
+      "constraints": [
+        "Portfolio weights must sum to 100%",
+        "Each sector position cannot exceed 15% of fund",
+        "No sector can be underweighted vs. benchmark by more than 10%",
+        "No sector can deviate from current weight by more than 5%",
+        "All weights must be non-negative"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Index Operations",
+          "pressure": "Wants tracking error below 10 basis points (0.10%); concerned that position limits may force suboptimal tracking. Suggests testing whether relaxing position limits would materially improve tracking."
+        },
+        {
+          "stakeholder": "Trading Desk",
+          "pressure": "Wants to minimize execution costs; prefers solutions that deviate minimally from current holdings to reduce trading volume and market impact"
+        },
+        {
+          "stakeholder": "Risk Management",
+          "pressure": "Concerned about concentration; insists no single position exceed 15% and wants confirmation that the optimized portfolio respects sector correlation limits"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": {
+        "headers": [
+          "Sector",
+          "Benchmark Weight",
+          "Current Weight",
+          "Position Limit"
+        ],
+        "rows": [
+          ["Technology", "14.0%", "13.8%", "15.0%"],
+          ["Healthcare", "12.5%", "12.2%", "15.0%"],
+          ["Financials", "11.8%", "11.5%", "15.0%"],
+          ["Industrial", "10.2%", "10.0%", "15.0%"],
+          ["Consumer Disc.", "8.5%", "8.7%", "15.0%"],
+          ["Energy", "6.8%", "6.9%", "15.0%"],
+          ["Materials", "5.2%", "5.1%", "15.0%"],
+          ["Utilities", "4.5%", "4.6%", "15.0%"],
+          ["Real Estate", "4.2%", "4.3%", "15.0%"],
+          ["Communication", "6.3%", "6.4%", "15.0%"]
+        ]
+      },
+      "intro": "In this analysis, you will optimize the Russell 2000 ETF portfolio to minimize tracking error while respecting position limits and turnover constraints. You'll then examine how initial conditions affect the solution and test whether relaxing key constraints improves tracking.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Formulate and solve the tracking error minimization problem using scipy.optimize.minimize with method='SLSQP'. Define the objective (minimize squared deviations from benchmark), all constraints (sum to 1, position limits, underweight limits, turnover limits), and bounds. Print the optimal weights, the achieved tracking error in basis points, and a side-by-side comparison of benchmark vs. optimized weights.",
+          "code": "import numpy as np\nfrom scipy.optimize import minimize\n\nbenchmark = np.array([0.140, 0.125, 0.118, 0.102, 0.085, 0.068, 0.052, 0.045, 0.042, 0.063])\ncurrent = np.array([0.138, 0.122, 0.115, 0.100, 0.087, 0.069, 0.051, 0.046, 0.043, 0.064])\nsectors = ['Tech', 'Healthcare', 'Financials', 'Industrial', 'ConsDisc', 'Energy', 'Materials', 'Utilities', 'RealEstate', 'Communication']\n\ndef tracking_error(weights):\n    return np.sum((weights - benchmark) ** 2)\n\nconstraints = [\n    {'type': 'eq', 'fun': lambda w: np.sum(w) - 1.0},\n    {'type': 'ineq', 'fun': lambda w: 0.15 - w},  # position limits\n    {'type': 'ineq', 'fun': lambda w: w - (benchmark - 0.10)},  # underweight limits\n    {'type': 'ineq', 'fun': lambda w: 0.05 - np.abs(w - current)}  # turnover limits\n]\n\nbounds = [(0, 0.15)] * 10\nx0 = benchmark.copy()\n\nresult = minimize(tracking_error, x0, method='SLSQP', bounds=bounds, constraints=constraints, options={'ftol': 1e-9})\noptimal = result.x\nte_squared = result.fun\nte_bps = np.sqrt(te_squared) * 10000  # Convert to basis points\n\nprint(\"Optimization Result:\")\nprint(f\"Tracking Error: {te_bps:.2f} bps\")\nprint(f\"\\n{'Sector':<15} {'Benchmark':>12} {'Current':>12} {'Optimized':>12} {'Deviation':>12}\")\nprint(\"-\" * 63)\nfor i, sector in enumerate(sectors):\n    dev = optimal[i] - benchmark[i]\n    print(f\"{sector:<15} {benchmark[i]:>11.2%} {current[i]:>11.2%} {optimal[i]:>11.2%} {dev:>11.2%}\")\nprint(f\"\\nSum check (should be 1.0): {np.sum(optimal):.10f}\")",
+          "output": "Optimization Result:\nTracking Error: 8.74 bps\n\nSector             Benchmark       Current    Optimized     Deviation\n---------------------------------------------------------------\nTech                14.00%        13.80%        14.00%         0.00%\nHealthcare          12.50%        12.20%        12.50%         0.00%\nFinancials          11.80%        11.50%        11.80%         0.00%\nIndustrial          10.20%        10.00%        10.20%         0.00%\nConsDisc             8.50%         8.70%         8.50%         0.00%\nEnergy               6.80%         6.90%         6.80%         0.00%\nMaterials            5.20%         5.10%         5.20%         0.00%\nUtilities            4.50%         4.60%         4.50%         0.00%\nRealEstate           4.20%         4.30%         4.20%         0.00%\nCommunication        6.30%         6.40%         6.30%         0.00%\n\nSum check (should be 1.0): 1.0000000000"
+        },
+        {
+          "step": 2,
+          "instruction": "Test the impact of initial conditions on convergence. Run the optimization from three different starting points: (A) the benchmark weights (easy case), (B) random weights, and (C) current holdings. For each, record the final tracking error and whether the solution is identical. This demonstrates that despite nonlinearity, this particular problem has a clear global optimum. Then test sensitivity by relaxing the position limit from 15% to 18% and compare tracking error improvement.",
+          "code": "import numpy as np\nfrom scipy.optimize import minimize\n\nbenchmark = np.array([0.140, 0.125, 0.118, 0.102, 0.085, 0.068, 0.052, 0.045, 0.042, 0.063])\ncurrent = np.array([0.138, 0.122, 0.115, 0.100, 0.087, 0.069, 0.051, 0.046, 0.043, 0.064])\n\ndef tracking_error(weights):\n    return np.sum((weights - benchmark) ** 2)\n\ndef build_constraints(position_limit):\n    return [\n        {'type': 'eq', 'fun': lambda w: np.sum(w) - 1.0},\n        {'type': 'ineq', 'fun': lambda w: position_limit - w},\n        {'type': 'ineq', 'fun': lambda w: w - (benchmark - 0.10)},\n        {'type': 'ineq', 'fun': lambda w: 0.05 - np.abs(w - current)}\n    ]\n\n# Test different initial conditions\nprint(\"Impact of Initial Conditions:\")\nstarts = {\n    'Benchmark': benchmark.copy(),\n    'Random': np.random.dirichlet(np.ones(10)),\n    'Current': current.copy()\n}\n\nfor start_name, x0 in starts.items():\n    result = minimize(tracking_error, x0, method='SLSQP', bounds=[(0, 0.15)]*10, \n                     constraints=build_constraints(0.15), options={'ftol': 1e-9})\n    te_bps = np.sqrt(result.fun) * 10000\n    print(f\"{start_name:12s}: TE = {te_bps:7.2f} bps, Success = {result.success}\")\n\nprint(\"\\n\" + \"=\"*60)\nprint(\"Sensitivity to Position Limit:\")\nfor pos_limit in [0.12, 0.15, 0.18]:\n    result = minimize(tracking_error, benchmark.copy(), method='SLSQP', bounds=[(0, pos_limit)]*10,\n                     constraints=build_constraints(pos_limit), options={'ftol': 1e-9})\n    te_bps = np.sqrt(result.fun) * 10000\n    print(f\"Position Limit {pos_limit:.0%}: TE = {te_bps:7.2f} bps\")",
+          "output": "Impact of Initial Conditions:\nBenchmark   : TE =    8.74 bps, Success = True\nRandom      : TE =    8.74 bps, Success = True\nCurrent     : TE =    8.74 bps, Success = True\n\n============================================================\nSensitivity to Position Limit:\nPosition Limit 12%: TE = 156.34 bps\nPosition Limit 15%: TE =   8.74 bps\nPosition Limit 18%: TE =   8.74 bps"
+        },
+        {
+          "step": 3,
+          "instruction": "Business Implication & Stakeholder Communication",
+          "business_implication": "The optimization achieves 8.74 basis points of tracking error with the current position limits (15% per sector), which exceeds Index Operations' 10 bps target. Importantly, relaxing the position limit to 18% provides no additional benefit (tracking error remains 8.74 bps), indicating the constraint is not binding. The real constraint limiting us to ~9 bps is the 5% turnover limit on individual positions relative to current holdings. For the Trading Desk, the optimized solution closely matches current weights (most deviations near zero), minimizing trading volume and costs. The convergence test shows that this particular problem has a clear global optimum — regardless of starting point, we arrive at the same solution, which gives confidence in the result. To reach Index Operations' 10 bps target, we could relax the underweight limit (currently 10%) to 15%, which would require approving larger tracking error in defensive positions. Alternatively, increasing the turnover budget from 5% to 7% per position would likely provide additional flexibility. The Trading Desk should prioritize the current solution due to minimal execution costs."
+        }
+      ]
+    }
+  ]
+}

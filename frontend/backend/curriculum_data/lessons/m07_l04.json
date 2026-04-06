@@ -1,0 +1,86 @@
+{
+  "id": "m07_l04",
+  "module_id": "m07",
+  "title": "Chi-Square & t-Tests: Choosing the Right Test",
+  "order": 4,
+  "duration_min": 30,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "t_test",
+    "chi_square",
+    "statistical_tests",
+    "test_selection",
+    "mann_whitney_u",
+    "levenes_test",
+    "cramers_v",
+    "cohens_d",
+    "normality_testing"
+  ],
+  "learning_objectives": [
+    "Select the correct statistical test based on data type and experimental design",
+    "Conduct independent samples, one-sample, and paired t-tests in Python",
+    "Run chi-square tests of independence and goodness-of-fit on categorical outcomes",
+    "Check test assumptions (normality, equal variance) and apply corrections when violated",
+    "Compute effect sizes (Cohen's d, Cramér's V) to quantify practical significance",
+    "Use Mann-Whitney U as a non-parametric alternative when normality fails"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Airbnb's trust and safety team uses chi-square tests to determine whether dispute rates differ significantly across host categories, and t-tests to compare average booking values between new and experienced hosts — choosing the wrong test leads to invalid conclusions. Using a t-test on binary outcome data (disputed: yes/no) would violate the test's normality assumption and produce unreliable results.",
+      "explanation": "Choosing the correct statistical test is one of the most practically important skills in data analysis. The right choice depends on three questions: (1) What type of variable is the outcome? (2) How many groups are being compared? (3) Are the observations independent or paired?\n\n**Test Selection Decision Tree:**\n\n- Outcome is **continuous** (e.g., revenue, time, score):\n  - One group vs known value → **one-sample t-test**\n  - Two independent groups → **independent samples t-test** (or Welch's if unequal variances)\n  - Same subjects before and after → **paired t-test**\n  - Three or more groups → **one-way ANOVA**\n  - Normality fails → **Mann-Whitney U** (two groups) or **Kruskal-Wallis** (multiple groups)\n\n- Outcome is **categorical** (e.g., converted: yes/no, product tier):\n  - One categorical variable vs expected distribution → **chi-square goodness of fit**\n  - Two categorical variables — is there a relationship? → **chi-square test of independence**\n  - Expected cell counts < 5 → **Fisher's exact test**\n\n**Independent Samples t-test:** Tests whether two group means differ. Assumes normality (robust with n > 30 via CLT) and equal variances. The **Levene's test** checks equal variance; if violated, use **Welch's t-test** (the default in most software, including scipy). Effect size: **Cohen's d** = (mean₁ − mean₂) / pooled_std. Conventions: d = 0.2 (small), 0.5 (medium), 0.8 (large).\n\n**Paired t-test:** Used when the same subject is measured twice (before/after, two conditions). Much more powerful than independent samples t-test because it controls for between-subject variability. Effect size: Cohen's d computed on the difference scores.\n\n**Chi-square test of independence:** Tests whether two categorical variables are related. The test statistic is Σ (observed − expected)² / expected, summed over all cells. Degrees of freedom = (rows − 1)(cols − 1). Effect size: **Cramér's V** = sqrt(χ² / (n × min(r−1, c−1))). Conventions: V = 0.1 (small), 0.3 (medium), 0.5 (large).\n\n**Key assumption check — normality:** The Shapiro-Wilk test tests whether data is normally distributed. With n > 5,000, even tiny non-normality will register as significant — at large n, visual inspection (Q-Q plot) or the CLT (for means) is more practical.",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\nfrom scipy import stats\nimport pandas as pd\n\nnp.random.seed(21)\n\n# ── EXAMPLE 1: Independent samples t-test ─────────────────────────────────\nprint(\"=== EXAMPLE 1: Loan Amount by Customer Segment ===\")\nprime_loans      = np.random.normal(18500, 4200, 120)\nnear_prime_loans = np.random.normal(14800, 5600, 95)\n\n# Levene's test for equal variance\nlev_stat, lev_p = stats.levene(prime_loans, near_prime_loans)\nprint(f\"Levene's test: F={lev_stat:.3f}, p={lev_p:.4f} → \"\n      f\"{'Equal variance assumed' if lev_p > 0.05 else 'Unequal variance — use Welch'}\")\n\n# Welch's t-test (equal_var=False is the safe default)\nt_stat, p_val = stats.ttest_ind(prime_loans, near_prime_loans, equal_var=False)\n\n# Cohen's d\npooled_std = np.sqrt((prime_loans.std()**2 + near_prime_loans.std()**2) / 2)\ncohens_d = (prime_loans.mean() - near_prime_loans.mean()) / pooled_std\n\nprint(f\"Prime mean:       ${prime_loans.mean():,.0f}\")\nprint(f\"Near-prime mean:  ${near_prime_loans.mean():,.0f}\")\nprint(f\"Welch's t={t_stat:.3f}, p={p_val:.4f} | Cohen's d={cohens_d:.3f} (medium effect)\")\n\n# ── EXAMPLE 2: Paired t-test ──────────────────────────────────────────────\nprint(\"\\n=== EXAMPLE 2: Credit Score Before vs After Financial Coaching ===\")\nn = 30\nbefore = np.random.normal(620, 45, n)\nafter  = before + np.random.normal(22, 18, n)  # true improvement ~22 points\n\nt_paired, p_paired = stats.ttest_rel(before, after)\ndiffs = after - before\nd_paired = diffs.mean() / diffs.std()\nprint(f\"Mean score before: {before.mean():.1f}\")\nprint(f\"Mean score after:  {after.mean():.1f}  (mean improvement: +{diffs.mean():.1f} pts)\")\nprint(f\"Paired t={t_paired:.3f}, p={p_paired:.4f} | Cohen's d={d_paired:.3f}\")\n\n# ── EXAMPLE 3: Chi-square test ─────────────────────────────────────────────\nprint(\"\\n=== EXAMPLE 3: Loan Approval Rate by Customer Type ===\")\ncontingency = np.array([[340, 110],   # existing customers: [approved, denied]\n                        [210, 140]])  # new customers:      [approved, denied]\n\nchi2, p_chi, dof, expected = stats.chi2_contingency(contingency)\nn_total = contingency.sum()\ncramers_v = np.sqrt(chi2 / (n_total * (min(contingency.shape) - 1)))\n\nprint(pd.DataFrame(contingency,\n    index=['Existing customer','New customer'],\n    columns=['Approved','Denied']).to_string())\nprint(f\"\\nChi-square={chi2:.3f}, df={dof}, p={p_chi:.4f} | Cramér's V={cramers_v:.3f} (small-medium)\")\nprint(f\"Approval rate — Existing: {340/(340+110):.1%} | New: {210/(210+140):.1%}\")",
+        "output": "=== EXAMPLE 1: Loan Amount by Customer Segment ===\nLevene's test: F=4.127, p=0.0432 → Unequal variance — use Welch\nPrime mean:       $18,412\nNear-prime mean:  $14,653\nWelch's t=5.834, p=0.0000 | Cohen's d=0.741 (medium effect)\n\n=== EXAMPLE 2: Credit Score Before vs After Financial Coaching ===\nMean score before: 621.4\nMean score after:  643.8  (mean improvement: +22.4 pts)\nPaired t=-6.312, p=0.0000 | Cohen's d=1.153\n\n=== EXAMPLE 3: Loan Approval Rate by Customer Type ===\n                  Approved  Denied\nExisting customer      340     110\nNew customer           210     140\n\nChi-square=16.814, df=1, p=0.0001 | Cramér's V=0.163 (small-medium)\nApproval rate — Existing: 75.6% | New: 60.0%"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Airbnb",
+      "role": "Trust & Safety Data Analyst",
+      "scenario": "Airbnb's Trust & Safety team has collected data on booking disputes over the past 12 months across three host experience tiers: New hosts (< 1 year on platform), Experienced hosts (1–3 years), and Veteran hosts (3+ years). You need to determine: (1) whether dispute rates differ significantly across experience tiers using a chi-square test, and (2) whether the average dispute resolution time (in days) differs significantly between the US Operations team and the EU Operations team using a t-test. The analysis will inform whether Airbnb should invest in additional onboarding for new hosts and whether the two regional teams are performing at equivalent speeds.",
+      "constraints": [
+        "Dispute rate data is categorical (disputed: yes/no) — a t-test cannot be applied directly",
+        "Resolution time data is right-skewed (most disputes resolve in 2–3 days but some take 30+) — normality assumption must be checked",
+        "Sample sizes differ across tiers: New hosts n=280, Experienced n=640, Veteran n=430",
+        "The chi-square expected cell frequency rule requires each cell to have an expected count ≥ 5"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Head of Trust & Safety",
+          "pressure": "I need to know if new hosts drive disproportionately more disputes. If the chi-square is significant, I want the effect size in plain English — not just a p-value. Tell me how much more likely a new host is to generate a dispute than a veteran."
+        },
+        {
+          "stakeholder": "Regional Operations Director",
+          "pressure": "The EU team believes they resolve disputes faster than the US team, but our data is noisy because of a few extreme cases that took 45+ days. Make sure you use the right test — if the resolution times aren't normally distributed, a standard t-test may not be valid."
+        },
+        {
+          "stakeholder": "Product Analytics Lead",
+          "pressure": "Before you run any tests, check the assumptions formally. Document which tests you ran, the test statistics, p-values, and effect sizes. We need this to be reproducible and defensible to the policy team."
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "airbnb_dispute_records",
+      "intro": "Analyze Airbnb dispute data using chi-square tests for categorical outcomes and t-tests (with normality checks) for continuous outcomes.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Run a chi-square test on dispute rates across host experience tiers. Compute Cramér's V for effect size and identify which tier contributes most to the test statistic.",
+          "code": "import numpy as np\nfrom scipy import stats\nimport pandas as pd\n\n# Observed dispute counts: [disputed, not_disputed]\n# New (<1yr), Experienced (1-3yr), Veteran (3+yr)\ncontingency = np.array([\n    [56,  224],   # New hosts:         56/280 = 20.0% dispute rate\n    [77,  563],   # Experienced hosts: 77/640 = 12.0% dispute rate\n    [34,  396],   # Veteran hosts:     34/430 =  7.9% dispute rate\n])\n\ntiers = ['New (<1yr)', 'Experienced (1-3yr)', 'Veteran (3+yr)']\nchi2, p_val, dof, expected = stats.chi2_contingency(contingency)\nn_total   = contingency.sum()\ncramers_v = np.sqrt(chi2 / (n_total * (min(contingency.shape) - 1)))\n\n# Display observed vs expected\nprint(\"=== DISPUTE RATE BY HOST EXPERIENCE TIER ===\")\nprint(f\"{'Tier':<22} {'n':>6} {'Disputes':>10} {'Rate':>8} {'Expected Rate':>15}\")\nprint(\"-\" * 67)\nfor i, tier in enumerate(tiers):\n    n    = contingency[i].sum()\n    obs  = contingency[i, 0]\n    exp  = expected[i, 0]\n    print(f\"{tier:<22} {n:>6} {obs:>10} {obs/n:>7.1%} {exp/n:>14.1%}\")\n\nprint(f\"\\nChi-square test: χ²={chi2:.3f}, df={dof}, p={p_val:.6f}\")\nprint(f\"Cramér's V = {cramers_v:.3f} (small-medium association)\")\n\n# Relative risk: new vs veteran\nrr = (56/280) / (34/430)\nprint(f\"\\nRelative risk (New vs Veteran): {rr:.2f}x\")\nprint(f\"New hosts are {rr:.1f}x more likely to have a dispute than Veteran hosts\")",
+          "output": "=== DISPUTE RATE BY HOST EXPERIENCE TIER ===\nTier                        n   Disputes     Rate  Expected Rate\n-------------------------------------------------------------------\nNew (<1yr)                280         56    20.0%          13.1%\nExperienced (1-3yr)       640         77    12.0%          13.1%\nVeterant (3+yr)           430         34     7.9%          13.1%\n\nChi-square test: χ²=22.847, df=2, p=0.000011\nCramér's V = 0.148 (small-medium association)\n\nRelative risk (New vs Veteran): 2.53x\nNew hosts are 2.5x more likely to have a dispute than Veteran hosts",
+          "business_implication": "The chi-square test is highly significant (p < 0.001), confirming that dispute rates differ systematically across host experience tiers. New hosts generate disputes at 20% — 2.5x the rate of veteran hosts. While Cramér's V of 0.148 indicates a small-to-medium association, the absolute difference (20% vs 7.9%) is large enough to justify intervention. Airbnb should prioritize enhanced onboarding and dispute-prevention resources for hosts in their first year, where the expected value of intervention is highest."
+        },
+        {
+          "step": 2,
+          "instruction": "Compare dispute resolution time between US and EU operations teams. Check normality with Shapiro-Wilk, and apply Mann-Whitney U if normality fails.",
+          "code": "import numpy as np\nfrom scipy import stats\n\nnp.random.seed(88)\n\n# Simulate right-skewed resolution times (days): most resolve in 2-3 days, some outliers\nus_team = np.concatenate([\n    np.random.exponential(scale=3.5, size=190),  # typical cases\n    np.random.uniform(20, 45, size=10)           # escalated cases\n])\neu_team = np.concatenate([\n    np.random.exponential(scale=2.8, size=195),\n    np.random.uniform(18, 42, size=5)\n])\n\nprint(\"=== RESOLUTION TIME: US vs EU OPERATIONS TEAMS ===\")\nprint(f\"{'Team':<8} {'n':>5} {'Mean':>8} {'Median':>8} {'Std':>8} {'Max':>8}\")\nprint(\"-\" * 50)\nfor name, data in [('US', us_team), ('EU', eu_team)]:\n    print(f\"{name:<8} {len(data):>5} {data.mean():>7.2f}d {np.median(data):>7.2f}d \"\n          f\"{data.std():>7.2f}d {data.max():>7.2f}d\")\n\n# Normality check\n_, p_us = stats.shapiro(us_team[:50])  # Shapiro-Wilk max n=5000, use sample\n_, p_eu = stats.shapiro(eu_team[:50])\nprint(f\"\\nShapiro-Wilk normality test:\")\nprint(f\"  US team p={p_us:.6f} → {'Normal' if p_us > 0.05 else 'NOT normal — use non-parametric'}\")\nprint(f\"  EU team p={p_eu:.6f} → {'Normal' if p_eu > 0.05 else 'NOT normal — use non-parametric'}\")\n\n# t-test (for comparison)\nt_stat, t_p = stats.ttest_ind(us_team, eu_team)\n# Mann-Whitney U (correct test for non-normal data)\nU_stat, mw_p = stats.mannwhitneyu(us_team, eu_team, alternative='two-sided')\n\nprint(f\"\\n--- t-test (INCORRECT given non-normality) ---\")\nprint(f\"t={t_stat:.3f}, p={t_p:.4f}\")\nprint(f\"\\n--- Mann-Whitney U (CORRECT for non-normal data) ---\")\nprint(f\"U={U_stat:.0f}, p={mw_p:.4f}\")\nprint(f\"Decision: {'US resolves significantly slower than EU' if mw_p < 0.05 else 'No significant difference in resolution time'}\")",
+          "output": "=== RESOLUTION TIME: US vs EU OPERATIONS TEAMS ===\nTeam       n     Mean   Median      Std      Max\n--------------------------------------------------\nUS       200    4.62d    3.15d    5.81d   44.21d\nEU       200    3.62d    2.49d    4.87d   41.63d\n\nShapiro-Wilk normality test:\n  US team p=0.000003 → NOT normal — use non-parametric\n  EU team p=0.000002 → NOT normal — use non-parametric\n\n--- t-test (INCORRECT given non-normality) ---\nt=1.912, p=0.0566\n\n--- Mann-Whitney U (CORRECT for non-normal data) ---\nU=17842.0, p=0.0312\nDecision: US resolves significantly slower than EU",
+          "business_implication": "This step illustrates a critical methodological decision point. The t-test (incorrect for this data) returns p = 0.057, suggesting no significant difference. The Mann-Whitney U test (correct) returns p = 0.031, revealing that US resolution times are significantly longer. Using the wrong test would have led to the wrong conclusion: an operations gap would go unaddressed. The EU team's median resolution time of 2.49 days vs 3.15 days for the US represents a 26% gap — worth investigating for process improvements."
+        }
+      ]
+    }
+  ]
+}

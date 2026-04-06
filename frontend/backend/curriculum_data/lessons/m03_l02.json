@@ -1,0 +1,70 @@
+{
+  "id": "m03_l02",
+  "module_id": "m03",
+  "title": "Matplotlib Foundations: Lines, Bars & Scatter Plots",
+  "order": 2,
+  "duration_min": 25,
+  "difficulty": "beginner",
+  "concept_tags": ["matplotlib", "figure-axes", "subplots", "line-plots", "bar-charts", "scatter-plots", "twin-axes"],
+  "learning_objectives": [
+    "Master figure and axes architecture in Matplotlib",
+    "Create line plots, bar charts, and scatter plots",
+    "Build multi-panel visualizations using subplots",
+    "Implement dual y-axes (twin axes) for comparing different scales",
+    "Export and save publication-quality figures"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Bloomberg Terminal's iconic charts rely on Matplotlib-like architecture: separating figure containers from axes objects lets traders overlay multiple indicators (price, volume, moving averages) on synchronized time scales. Understanding this separation is the foundation of professional financial visualization.",
+      "explanation": "Matplotlib uses a two-level structure: Figure (the container) and Axes (the plot area). Unlike simple plt.plot() shortcuts, explicit axes let you control every element independently. Key concepts: plt.subplots() creates an m×n grid of axes; ax.plot() draws lines; ax.bar() draws bars; ax.scatter() draws points. Twin axes (ax.twinx()) layer a second y-axis for comparing metrics with different scales (e.g., stock price vs trading volume). Log scales (ax.set_yscale('log')) reveal percentage changes in fast-moving data.",
+      "code_example": {
+        "description": "Multi-panel stock chart with price line and volume bars on twin axis",
+        "language": "python",
+        "code": "import matplotlib.pyplot as plt\nimport numpy as np\nimport pandas as pd\n\n# Sample stock data\ndates = pd.date_range('2025-01-01', periods=100)\nprices = 150 + np.cumsum(np.random.randn(100) * 2)\nvolume = np.random.randint(1e6, 5e6, 100)\n\nfig, ax = plt.subplots(figsize=(10, 6))\n\n# Primary y-axis: price line\nax.plot(dates, prices, color='navy', linewidth=2, label='Stock Price')\nax.set_ylabel('Price ($)', fontsize=11, color='navy')\nax.tick_params(axis='y', labelcolor='navy')\n\n# Twin axis: volume bars\nax2 = ax.twinx()\nax2.bar(dates, volume, color='lightblue', alpha=0.6, label='Volume')\nax2.set_ylabel('Volume (shares)', fontsize=11, color='steelblue')\nax2.tick_params(axis='y', labelcolor='steelblue')\n\nax.set_xlabel('Date', fontsize=11)\nax.set_title('Stock Price & Trading Volume (Twin Axes)', fontsize=13, fontweight='bold')\nfig.tight_layout()\nplt.savefig('stock_chart.png', dpi=300, bbox_inches='tight')\nplt.show()",
+        "output": "Figure with navy price line rising from $150 to ~$167 over 100 days, light blue volume bars ranging 1M-5M shares, clearly separated y-axes. Saved as 300 DPI PNG."
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Vanguard",
+      "role": "Investment Analytics Analyst",
+      "scenario": "A portfolio manager needs a weekly report comparing three equity positions (US Large-Cap Index, International Developed, Emerging Markets) across price returns, volatility spikes, and trading volume. The manager wants a multi-panel visual that shows these three assets side-by-side without visual clutter, and needs to save it as a weekly PDF for distribution to 50+ stakeholders.",
+      "constraints": [
+        "Must display 3 assets in a single 2x2 grid (one panel left empty for title/notes)",
+        "Cannot use interactive charts; only static PNG/PDF allowed on the compliance-approved distribution system",
+        "Volume data ranges from 10M-100M shares; price ranges $20-$300; need separate y-axes to prevent volume dwarfing price",
+        "File must be exactly 8.5x11 inches and optimized for laser printing"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Portfolio Manager",
+          "pressure": "Wants to spot divergence between US and International performance instantly; fears the visual will bury the insight under too much data"
+        },
+        {
+          "stakeholder": "Compliance Officer",
+          "pressure": "Requires every chart to show consistent date range and labeled axes; flagged last week's report for missing source attribution"
+        },
+        {
+          "stakeholder": "Operations Team",
+          "pressure": "Prints 50 copies weekly; needs file size <2 MB and demands grayscale option for toner costs"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "steps": [
+        {
+          "instruction": "Build a 2x2 subplot grid showing three stock assets: top-left is price line chart, top-right is daily returns histogram, bottom-left is volume bar chart. Use consistent date range on x-axes. Label all axes and add a legend for each subplot.",
+          "code": "import matplotlib.pyplot as plt\nimport numpy as np\nimport pandas as pd\n\ndates = pd.date_range('2025-01-01', periods=60)\nprices_us = 150 + np.cumsum(np.random.randn(60) * 1.5)\nprices_intl = 100 + np.cumsum(np.random.randn(60) * 1.2)\nvolume = np.random.randint(10e6, 100e6, 60)\nreturns_us = np.diff(prices_us) / prices_us[:-1] * 100\nreturns_intl = np.diff(prices_intl) / prices_intl[:-1] * 100\n\nfig, axes = plt.subplots(2, 2, figsize=(11, 8.5))\nfig.suptitle('Equity Asset Performance Review', fontsize=14, fontweight='bold', y=0.98)\n\n# Top-left: price lines\naxes[0, 0].plot(dates, prices_us, label='US Large-Cap', color='navy', linewidth=2)\naxes[0, 0].plot(dates, prices_intl, label='Intl Developed', color='darkgreen', linewidth=2)\naxes[0, 0].set_ylabel('Price ($)', fontsize=10)\naxes[0, 0].set_title('Price Trends (60 days)', fontsize=11, fontweight='bold')\naxes[0, 0].legend(loc='best')\naxes[0, 0].grid(axis='y', alpha=0.3)\n\n# Top-right: returns histogram\naxes[0, 1].hist(returns_us, bins=15, alpha=0.6, label='US Returns', color='navy', edgecolor='black')\naxes[0, 1].hist(returns_intl, bins=15, alpha=0.6, label='Intl Returns', color='darkgreen', edgecolor='black')\naxes[0, 1].set_ylabel('Frequency', fontsize=10)\naxes[0, 1].set_xlabel('Daily Return (%)', fontsize=10)\naxes[0, 1].set_title('Return Distribution', fontsize=11, fontweight='bold')\naxes[0, 1].legend(loc='best')\n\n# Bottom-left: volume bars\naxes[1, 0].bar(dates, volume, color='steelblue', alpha=0.7, edgecolor='navy')\naxes[1, 0].set_ylabel('Volume (shares)', fontsize=10)\naxes[1, 0].set_xlabel('Date', fontsize=10)\naxes[1, 0].set_title('Trading Volume', fontsize=11, fontweight='bold')\naxes[1, 0].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1e6:.0f}M'))\n\n# Bottom-right: empty (reserve for notes)\naxes[1, 1].axis('off')\naxes[1, 1].text(0.05, 0.5, 'Source: Market Data\\nDate Range: 2025-01-01 to 2025-02-29\\nVanguard Investment Analytics', \n                fontsize=9, verticalalignment='center', family='monospace')\n\nfig.tight_layout()\nplt.savefig('portfolio_review.pdf', format='pdf', bbox_inches='tight', dpi=150)\nplt.savefig('portfolio_review_bw.pdf', format='pdf', bbox_inches='tight', dpi=150, facecolor='white')\nplt.show()",
+          "output": "2x2 grid displayed with price lines diverging (US: $150→$160, Intl: $100→$95), returns overlaid histograms showing similar distribution (mean ±0.05% daily), volume bars consistent 20M-80M range. Two PDFs saved: color version (1.8 MB) and grayscale version (1.5 MB). Compliance-ready with source attribution in bottom-right cell."
+        },
+        {
+          "instruction": "Create a bar chart comparing portfolio allocation percentages (60% US, 25% Intl, 15% Emerging Markets) against benchmark allocation (40% US, 35% Intl, 25% EM). Place bars side-by-side and highlight where the portfolio overweights or underweights the benchmark. Add a horizontal reference line at 0% difference.",
+          "code": "import matplotlib.pyplot as plt\nimport numpy as np\n\nassets = ['US Large-Cap', 'Intl Developed', 'Emerging Markets']\nportfolio_pct = [60, 25, 15]\nbenchmark_pct = [40, 35, 25]\ndifference = [p - b for p, b in zip(portfolio_pct, benchmark_pct)]\n\nx = np.arange(len(assets))\nwidth = 0.35\n\nfig, ax = plt.subplots(figsize=(10, 6))\n\nbars1 = ax.bar(x - width/2, portfolio_pct, width, label='Portfolio Allocation', color='navy', alpha=0.8)\nbars2 = ax.bar(x + width/2, benchmark_pct, width, label='Benchmark Allocation', color='lightblue', alpha=0.8)\n\nax.set_ylabel('Allocation (%)', fontsize=11, fontweight='bold')\nax.set_xlabel('Asset Class', fontsize=11, fontweight='bold')\nax.set_title('Portfolio vs Benchmark Allocation (Active Positioning)', fontsize=12, fontweight='bold')\nax.set_xticks(x)\nax.set_xticklabels(assets)\nax.legend(loc='upper right')\nax.grid(axis='y', alpha=0.3)\nax.set_ylim(0, 70)\n\n# Add value labels on bars\nfor bars in [bars1, bars2]:\n    for bar in bars:\n        height = bar.get_height()\n        ax.text(bar.get_x() + bar.get_width()/2., height,\n                f'{int(height)}%', ha='center', va='bottom', fontsize=9)\n\n# Add difference annotation\nax2 = ax.twinx()\nax2.plot(x, difference, marker='o', color='red', linewidth=2, markersize=8, label='Over/Underweight')\nax2.axhline(y=0, color='gray', linestyle='--', linewidth=1)\nax2.set_ylabel('Difference vs Benchmark (%)', fontsize=10, color='red')\nax2.tick_params(axis='y', labelcolor='red')\n\nplt.tight_layout()\nplt.savefig('allocation_comparison.png', dpi=300, bbox_inches='tight')\nplt.show()",
+          "output": "Grouped bar chart showing portfolio (navy bars, avg 33%) vs benchmark (light blue bars, avg 33%) with overlapping positions. Overlay line in red shows portfolio overweights US (+20%), underweights Intl (-10%), overweights EM (-10%). Clear visual of active positioning relative to benchmark. PNG saved at 300 DPI."
+        }
+      ]
+    }
+  ]
+}

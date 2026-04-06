@@ -1,0 +1,100 @@
+{
+  "id": "m02_l03",
+  "module_id": "m02",
+  "title": "JOINs: Combining Transactions, Users & Accounts",
+  "order": 3,
+  "duration_min": 30,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "INNER JOIN",
+    "LEFT JOIN",
+    "RIGHT JOIN",
+    "FULL OUTER JOIN",
+    "CROSS JOIN",
+    "foreign keys",
+    "table aliases",
+    "join keys",
+    "multiple table joins",
+    "one-to-many relationships",
+    "Cartesian products"
+  ],
+  "learning_objectives": [
+    "Understand INNER JOIN to find only matching rows across tables",
+    "Apply LEFT JOIN to include all rows from left table with NULLs for non-matches",
+    "Distinguish RIGHT JOIN and FULL OUTER JOIN use cases",
+    "Identify when to use CROSS JOIN and how to avoid unintended Cartesian products",
+    "Select appropriate join keys and leverage foreign keys",
+    "Execute multi-table joins (3+ tables) to combine related data",
+    "Recognize common mistakes: joining on non-indexed columns, row multiplication in one-to-many relationships",
+    "Build fintech reports requiring complex joins across users, accounts, and transactions"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "content": {
+        "fintech_hook": "Plaid connects bank accounts to apps, but every query that gives users their financial picture requires joining transactions, accounts, and institutions tables. A single user may have multiple accounts, each with multiple transactions—and getting the right data to the right user depends entirely on correct joins.",
+        "explanation": "JOIN operations combine rows from two or more tables based on a specified relationship. INNER JOIN returns only rows where the join condition is true in both tables, eliminating non-matches. LEFT JOIN preserves all rows from the left table and adds matching data from the right, filling with NULL when no match exists—useful for finding users with no activity. RIGHT JOIN is the mirror (less commonly used in practice). FULL OUTER JOIN combines both sides, returning all rows from both tables. CROSS JOIN produces a Cartesian product (every row from left multiplied by every row from right), rarely needed and dangerous with large datasets. The ON clause specifies the join condition, typically comparing a foreign key from one table to a primary key in another. Join key selection matters: always prefer indexed columns and true foreign key relationships. Table aliases (e.g., SELECT u.name FROM users u) improve readability, especially in multi-table joins. Multiple table joins (3+ tables) work left-to-right: the result of the first join becomes the left table for the second join. A common mistake is joining on non-indexed columns, which forces full table scans. Another is misunderstanding one-to-many relationships: if accounts has 3 rows per user and transactions has 5 rows per account, joining users → accounts → transactions will multiply rows, turning 1 user into 15 rows—useful when you want transaction detail per user, but disastrous if you expect 1 row per user.",
+        "code_example": {
+          "setup": "Create three tables using Python and sqlite3",
+          "tables": {
+            "users": {
+              "columns": ["user_id (PRIMARY KEY)", "name", "tier"],
+              "description": "Core user records with subscription tier (free, premium)"
+            },
+            "accounts": {
+              "columns": ["account_id (PRIMARY KEY)", "user_id (FOREIGN KEY)", "account_type", "balance"],
+              "description": "Bank accounts linked to users; one user can have multiple accounts"
+            },
+            "transactions": {
+              "columns": ["txn_id (PRIMARY KEY)", "account_id (FOREIGN KEY)", "amount", "merchant", "status"],
+              "description": "Individual transactions per account; one account can have many transactions"
+            }
+          },
+          "python_code": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\nc = conn.cursor()\n\n# Create tables\nc.execute('''CREATE TABLE users (\n  user_id INTEGER PRIMARY KEY,\n  name TEXT,\n  tier TEXT\n)''')\n\nc.execute('''CREATE TABLE accounts (\n  account_id INTEGER PRIMARY KEY,\n  user_id INTEGER,\n  account_type TEXT,\n  balance REAL,\n  FOREIGN KEY(user_id) REFERENCES users(user_id)\n)''')\n\nc.execute('''CREATE TABLE transactions (\n  txn_id INTEGER PRIMARY KEY,\n  account_id INTEGER,\n  amount REAL,\n  merchant TEXT,\n  status TEXT,\n  FOREIGN KEY(account_id) REFERENCES accounts(account_id)\n)''')\n\n# Populate users\nc.executemany('INSERT INTO users VALUES (?,?,?)', [\n  (1, 'Alice Johnson', 'premium'),\n  (2, 'Bob Smith', 'free'),\n  (3, 'Carol Wong', 'premium'),\n  (4, 'David Lee', 'free')\n])\n\n# Populate accounts\nc.executemany('INSERT INTO accounts VALUES (?,?,?,?)', [\n  (101, 1, 'checking', 5000.00),\n  (102, 1, 'savings', 15000.00),\n  (103, 2, 'checking', 2500.00),\n  (104, 3, 'checking', 8000.00),\n  (105, 3, 'money_market', 25000.00)\n])\n\n# Populate transactions\nc.executemany('INSERT INTO transactions VALUES (?,?,?,?,?)', [\n  (1001, 101, 125.50, 'Starbucks', 'completed'),\n  (1002, 101, 2000.00, 'Salary Deposit', 'completed'),\n  (1003, 102, 500.00, 'Vanguard Transfer', 'completed'),\n  (1004, 103, 45.99, 'Amazon', 'completed'),\n  (1005, 104, 1200.00, 'Rent Payment', 'completed'),\n  (1006, 105, 10000.00, 'International Wire', 'completed'),\n  (1007, 105, 250.75, 'Hotel Booking', 'completed')\n])\n\nconn.commit()\n\n# Query 1: INNER JOIN to get account type per transaction\nprint('\\n=== INNER JOIN: Transactions with Account Type ===')\nquery1 = '''SELECT t.txn_id, a.account_type, t.merchant, t.amount, t.status\nFROM transactions t\nINNER JOIN accounts a ON t.account_id = a.account_id\nORDER BY t.txn_id'''\nc.execute(query1)\nfor row in c.fetchall():\n  print(row)\n\n# Query 2: LEFT JOIN to find users with no account\nprint('\\n=== LEFT JOIN: All Users (showing those without accounts) ===')\nquery2 = '''SELECT u.user_id, u.name, a.account_id, a.account_type\nFROM users u\nLEFT JOIN accounts a ON u.user_id = a.user_id\nORDER BY u.user_id'''\nc.execute(query2)\nfor row in c.fetchall():\n  print(row)\n\n# Query 3: Three-table JOIN\nprint('\\n=== THREE-TABLE JOIN: Full Transaction History per User ===')\nquery3 = '''SELECT u.name, u.tier, a.account_type, t.txn_id, t.merchant, t.amount, t.status\nFROM users u\nINNER JOIN accounts a ON u.user_id = a.user_id\nINNER JOIN transactions t ON a.account_id = t.account_id\nORDER BY u.name, t.txn_id'''\nc.execute(query3)\nfor row in c.fetchall():\n  print(row)\n\nconn.close()"
+        }
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "content": {
+        "company": "Plaid Technologies",
+        "role": "Analytics Engineer",
+        "scenario": "You've been asked to build a daily report showing which premium users have made international transactions in the last 7 days. The data spans 4 tables: users, accounts, transactions, and a new institutions table (to identify international vs. domestic). Your report will feed directly into the Growth team's daily standup.",
+        "constraints": [
+          "The query must complete in under 2 seconds to run on the production database with 50M+ transactions",
+          "False positives damage trust; a user incorrectly flagged as 'international' leads to poor targeting",
+          "The schema has a denormalized institutions table that sometimes has stale data; you must validate the relationship"
+        ],
+        "stakeholder_pressures": [
+          "Growth Lead: 'We need this daily. Can you query just the premium users table to save time?' (Pressures you to optimize for speed over correctness)",
+          "Data Quality Lead: 'Make sure you're not creating Cartesian products. One user has 47 accounts!' (Warns about one-to-many blowup)",
+          "Product Manager: 'Define international carefully. Is it the account institution's country or the transaction merchant's country?' (Ambiguity in join logic)"
+        ]
+      }
+    },
+    {
+      "type": "guided_analysis_block",
+      "content": {
+        "introduction": "You'll work through two critical joins: first, combining user, account, and transaction data to produce a clean detail report; second, identifying a hidden segment using LEFT JOIN—users who onboarded but never transacted (churn risk).",
+        "steps": [
+          {
+            "step_number": 1,
+            "title": "Three-Table INNER JOIN: Transaction Detail Report",
+            "description": "Produce a transaction detail report showing user name, account type, transaction merchant, amount, and status. Use INNER JOINs to focus only on transactions that have complete user and account context.",
+            "code": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\nc = conn.cursor()\n\n# [Setup code from concept block above, abbreviated]\nc.execute('''CREATE TABLE users (user_id INTEGER PRIMARY KEY, name TEXT, tier TEXT)''')\nc.execute('''CREATE TABLE accounts (account_id INTEGER PRIMARY KEY, user_id INTEGER, account_type TEXT, balance REAL, FOREIGN KEY(user_id) REFERENCES users(user_id))''')\nc.execute('''CREATE TABLE transactions (txn_id INTEGER PRIMARY KEY, account_id INTEGER, amount REAL, merchant TEXT, status TEXT, FOREIGN KEY(account_id) REFERENCES accounts(account_id))''')\n\nc.executemany('INSERT INTO users VALUES (?,?,?)', [(1, 'Alice Johnson', 'premium'), (2, 'Bob Smith', 'free'), (3, 'Carol Wong', 'premium'), (4, 'David Lee', 'free')])\nc.executemany('INSERT INTO accounts VALUES (?,?,?,?)', [(101, 1, 'checking', 5000.00), (102, 1, 'savings', 15000.00), (103, 2, 'checking', 2500.00), (104, 3, 'checking', 8000.00), (105, 3, 'money_market', 25000.00)])\nc.executemany('INSERT INTO transactions VALUES (?,?,?,?,?)', [(1001, 101, 125.50, 'Starbucks', 'completed'), (1002, 101, 2000.00, 'Salary Deposit', 'completed'), (1003, 102, 500.00, 'Vanguard Transfer', 'completed'), (1004, 103, 45.99, 'Amazon', 'completed'), (1005, 104, 1200.00, 'Rent Payment', 'completed'), (1006, 105, 10000.00, 'International Wire', 'completed')])\nconn.commit()\n\n# INNER JOIN: Only transactions with complete user and account context\nquery = '''SELECT \n  u.name,\n  a.account_type,\n  t.merchant,\n  t.amount,\n  t.status\nFROM users u\nINNER JOIN accounts a ON u.user_id = a.user_id\nINNER JOIN transactions t ON a.account_id = t.account_id\nORDER BY u.name, t.merchant'''\n\nprint('Transaction Detail Report (INNER JOIN):')\nprint('Name | Account Type | Merchant | Amount | Status')\nprint('-' * 70)\n\nc.execute(query)\nfor row in c.fetchall():\n  name, acct_type, merchant, amount, status = row\n  print(f'{name:15} | {acct_type:12} | {merchant:20} | ${amount:8.2f} | {status}')\n\nconn.close()",
+            "output": "Transaction Detail Report (INNER JOIN):\nName | Account Type | Merchant | Amount | Status\n---------------------------------------------------------------\nAlice Johnson    | checking     | Salary Deposit       | $2000.00 | completed\nAlice Johnson    | checking     | Starbucks            | $ 125.50 | completed\nAlice Johnson    | savings      | Vanguard Transfer    | $ 500.00 | completed\nBob Smith        | checking     | Amazon               | $ 45.99  | completed\nCarol Wong       | checking     | Rent Payment         | $1200.00 | completed\nCarol Wong       | money_market | International Wire   | $10000.00| completed",
+            "business_implication": "This report gives your Growth team immediate visibility into transaction activity by user and account type. The INNER JOIN ensures every row is a legitimate transaction with verified user and account context—no orphaned records. You can confidently segment by tier: notice Alice and Carol (premium) have higher transaction volumes and more diverse account types. This is the foundation for targeting campaigns."
+          },
+          {
+            "step_number": 2,
+            "title": "LEFT JOIN: Identify Users with No Transactions (Churn Risk)",
+            "description": "Use LEFT JOIN to find all users, then filter for those with no matching transactions (NULL on the right side). These users registered but never completed a transaction—a critical churn-risk segment.",
+            "code": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\nc = conn.cursor()\n\n# Setup (same tables and data as Step 1)\nc.execute('''CREATE TABLE users (user_id INTEGER PRIMARY KEY, name TEXT, tier TEXT)''')\nc.execute('''CREATE TABLE accounts (account_id INTEGER PRIMARY KEY, user_id INTEGER, account_type TEXT, balance REAL, FOREIGN KEY(user_id) REFERENCES users(user_id))''')\nc.execute('''CREATE TABLE transactions (txn_id INTEGER PRIMARY KEY, account_id INTEGER, amount REAL, merchant TEXT, status TEXT, FOREIGN KEY(account_id) REFERENCES accounts(account_id))''')\n\nc.executemany('INSERT INTO users VALUES (?,?,?)', [(1, 'Alice Johnson', 'premium'), (2, 'Bob Smith', 'free'), (3, 'Carol Wong', 'premium'), (4, 'David Lee', 'free')])\nc.executemany('INSERT INTO accounts VALUES (?,?,?,?)', [(101, 1, 'checking', 5000.00), (102, 1, 'savings', 15000.00), (103, 2, 'checking', 2500.00), (104, 3, 'checking', 8000.00), (105, 3, 'money_market', 25000.00)])\nc.executemany('INSERT INTO transactions VALUES (?,?,?,?,?)', [(1001, 101, 125.50, 'Starbucks', 'completed'), (1002, 101, 2000.00, 'Salary Deposit', 'completed'), (1003, 102, 500.00, 'Vanguard Transfer', 'completed'), (1004, 103, 45.99, 'Amazon', 'completed'), (1005, 104, 1200.00, 'Rent Payment', 'completed'), (1006, 105, 10000.00, 'International Wire', 'completed')])\nconn.commit()\n\n# LEFT JOIN: All users, including those with no transactions\nquery = '''SELECT \n  u.user_id,\n  u.name,\n  u.tier,\n  COUNT(t.txn_id) as transaction_count\nFROM users u\nLEFT JOIN accounts a ON u.user_id = a.user_id\nLEFT JOIN transactions t ON a.account_id = t.account_id\nGROUP BY u.user_id, u.name, u.tier\nORDER BY transaction_count ASC, u.name'''\n\nprint('Users by Transaction Activity (LEFT JOIN):')\nprint('User ID | Name | Tier | Transaction Count | Status')\nprint('-' * 70)\n\nc.execute(query)\nfor row in c.fetchall():\n  user_id, name, tier, txn_count = row\n  status = 'Churn Risk - No Activity' if txn_count == 0 else 'Active'\n  print(f'{user_id:7} | {name:15} | {tier:7} | {txn_count:17} | {status}')\n\nconn.close()",
+            "output": "Users by Transaction Activity (LEFT JOIN):\nUser ID | Name | Tier | Transaction Count | Status\n---------------------------------------------------------------\n4       | David Lee       | free    | 0                 | Churn Risk - No Activity\n2       | Bob Smith       | free    | 1                 | Active\n1       | Alice Johnson   | premium | 3                 | Active\n3       | Carol Wong      | premium | 3                 | Active",
+            "business_implication": "This LEFT JOIN reveals the hidden churn-risk segment: David Lee signed up (tier = free) but has never created an account or completed a transaction. Bob Smith has exactly one transaction—at risk of dropping off. In contrast, Alice and Carol show sustained engagement (3 transactions each). The Growth team can now prioritize David and Bob with onboarding emails, incentives, or check-ins. LEFT JOIN is essential because INNER JOIN would hide these users entirely, making it impossible to proactively reduce churn. This is a high-value query: identifying dormant users early can recover thousands in lifetime value per user."
+          }
+        ]
+      }
+    }
+  ]
+}

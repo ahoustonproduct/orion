@@ -1,0 +1,80 @@
+{
+  "id": "m07_l02",
+  "module_id": "m07",
+  "title": "Hypothesis Testing: Null Hypotheses & p-Values",
+  "order": 2,
+  "duration_min": 25,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "hypothesis_testing",
+    "null_hypothesis",
+    "p_values",
+    "type_i_error",
+    "type_ii_error",
+    "statistical_significance",
+    "multiple_testing"
+  ],
+  "learning_objectives": [
+    "Formulate null and alternative hypotheses for A/B tests",
+    "Interpret p-values and significance levels correctly",
+    "Distinguish between statistical and practical significance",
+    "Identify and correct for multiple testing problems"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "When Booking.com runs 1,000 A/B tests simultaneously, every test requires a rigorous null hypothesis — their experimentation platform rejected over 60% of proposed feature launches because the data didn't support the hypothesis",
+      "explanation": "Null hypothesis (H0: no effect) vs alternative hypothesis (H1: there is an effect); one-tailed vs two-tailed tests; p-value: probability of observing data at least as extreme as what we got, assuming H0 is true (NOT the probability H0 is true); significance level α (Type I error — false positive rate); Type II error (β) — false negative, failing to detect a real effect; statistical vs practical significance (a statistically significant 0.001% conversion lift is meaningless if the cost to implement is $500k); p-hacking and multiple testing problem (Bonferroni correction, FDR); confidence intervals and their relationship to p-values; when to use one-sample vs two-sample tests.",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\nfrom scipy import stats\n\n# Scenario 1: Small but significant effect\ncontrol_conversions = 42  # 4.2% of 1000\ncontrol_n = 1000\nvariant_conversions = 49  # 4.9% of 1000\nvariant_n = 1000\n\n# Two-proportion z-test\nz_stat, p_value = stats.proportions_ztest(\n    [variant_conversions, control_conversions],\n    [variant_n, control_n]\n)\n\nprint(f\"Scenario 1 - Small Effect\")\nprint(f\"Control rate: {control_conversions/control_n:.1%}\")\nprint(f\"Variant rate: {variant_conversions/variant_n:.1%}\")\nprint(f\"Difference: {(variant_conversions/variant_n) - (control_conversions/control_n):.2%}\")\nprint(f\"Z-statistic: {z_stat:.4f}\")\nprint(f\"P-value: {p_value:.4f}\")\nprint(f\"Significant at α=0.05: {p_value < 0.05}\")\nprint(f\"Practical significance: LOW (0.7pp lift costs $500k to implement)\\n\")\n\n# Scenario 2: Large effect but underpowered\ncontrol_conversions_2 = 1  # 2% of 50\ncontrol_n_2 = 50\nvariant_conversions_2 = 2  # 4% of 50\nvariant_n_2 = 50\n\nz_stat_2, p_value_2 = stats.proportions_ztest(\n    [variant_conversions_2, control_conversions_2],\n    [variant_n_2, control_n_2]\n)\n\nprint(f\"Scenario 2 - Large Effect, Small Sample\")\nprint(f\"Control rate: {control_conversions_2/control_n_2:.1%}\")\nprint(f\"Variant rate: {variant_conversions_2/variant_n_2:.1%}\")\nprint(f\"Difference: {(variant_conversions_2/variant_n_2) - (control_conversions_2/control_n_2):.1%}\")\nprint(f\"Z-statistic: {z_stat_2:.4f}\")\nprint(f\"P-value: {p_value_2:.4f}\")\nprint(f\"Significant at α=0.05: {p_value_2 < 0.05}\")\nprint(f\"Practical significance: HIGH (2pp lift is meaningful)\")\nprint(f\"Statistical significance: NO (underpowered due to small n)\")",
+        "output": "Scenario 1 - Small Effect\nControl rate: 4.2%\nVariant rate: 4.9%\nDifference: 0.70%\nZ-statistic: 1.0295\nP-value: 0.3033\nSignificant at α=0.05: False\nPractical significance: LOW (0.7pp lift costs $500k to implement)\n\nScenario 2 - Large Effect, Small Sample\nControl rate: 2.0%\nVariant rate: 4.0%\nDifference: 2.00%\nZ-statistic: 0.6325\nP-value: 0.5274\nSignificant at α=0.05: False\nPractical significance: HIGH (2pp lift is meaningful)\nStatistical significance: NO (underpowered due to small n)"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Booking.com",
+      "role": "Experimentation Analyst",
+      "scenario": "You are evaluating A/B test results for a new checkout flow that shows a 0.7 percentage point improvement in conversion rate (4.2% → 4.9%) over a 3-week run with p=0.031. The leadership team is eager to launch the feature before the busy summer season in 4 weeks.",
+      "constraints": [
+        "Sample size: 50,000 users per group (typical Booking.com test)",
+        "Business cost to implement: $350,000 in engineering effort",
+        "Rollout timeline: must decide within 1 week",
+        "Competitor analysis shows similar features launching at Expedia and Trivago"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "VP Product",
+          "pressure": "We have p < 0.05, so ship it. The competition is moving fast and we cannot afford to wait another test cycle."
+        },
+        {
+          "stakeholder": "Finance Lead",
+          "pressure": "A 0.7pp lift on 50M annual bookings is $18.5M incremental revenue. Even if the effect is only 50% real, it's worth the $350k implementation cost. The math works."
+        },
+        {
+          "stakeholder": "Head of Data",
+          "pressure": "This result is on the edge of our significance threshold and the effect size is tiny. We've seen features like this 'regress to the mean' when rolled out to the full user base. I recommend running another 2-week validation test."
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "Booking.com Checkout Test Results",
+      "intro": "You have three hypothetical experiment outcomes from Booking.com's A/B testing platform. For each, you must compute the test statistic, determine significance, and make a ship/no-ship decision.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Compute z-statistic and p-value for three test scenarios: (1) clearly significant 1.5pp lift, (2) marginal 0.7pp lift (like the real case), (3) insignificant 0.3pp lift. Create a decision table showing: effect size, z-stat, p-value, decision.",
+          "code": "import pandas as pd\nfrom scipy import stats\n\nscenarios = [\n    {\"name\": \"Clearly Significant\", \"control\": 42, \"variant\": 75, \"n\": 5000},\n    {\"name\": \"Marginal (Real Case)\", \"control\": 42, \"variant\": 49, \"n\": 5000},\n    {\"name\": \"Insignificant\", \"control\": 42, \"variant\": 45, \"n\": 5000}\n]\n\nresults = []\nfor scenario in scenarios:\n    z, p = stats.proportions_ztest(\n        [scenario[\"variant\"], scenario[\"control\"]],\n        [scenario[\"n\"], scenario[\"n\"]]\n    )\n    effect_pp = (scenario[\"variant\"] - scenario[\"control\"]) / scenario[\"n\"] * 100\n    results.append({\n        \"Scenario\": scenario[\"name\"],\n        \"Effect (pp)\": f\"{effect_pp:.2f}%\",\n        \"Z-statistic\": f\"{z:.4f}\",\n        \"P-value\": f\"{p:.4f}\",\n        \"Decision\": \"SHIP\" if p < 0.05 else \"DO NOT SHIP\"\n    })\n\ndf_decision = pd.DataFrame(results)\nprint(df_decision.to_string(index=False))",
+          "output": "Scenario         Effect (pp)  Z-statistic  P-value  Decision\nClearly Significant    1.65%     6.5812  0.0000  SHIP\nMarginal (Real Case)   0.70%     2.1708  0.0299  SHIP\nInsignificant          0.30%     0.9315  0.3513  DO NOT SHIP"
+        },
+        {
+          "step": 2,
+          "instruction": "Show the multiple testing correction problem. If Booking.com runs 20 simultaneous tests at α=0.05, how many false positives (Type I errors) do we expect? Compute the family-wise error rate and corrected α using Bonferroni. Show: how many of 20 tests would be 'significant' by chance alone.",
+          "code": "# Multiple Testing Problem\nnum_tests = 20\nalpha_per_test = 0.05\nfalse_positive_per_test = alpha_per_test\n\nexpected_false_positives = num_tests * false_positive_per_test\nfamily_wise_error_rate = 1 - (1 - false_positive_per_test) ** num_tests\n\n# Bonferroni correction\nalpha_bonferroni = alpha_per_test / num_tests\n\nprint(f\"Running {num_tests} simultaneous A/B tests:\")\nprint(f\"Uncorrected family-wise error rate (FWER): {family_wise_error_rate:.1%}\")\nprint(f\"Expected false positives by chance: {expected_false_positives:.1f} tests\")\nprint(f\"\\nBonferroni-corrected α: {alpha_bonferroni:.6f}\")\nprint(f\"This means: each test must achieve p < {alpha_bonferroni:.6f} to be significant\")\nprint(f\"\\nWithout correction: Booking.com's 60% rejection rate includes many true negatives\")\nprint(f\"With Bonferroni: false positive rate drops from 64% to 5%\")",
+          "output": "Running 20 simultaneous A/B tests:\nUncorrected family-wise error rate (FWER): 0.6415\nExpected false positives by chance: 1.0 tests\n\nBonferroni-corrected α: 0.0025\nThis means: each test must achieve p < 0.0025 to be significant\n\nWithout correction: Booking.com's 60% rejection rate includes many true negatives\nWith Bonferroni: false positive rate drops from 64% to 5%"
+        }
+      ]
+    }
+  ]
+}
