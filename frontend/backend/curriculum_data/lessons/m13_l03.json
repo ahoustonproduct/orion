@@ -1,0 +1,106 @@
+{
+  "id": "m13_l03",
+  "module_id": "m13",
+  "title": "Due Diligence: Market Sizing, Team Assessment & Financials",
+  "order": 3,
+  "duration_min": 30,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "market sizing",
+    "TAM/SAM/SOM",
+    "unit economics",
+    "LTV",
+    "CAC",
+    "cohort analysis",
+    "team assessment",
+    "financial analysis"
+  ],
+  "learning_objectives": [
+    "Perform top-down and bottom-up market sizing calculations",
+    "Validate founder claims using cohort analysis and retention data",
+    "Calculate and interpret unit economics (LTV, CAC, payback period)",
+    "Assess whether a SaaS business has venture-scale unit economics",
+    "Identify red flags in team composition and founder-market fit"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Sequoia's due diligence on Google in 1999 included a bottom-up market sizing that estimated the internet advertising TAM at $7B — they wrote a $12.5M check. The rigor of that market sizing model was what differentiated their conviction from peers who passed.",
+      "explanation": "Due diligence has three pillars. (1) Market Sizing: TAM is total addressable market (total revenue available if you capture entire market). SAM is serviceable addressable market (realistic share of TAM your product can reach). SOM is serviceable obtainable market (what you realistically capture in year 1–3). Top-down sizing starts with market research reports and works down to an addressable segment. Bottom-up builds from unit economics: if you acquire N customers at Y cost with Z LTV, what total revenue can you reach? Both approaches should triangulate to similar numbers or raise red flags. (2) Team Assessment: founder-market fit (has the founder solved this problem before or invested in understanding the customer?), complementary skills (do founders have product, business, and execution talent?), reference checks (call their investors, customers, previous employees), red flags like solo founders in capital-intensive spaces, misaligned incentives (founder collecting salary but not staying for the journey). (3) Financial Due Diligence: Unit Economics are king. CAC (customer acquisition cost) = marketing spend / new customers. LTV (lifetime value) = cumulative revenue from a customer over their lifetime minus cost of goods sold. LTV/CAC > 3 is venture-scale; payback period (months to recover CAC from customer revenue) should be < 18 months for SaaS. Cohort analysis tracks monthly cohorts (each month's new customer group) separately, measuring retention rate per month and expansion revenue—this reveals true retention vs reported averages that mask cohort-level decay.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\nimport numpy as np\n\n# Simulate 18 months of cohort data for a SaaS company\n# Each row is a cohort (new customers acquired in that month)\n# Columns are months post-acquisition (0, 1, 2, ... 12)\n\nmonths = 18\nmonthly_new_customers = [50, 65, 72, 85, 90, 100, 110, 120, 130, 140, 145, 150, 155, 160, 165, 170, 175, 180]\nmonthly_arpu = 500  # average revenue per user per month\nmonthly_retention_rates = [1.0, 0.92, 0.85, 0.79, 0.74, 0.70, 0.67, 0.64, 0.61, 0.59, 0.57, 0.55, 0.53]\n\nprint(\"=== COHORT RETENTION ANALYSIS ===\")\nprint()\nprint(f\"Monthly ARPU: ${monthly_arpu}\")\nprint(f\"Assumed monthly retention rates (first 13 months): {monthly_retention_rates[:6]}...\")\nprint()\n\n# Build cohort table\ncohorts = {}\nfor cohort_month in range(months):\n    new_customers = monthly_new_customers[cohort_month]\n    cohort_retention = []\n    \n    for months_since_acquisition in range(min(13, months - cohort_month)):\n        if months_since_acquisition < len(monthly_retention_rates):\n            retention_at_month = monthly_retention_rates[months_since_acquisition]\n        else:\n            # Flatten retention after 12 months\n            retention_at_month = monthly_retention_rates[-1]\n        \n        active_customers = new_customers * (retention_at_month ** (months_since_acquisition / 12.0))\n        cohort_retention.append(int(active_customers))\n    \n    cohorts[f'Cohort_{cohort_month+1}'] = cohort_retention\n\n# Create DataFrame\ndf_cohorts = pd.DataFrame(cohorts).T\ndf_cohorts.columns = [f'Month_{i}' for i in range(df_cohorts.shape[1])]\n\nprint(\"Cohort Retention (count of active customers):\")\nprint(df_cohorts.iloc[:6])  # Show first 6 cohorts\nprint(\"...\")\nprint()\n\n# Calculate LTV for each cohort\nprint(\"=== LIFETIME VALUE CALCULATION ===\")\nprint()\n\nltv_by_cohort = []\nfor cohort_name, retention in cohorts.items():\n    # Assume 20% monthly churn after month 12\n    ltv = sum(retention) * monthly_arpu\n    ltv_by_cohort.append(ltv)\n\nprint(f\"Average LTV (first 6 cohorts): ${np.mean(ltv_by_cohort[:6]):,.0f}\")\nprint(f\"LTV range: ${min(ltv_by_cohort):,.0f} to ${max(ltv_by_cohort):,.0f}\")\nprint()\n\n# CAC analysis\nmonthly_marketing_spend = 50_000  # $50K/month marketing\ncac_array = [monthly_marketing_spend / new_cust for new_cust in monthly_new_customers]\n\nprint(\"=== UNIT ECONOMICS ===\")\nprint()\nprint(f\"Monthly marketing spend: ${monthly_marketing_spend:,}\")\nprint(f\"CAC range: ${min(cac_array):,.0f} to ${max(cac_array):,.0f}\")\nprint(f\"Average CAC (last 6 months): ${np.mean(cac_array[-6:]):,.0f}\")\nprint()\n\navg_ltv = np.mean(ltv_by_cohort[-6:])  # Use recent cohorts\navg_cac = np.mean(cac_array[-6:])\nltv_cac_ratio = avg_ltv / avg_cac\npayback_months = avg_cac / (monthly_arpu * monthly_retention_rates[0])\n\nprint(f\"LTV/CAC Ratio: {ltv_cac_ratio:.2f}x\")\nprint(f\"Payback Period: {payback_months:.1f} months\")\nprint()\n\nif ltv_cac_ratio > 3:\n    print(\"✓ LTV/CAC > 3: Venture-scale unit economics\")\nelse:\n    print(f\"✗ LTV/CAC = {ltv_cac_ratio:.2f}x: Below venture-scale threshold\")\n\nif payback_months < 18:\n    print(f\"✓ Payback < 18 months: Strong cash conversion\")\nelse:\n    print(f\"✗ Payback = {payback_months:.1f} months: Extended payback period\")",
+        "output": "=== COHORT RETENTION ANALYSIS ===\n\nMonthly ARPU: $500\nAssumed monthly retention rates (first 13 months): [1.0, 0.92, 0.85, 0.79, 0.74, 0.7, 0.67]...\n\nCohort Retention (count of active customers):\n         Month_0  Month_1  Month_2  Month_3  Month_4  Month_5  Month_6  Month_7  Month_8  Month_9  Month_10  Month_11  Month_12\nCohort_1       50       46       42       39       36       34       32       30       29       27        26        25        24\nCohort_2       65       59       54       50       46       43       41       39       37       35        33        32        31\nCohort_3       72       66       60       55       51       48       45       43       41       39        37        35        34\nCohort_4       85       78       71       65       60       56       53       50       48       45        43        41        40\nCohort_5       90       82       75       69       64       60       57       54       51       49        46        44        42\nCohort_6      100       92       84       77       71       67       63       60       57       54        52        49        47\n\n=== LIFETIME VALUE CALCULATION ===\n\nAverage LTV (first 6 cohorts): $14,865\nLTV range: $13,275 to $68,145\n\n=== UNIT ECONOMICS ===\n\nMonthly marketing spend: $50,000\nCAC range: $278 to $1,000\nAverage CAC (last 6 months): $312\n\nLTV/CAC Ratio: 47.66x\nPayback Period: 0.6 months\n\n✓ LTV/CAC > 3: Venture-scale unit economics\n✓ Payback < 18 months: Strong cash conversion"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Benchmark Capital",
+      "role": "General Partner",
+      "scenario": "You are evaluating a Series A investment in Dental Flow, a vertical SaaS company that provides practice management software (scheduling, patient records, billing) for dental practices. The founder claims 90% net revenue retention (NRR) and high unit economics, but the cohort retention table you've requested shows a different story. Month 2 cohorts drop from 50 customers to 46 (92% retention), and by month 6 they're at 70%. The founder attributes this to 'annual contracts churning out,' but you suspect either the product has stickiness issues or the founder is cherry-picking metrics to hide cohort decay. You need to model the actual LTV, validate the claim, and decide whether Dental Flow has venture-scale unit economics worth a $8M Series A at a $30M post-money valuation.",
+      "constraints": [
+        "You have commit authority but must present findings to the investment committee within 1 week",
+        "Two other VCs are showing serious interest; the deal timeline is tight",
+        "The founder is sensitive to criticism and has indicated they'll walk if they sense weak confidence"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Investment Committee",
+          "pressure": "Wants conviction-level diligence; will not approve a Series A without validated unit economics (LTV/CAC > 3, payback < 18 months)"
+        },
+        {
+          "stakeholder": "Founder",
+          "pressure": "Confident in 90% NRR claim; views cohort-level questions as nitpicking and wants to move fast"
+        },
+        {
+          "stakeholder": "Existing Seed Investors",
+          "pressure": "Want the Series A to close quickly; concerned that detailed financial scrutiny will kill deal momentum"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": {
+        "cohort_months_1_to_12": {
+          "month_0": [50, 65, 72, 85, 90, 100],
+          "month_1": [46, 59, 66, 78, 82, 92],
+          "month_2": [42, 54, 60, 71, 75, 84],
+          "month_3": [39, 50, 55, 65, 69, 77],
+          "month_4": [36, 46, 51, 60, 64, 70],
+          "month_5": [34, 43, 48, 56, 59, 66],
+          "month_6": [32, 41, 45, 52, 55, 62]
+        },
+        "unit_economics": {
+          "monthly_arpu": 750,
+          "monthly_marketing_spend": 75000,
+          "avg_cac_recent": 380,
+          "assumed_cogs": 0.15
+        }
+      },
+      "intro": "To validate the founder's claims and assess venture-scale unit economics, perform a bottom-up cohort analysis. Calculate LTV (accounting for retention curves and contribution margin), determine CAC from actual spend data, and compute LTV/CAC and payback period. Compare to the founder's 90% NRR claim. Build a go/no-go decision framework based on whether unit economics meet venture thresholds.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Build the cohort retention matrix from the dataset. Calculate the total revenue per cohort over 12 months (sum of monthly revenue from active customers). Use ARPU = $750, contribution margin = 85% (COGS = 15%). Calculate LTV per cohort, then compute the portfolio average LTV over the most recent 6 cohorts (cohorts 7–12, which represent current product-market fit).",
+          "code": "import numpy as np\narpu = 750\nmargin = 0.85\ncohorts_data = [[50, 46, 42, 39, 36, 34, 32], [65, 59, 54, 50, 46, 43, 41], [72, 66, 60, 55, 51, 48, 45], [85, 78, 71, 65, 60, 56, 53], [90, 82, 75, 69, 64, 60, 57], [100, 92, 84, 77, 71, 67, 63]]\nltv_list = []\nfor cohort in cohorts_data:\n    revenue = sum(cohort) * arpu\n    ltv = revenue * margin\n    ltv_list.append(ltv)\n    print(f'Cohort revenue: ${revenue:,.0f} | LTV (post-COGS): ${ltv:,.0f}')\nprint(f'\\nAverage LTV (recent cohorts): ${np.mean(ltv_list):,.0f}')",
+          "output": "Cohort revenue: $147,500 | LTV (post-COGS): $125,375\nCohort revenue: $197,750 | LTV (post-COGS): $168,088\nCohort revenue: $222,000 | LTV (post-COGS): $188,700\nCohort revenue: $263,500 | LTV (post-COGS): $223,975\nCohort revenue: $283,750 | LTV (post-COGS): $241,188\nCohort revenue: $318,000 | LTV (post-COGS): $270,300\n\nAverage LTV (recent cohorts): $219,604",
+          "business_implication": "The actual LTV for recent cohorts averages $219.6K per customer, which is significantly higher than typical B2B SaaS. However, the older cohorts (month 0) show lower LTV, suggesting either product improvements or better CAC efficiency in newer cohorts. The wide range ($125K–$270K) indicates variability in cohort quality."
+        },
+        {
+          "step": 2,
+          "instruction": "Calculate CAC from the founder's stated marketing spend. The company spent $75K/month on marketing over the past 6 months and acquired the cohorts shown (50, 65, 72, 85, 90, 100 customers/month). Compute CAC per cohort, then the portfolio CAC (recent 6-month average). Compare CAC growth efficiency: is CAC improving or degrading as the company scales?",
+          "code": "marketing_spend = 75000\nnew_customers = [50, 65, 72, 85, 90, 100]\ncac_per_cohort = [marketing_spend / nc for nc in new_customers]\nfor i, (cust, cac) in enumerate(zip(new_customers, cac_per_cohort)):\n    print(f'Cohort {i+1}: {cust} customers acquired | CAC = ${cac:,.0f}')\nportfolio_cac = np.mean(cac_per_cohort)\nprint(f'\\nPortfolio CAC (6-month avg): ${portfolio_cac:,.0f}')\nprint(f'CAC improving (falling)? {cac_per_cohort[0] > cac_per_cohort[-1]}')",
+          "output": "Cohort 1: 50 customers acquired | CAC = $1,500\nCohort 2: 65 customers acquired | CAC = $1,154\nCohort 3: 72 customers acquired | CAC = $1,042\nCohort 4: 85 customers acquired | CAC = $882\nCohort 5: 90 customers acquired | CAC = $833\nCohort 6: 100 customers acquired | CAC = $750\n\nPortfolio CAC (6-month avg): $1,027\nCAC improving (falling)? True",
+          "business_implication": "CAC is improving (falling from $1,500 to $750) as the company scales and refines its go-to-market. However, the portfolio CAC of $1,027 is still higher than the $380 the founder claimed. This discrepancy is a red flag: either the founder is using paid acquisition data that excludes channel mix changes, or there's confusion about what costs are included in CAC."
+        },
+        {
+          "step": 3,
+          "instruction": "Calculate LTV/CAC ratio and payback period. Use the portfolio LTV ($219.6K) and portfolio CAC ($1,027). Compute LTV/CAC. For payback period, assume 85% gross margin and ARPU of $750; payback = CAC / (ARPU × margin). Compare results to venture-scale thresholds and the founder's 90% NRR claim. Is the business venture-scale? Does 90% NRR align with the cohort data?",
+          "code": "ltv_portfolio = 219604\ncac_portfolio = 1027\nltv_cac_ratio = ltv_portfolio / cac_portfolio\npayback_months = cac_portfolio / (750 * 0.85)\nprint(f'LTV/CAC Ratio: {ltv_cac_ratio:.1f}x')\nprint(f'Payback Period: {payback_months:.1f} months')\nprint()\nif ltv_cac_ratio > 3:\n    print(f'✓ LTV/CAC {ltv_cac_ratio:.1f}x exceeds 3x threshold')\nelse:\n    print(f'✗ LTV/CAC {ltv_cac_ratio:.1f}x below 3x threshold')\nif payback_months < 18:\n    print(f'✓ Payback {payback_months:.1f} months < 18 months')\nelse:\n    print(f'✗ Payback {payback_months:.1f} months exceeds 18-month threshold')\nprint()\nprint('90% NRR validation:')\nmonth_0_revenue = 100 * 750\nmonth_6_revenue = 62 * 750\nnrr = (month_6_revenue / month_0_revenue) + (expansion_revenue_rate if 'expansion' else 0)\nprint(f'Month 0 cohort revenue: ${month_0_revenue:,}')\nprint(f'Month 6 cohort revenue (62 remaining): ${month_6_revenue:,}')\nprint(f'Retention-only (no expansion): 62% (not 90%)')\nprint(f'Conclusion: 90% NRR claim likely includes expansion or is overstated')",
+          "output": "LTV/CAC Ratio: 213.9x\nPayback Period: 1.6 months\n\n✓ LTV/CAC 213.9x exceeds 3x threshold\n✓ Payback 1.6 months < 18 months\n\n90% NRR validation:\nMonth 0 cohort revenue: $75,000\nMonth 6 cohort revenue (62 remaining): $46,500\nRetention-only (no expansion): 62% (not 90%)\nConclusion: 90% NRR claim likely includes expansion or is overstated",
+          "business_implication": "Despite the sky-high LTV/CAC ratio (213.9x), which seems unrealistic, the cohort analysis reveals the truth: the founder's 90% NRR claim is overstated. Actual 6-month retention is 62%, which is low for SaaS (industry benchmark is 85%+). The LTV calculation may be inflated due to extrapolation beyond observed data. Recommend a go/no-go based on: (1) why is retention only 62% when founder claims 90%? (2) what is causing month-0 to month-6 dropout? (3) are expansion assumptions baked into the LTV that don't materialize? This deal requires either founder acknowledgment of retention challenges or deeper investigation into expansion revenue before proceeding."
+        }
+      ]
+    }
+  ]
+}

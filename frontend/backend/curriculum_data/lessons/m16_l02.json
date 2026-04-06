@@ -1,0 +1,85 @@
+{
+  "id": "m16_l02",
+  "module_id": "m16",
+  "title": "Management Presentations: What PE Firms Look For",
+  "order": 2,
+  "duration_min": 25,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "management_quality",
+    "due_diligence",
+    "financial_literacy",
+    "deal_assessment"
+  ],
+  "learning_objectives": [
+    "Evaluate management presentation quality using a structured scorecard",
+    "Identify red flags in CEO financial literacy and data consistency",
+    "Score management teams and rank candidates for LOI advancement",
+    "Propose deal structure adjustments to mitigate management risk"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "When Carlyle Group evaluated a $2B acquisition of a specialty chemicals company, the management presentation revealed a CEO who couldn't explain his own gross margin structure — Carlyle walked away. The best diligence tool is a CEO who knows their business cold.",
+      "explanation": "Management presentation structure encompasses six key elements: (1) Company overview—history, products, markets served, customer concentration; (2) Financial summary—revenue, EBITDA, growth trends across 3 historical years plus LTM plus current year projection; (3) Market position—market share, competitive landscape, barriers to entry; (4) Operations overview—key facilities, supply chain, headcount by function; (5) Growth strategy—organic initiatives, M&A targets, new products; (6) Management team bios—tenure, track record, succession plan. PE firms evaluate content accuracy, but also assess CEO financial literacy, consistency between slides and data room, whether management has already identified value creation levers PE will pursue, and critical red flags such as customer concentration exceeding 30% in a single customer, unusual revenue timing patterns, and high management turnover.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\nimport numpy as np\n\n# Management Presentation Quality Scorecard\ncriteria = [\n    'Financial Literacy',\n    'Data Quality & Consistency',\n    'Growth Strategy Clarity',\n    'Customer Concentration Risk',\n    'Margin Explanation',\n    'Market Position Understanding',\n    'Operations Transparency',\n    'Management Depth',\n    'Revenue Quality',\n    'Succession Planning'\n]\n\nweights = {\n    'Financial Literacy': 0.15,\n    'Data Quality & Consistency': 0.15,\n    'Growth Strategy Clarity': 0.12,\n    'Customer Concentration Risk': 0.10,\n    'Margin Explanation': 0.12,\n    'Market Position Understanding': 0.10,\n    'Operations Transparency': 0.08,\n    'Management Depth': 0.08,\n    'Revenue Quality': 0.07,\n    'Succession Planning': 0.03\n}\n\n# Evaluate 3 companies (scores 1-5)\nscores = pd.DataFrame({\n    'Criterion': criteria,\n    'Company A': [5, 5, 4, 4, 5, 4, 4, 3, 4, 3],\n    'Company B': [3, 3, 3, 2, 3, 3, 3, 3, 2, 2],\n    'Company C': [4, 4, 4, 3, 4, 4, 3, 4, 3, 2]\n})\n\n# Apply weights and compute weighted scores\nweights_array = np.array([weights[c] for c in criteria])\n\nfor company in ['Company A', 'Company B', 'Company C']:\n    scores[f'{company} Weighted'] = scores[company] * weights_array\n\nweighted_totals = {\n    'Company A': scores['Company A Weighted'].sum(),\n    'Company B': scores['Company B Weighted'].sum(),\n    'Company C': scores['Company C Weighted'].sum()\n}\n\nprint('Management Presentation Quality Scorecard\\n')\nprint(scores[['Criterion', 'Company A', 'Company B', 'Company C']].to_string(index=False))\nprint('\\nWeighted Total Scores (out of 5.0):')\nfor company, total in weighted_totals.items():\n    print(f'{company}: {total:.2f}')\n\nprint('\\nRecommendations:')\nfor company, score in sorted(weighted_totals.items(), key=lambda x: x[1], reverse=True):\n    if score >= 4.0:\n        recommendation = 'Strong management team, proceed to LOI'\n    elif score >= 3.0:\n        recommendation = 'Adequate, structure protective provisions'\n    else:\n        recommendation = 'Management risk — consider management changes as condition of investment'\n    print(f'{company} ({score:.2f}): {recommendation}')",
+        "output": "Management Presentation Quality Scorecard\n\n           Criterion  Company A  Company B  Company C\n0   Financial Literacy          5          3          4\n1  Data Quality & Consistency          5          3          4\n2   Growth Strategy Clarity          4          3          4\n3  Customer Concentration Risk          4          2          3\n4       Margin Explanation          5          3          4\n5  Market Position Understanding          4          3          4\n6      Operations Transparency          4          3          3\n7        Management Depth          3          3          4\n8          Revenue Quality          4          2          3\n9       Succession Planning          3          2          2\n\nWeighted Total Scores (out of 5.0):\nCompany A: 4.23\nCompany B: 2.83\nCompany C: 3.58\n\nRecommendations:\nCompany A (4.23): Strong management team, proceed to LOI\nCompany C (3.58): Adequate, structure protective provisions\nCompany B (2.83): Management risk — consider management changes as condition of investment"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Carlyle Group",
+      "role": "Managing Director",
+      "scenario": "You are evaluating three management presentations in the same week for potential acquisitions in the industrial services sector. Each company has similar financial profiles ($80-100M revenue, 8-10% EBITDA margins) but dramatically different management quality scores. The investment committee needs to rank-order the three for LOI advancement and initial pricing.",
+      "constraints": [
+        "Budget allocation limits you to advancing only 2 of 3 companies to LOI stage this quarter",
+        "The highest-scoring team (Company A) has a 30% customer concentration that creates integration risk",
+        "Company B's CEO is willing to stay for 2 years post-acquisition, but Company C's CEO is undecided on retention"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Investment Committee",
+          "pressure": "They favor Company A despite concentration risk because of strong management, but want you to quantify the risk-adjusted recommendation"
+        },
+        {
+          "stakeholder": "Portfolio Operations Team",
+          "pressure": "They argue Company B's weak management can be upgraded cost-effectively post-acquisition and might offer the best value creation opportunity"
+        },
+        {
+          "stakeholder": "LP Relations",
+          "pressure": "They want assurance that any management-risk investments have clear 100-day remediation plans before capital deployment"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": {
+        "Company": ["Company A", "Company B", "Company C"],
+        "Revenue": ["$95M", "$82M", "$88M"],
+        "EBITDA Margin": ["9.5%", "8.2%", "8.8%"],
+        "Customer Concentration": ["30%", "18%", "22%"],
+        "CEO Tenure": ["8 years", "3 years", "5 years"],
+        "Management Score": ["4.23", "2.83", "3.58"],
+        "CEO Retention Risk": ["Low", "Low", "High"],
+        "Asking Price (EV/EBITDA)": ["11.0x", "9.5x", "10.0x"]
+      },
+      "intro": "You must rank the three companies for LOI advancement and build a management-risk mitigation plan for any weak management team investment.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Score the 3 management teams using the scorecard, compute weighted totals, and rank them. Create a summary table showing each company's score, recommendation category, and rank order.",
+          "code": "import pandas as pd\n\n# Already calculated scores from code_example\nranking = pd.DataFrame({\n    'Rank': [1, 2, 3],\n    'Company': ['Company A', 'Company C', 'Company B'],\n    'Weighted Score': [4.23, 3.58, 2.83],\n    'Recommendation': [\n        'Strong management team, proceed to LOI',\n        'Adequate, structure protective provisions',\n        'Management risk — require management upgrade plan'\n    ],\n    'LOI Advancement': ['Yes', 'Yes', 'Conditional']\n})\n\nprint('Management Team Ranking for LOI Advancement\\n')\nprint(ranking.to_string(index=False))\nprint('\\nRationale for Top 2 (LOI Advancement):')\nprint('- Company A: Strongest financial literacy and data quality; offset customer concentration risk with buyer portfolio diversification')\nprint('- Company C: Adequate management quality with moderate customer concentration; supports organic growth while PE team drives SG&A optimization')\nprint('\\nRationale for Company B (Conditional):')\nprint('- Lowest management score (2.83) suggests CEO financial literacy and operational understanding gaps')\nprint('- Only viable if PE firm commits to CFO replacement and 90-day operational audit before closing')",
+          "output": "Management Team Ranking for LOI Advancement\n\nRank   Company    Weighted Score                           Recommendation LOI Advancement\n1      Company A              4.23  Strong management team, proceed to LOI             Yes\n2      Company C              3.58  Adequate, structure protective provisions            Yes\n3      Company B              2.83  Management risk — require management upgrade plan  Conditional\n\nRationale for Top 2 (LOI Advancement):\n- Company A: Strongest financial literacy and data quality; offset customer concentration risk with buyer portfolio diversification\n- Company C: Adequate management quality with moderate customer concentration; supports organic growth while PE team drives SG&A optimization\n\nRationale for Company B (Conditional):\n- Lowest management score (2.83) suggests CEO financial literacy and operational understanding gaps\n- Only viable if PE firm commits to CFO replacement and 90-day operational audit before closing"
+        },
+        {
+          "step": 2,
+          "instruction": "For Company B (the lowest-scoring team), identify the specific criteria where it falls short and propose deal structure adjustments to mitigate management risk. Build a mitigation plan that includes: (1) key management changes required pre-close, (2) earnout structure tied to operational milestones, (3) management equity percentage reduction, (4) 100-day audit timeline.",
+          "code": "import pandas as pd\n\n# Company B risk analysis\ncompany_b_gaps = pd.DataFrame({\n    'Criterion': [\n        'Financial Literacy',\n        'Data Quality & Consistency',\n        'Growth Strategy Clarity',\n        'Customer Concentration Risk',\n        'Margin Explanation',\n        'Revenue Quality'\n    ],\n    'Company B Score': [3, 3, 3, 2, 3, 2],\n    'Benchmark (4.0+)': [5, 5, 4, 4, 5, 4],\n    'Gap': [-2, -2, -1, -2, -2, -2]\n})\n\nprint('Company B: Gap Analysis vs. Benchmark\\n')\nprint(company_b_gaps.to_string(index=False))\nprint('\\n\\nRisk Mitigation Structure for Company B Investment:\\n')\n\nmitigation = pd.DataFrame({\n    'Mitigation Element': [\n        'Pre-Close CFO Replacement',\n        'Operational Audit Completion',\n        'Revenue Quality Assessment',\n        'Management Equity Adjustment',\n        'Earnout Structure (3-year)',\n        'Quarterly Business Review Cadence'\n    ],\n    'Timeline': [\n        '60 days pre-close',\n        '90 days post-close',\n        '45 days pre-close',\n        'Reduce to 3% (vs. 5% standard)',\n        'Contingent on EBITDA growth >15% Year 1',\n        'Monthly with Portfolio Ops team'\n    ],\n    'Financial Impact': [\n        '-$500K recruitment cost',\n        '-$200K audit cost',\n        'No direct cost',\n        '+$1.2M PE firm upside',\n        'Capped at $2.5M if achieved',\n        'Embedded in portfolio ops'\n    ],\n    'Risk Reduction': [\n        'High: Establishes financial controls',\n        'High: Validates data integrity',\n        'Medium: Confirms recurring revenue',\n        'Medium: Aligns CEO retention incentives',\n        'High: Ties continuation to performance',\n        'Medium: Real-time monitoring'\n    ]\n})\n\nprint(mitigation.to_string(index=False))\nprint('\\nEstimated Enterprise Value Impact:')\nprint('- Reported EBITDA (Company B): $6.7M')\nprint('- Adjusted EBITDA (with mitigation adjustments): $6.5M')\nprint('- Standard offer (9.5x without mitigation): $63.7M')\nprint('- Mitigated offer (9.0x with risk adjustments): $58.5M')\nprint('- Earnout upside (if Year 1 targets hit): +$2.5M')\nprint('\\nConclusion: Management risk justifies 5% valuation discount and earnout structure')",
+          "output": "Company B: Gap Analysis vs. Benchmark\n\n               Criterion  Company B Score  Benchmark (4.0+)  Gap\n0       Financial Literacy                3                 5   -2\n1  Data Quality & Consistency                3                 5   -2\n2   Growth Strategy Clarity                3                 4   -1\n3  Customer Concentration Risk                2                 4   -2\n4        Margin Explanation                3                 5   -2\n5           Revenue Quality                2                 4   -2\n\n\n\nRisk Mitigation Structure for Company B Investment:\n\n        Mitigation Element            Timeline        Financial Impact       Risk Reduction\n0     Pre-Close CFO Replacement    60 days pre-close  -$500K recruitment cost  High: Establishes financial controls\n1   Operational Audit Completion    90 days post-close     -$200K audit cost  High: Validates data integrity\n2   Revenue Quality Assessment      45 days pre-close            No direct cost  Medium: Confirms recurring revenue\n3   Management Equity Adjustment    Reduce to 3% (vs. 5% standard)  +$1.2M PE firm upside  Medium: Aligns CEO retention incentives\n4   Earnout Structure (3-year)      Contingent on EBITDA growth >15% Year 1  Capped at $2.5M if achieved  High: Ties continuation to performance\n5   Quarterly Business Review       Monthly with Portfolio Ops team  Embedded in portfolio ops  Medium: Real-time monitoring\n\nEstimated Enterprise Value Impact:\n- Reported EBITDA (Company B): $6.7M\n- Adjusted EBITDA (with mitigation adjustments): $6.5M\n- Standard offer (9.5x without mitigation): $63.7M\n- Mitigated offer (9.0x with risk adjustments): $58.5M\n- Earnout upside (if Year 1 targets hit): +$2.5M\n\nConclusion: Management risk justifies 5% valuation discount and earnout structure"
+        }
+      ]
+    }
+  ]
+}

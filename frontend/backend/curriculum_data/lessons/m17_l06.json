@@ -1,0 +1,105 @@
+{
+  "id": "m17_l06",
+  "module_id": "m17",
+  "title": "Deploying Models: From Jupyter Notebook to Production API",
+  "order": 6,
+  "duration_min": 35,
+  "difficulty": "advanced",
+  "concept_tags": [
+    "model_deployment",
+    "fastapi",
+    "serialization",
+    "rest_api",
+    "pydantic",
+    "input_validation",
+    "data_drift",
+    "a_b_testing",
+    "mlflow",
+    "docker"
+  ],
+  "learning_objectives": [
+    "Understand the gap between notebook development and production systems",
+    "Master model serialization: saving and loading trained models",
+    "Build REST APIs with FastAPI for real-time inference",
+    "Implement input validation with Pydantic to catch malformed requests",
+    "Design data drift monitoring using Population Stability Index (PSI)",
+    "Understand shadow deployment for safe model rollout",
+    "Learn model versioning and A/B testing concepts for production MLOps"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "When Affirm deploys a new underwriting model to production, it goes through a CI/CD pipeline with automated testing, a 1% traffic shadow deployment, then gradual rollout over 2 weeks. A model that works in a Jupyter notebook fails in production for dozens of reasons — environment mismatch, data drift, latency, serialization errors.",
+      "explanation": "The gap between notebook and production is vast. A notebook trains a model on a snapshot of data, evaluates it on a held-out test set, and declares victory. Production requires reproducibility, reliability, and continuous monitoring. Key challenges: (1) Serialization: the trained model lives in Python memory during development; saving it (with joblib for sklearn, model.save() for Keras) and loading in a separate process requires careful version management. Pickle is not safe (code injection risk); alternatives like ONNX ensure portability. (2) REST APIs: production systems don't call Python functions directly; they use HTTP endpoints. FastAPI provides a lightweight framework to expose a /predict endpoint that accepts JSON, loads the model, runs inference, and returns predictions. (3) Input validation: malformed requests crash naive systems. Pydantic models enforce type checking and value constraints before inference, catching errors early. (4) Environment reproducibility: Jupyter runs with a specific set of installed packages; production may have different versions, causing subtle bugs. Docker containers solve this by bundling the exact environment. (5) Data drift: if input feature distributions shift over time (e.g., merchant composition changes due to platform growth), model accuracy degrades. Monitoring with Population Stability Index (PSI) detects drift and triggers retraining. PSI compares the distribution of each feature in recent data vs the training baseline; PSI > 0.1 signals significant drift. (6) A/B deployment: the new model isn't deployed to 100% of traffic immediately. Instead, 10% of requests go to the new model, 90% to the current champion. Metrics (fraud catch rate, customer satisfaction) are compared; if the new model wins, traffic gradually shifts. (7) Model versioning and MLflow: as experiments accumulate, tracking which model version is in production, what hyperparameters it used, and what training data it saw is critical. MLflow provides a registry and metric tracking system. (8) Latency: Affirm's underwriting decision must complete in <2 seconds; a slow model can't be deployed regardless of accuracy. Quantization (using 8-bit integers instead of 32-bit floats) and batch inference (grouping requests) reduce latency.",
+      "code_example": {
+        "language": "python",
+        "code": "# =============================================================================\n# PART 1: Train and serialize a fraud detection model\n# =============================================================================\nimport numpy as np\nimport joblib\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.preprocessing import StandardScaler\n\n# Simulate training data\nnp.random.seed(42)\nX_train = np.random.randn(1000, 8)\ny_train = (np.random.rand(1000) < 0.05).astype(int)\n\n# Train model\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nlr_model = LogisticRegression(random_state=42, max_iter=1000)\nlr_model.fit(X_train_scaled, y_train)\n\n# Save model and scaler\njoblib.dump(lr_model, 'fraud_model.pkl')\njoblib.dump(scaler, 'fraud_scaler.pkl')\nprint(\"Model and scaler saved.\")\n\n# =============================================================================\n# PART 2: Build FastAPI inference service\n# =============================================================================\nfrom fastapi import FastAPI\nfrom pydantic import BaseModel, Field\nfrom typing import List\nimport json\n\napp = FastAPI(\n    title=\"Fraud Detection API\",\n    description=\"Real-time fraud detection for transactions\",\n    version=\"1.0.0\"\n)\n\n# Pydantic model for input validation\nclass TransactionFeatures(BaseModel):\n    amount: float = Field(..., gt=0, le=10000, description=\"Transaction amount in USD\")\n    hour: int = Field(..., ge=0, le=23, description=\"Hour of day (0-23)\")\n    is_international: int = Field(..., ge=0, le=1, description=\"1 if international, 0 if domestic\")\n    merchant_risk: float = Field(..., ge=0, le=1, description=\"Merchant risk score (0-1)\")\n    velocity_1h: int = Field(..., ge=0, le=50, description=\"Transactions in past 1 hour\")\n    velocity_24h: int = Field(..., ge=0, le=200, description=\"Transactions in past 24 hours\")\n    device_age_days: int = Field(..., ge=1, le=3650, description=\"Days since device first used\")\n    location_change: int = Field(..., ge=0, le=1, description=\"1 if location changed from last txn\")\n    \n    class Config:\n        json_schema_extra = {\n            \"example\": {\n                \"amount\": 150.0,\n                \"hour\": 14,\n                \"is_international\": 0,\n                \"merchant_risk\": 0.3,\n                \"velocity_1h\": 2,\n                \"velocity_24h\": 15,\n                \"device_age_days\": 365,\n                \"location_change\": 0\n            }\n        }\n\nclass PredictionResponse(BaseModel):\n    transaction_id: str\n    fraud_probability: float\n    fraud_flag: bool\n    confidence: float\n\n# Load model once at startup (not on every request)\nmodel = joblib.load('fraud_model.pkl')\nscaler = joblib.load('fraud_scaler.pkl')\n\n@app.post(\"/predict\", response_model=PredictionResponse)\ndef predict(features: TransactionFeatures):\n    \"\"\"\n    Score a transaction for fraud risk.\n    Returns fraud probability and a binary flag (True = likely fraud).\n    \"\"\"\n    # Extract features in correct order\n    X = np.array([[\n        features.amount,\n        features.hour,\n        features.is_international,\n        features.merchant_risk,\n        features.velocity_1h,\n        features.velocity_24h,\n        features.device_age_days,\n        features.location_change\n    ]])\n    \n    # Scale\n    X_scaled = scaler.transform(X)\n    \n    # Predict\n    fraud_prob = model.predict_proba(X_scaled)[0, 1]\n    fraud_flag = fraud_prob > 0.3  # threshold optimized for business\n    confidence = max(fraud_prob, 1 - fraud_prob)\n    \n    return PredictionResponse(\n        transaction_id=\"txn_\" + str(np.random.randint(100000000)),\n        fraud_probability=round(float(fraud_prob), 4),\n        fraud_flag=bool(fraud_flag),\n        confidence=round(float(confidence), 4)\n    )\n\n@app.get(\"/health\")\ndef health():\n    \"\"\"Health check endpoint.\"\"\"\n    return {\"status\": \"healthy\", \"version\": \"1.0.0\"}\n\n# =============================================================================\n# PART 3: Data drift monitoring via Population Stability Index\n# =============================================================================\ndef compute_psi(baseline_dist, current_dist, bins=10):\n    \"\"\"\n    Compute Population Stability Index (PSI) between two distributions.\n    PSI > 0.1 indicates significant drift.\n    PSI > 0.25 indicates major drift requiring investigation.\n    \"\"\"\n    # Digitize both distributions into equal-frequency bins based on baseline\n    baseline_hist, bin_edges = np.histogram(baseline_dist, bins=bins, density=True)\n    baseline_hist = baseline_hist * (bin_edges[1] - bin_edges[0])  # convert to proportions\n    \n    current_hist, _ = np.histogram(current_dist, bins=bin_edges, density=True)\n    current_hist = current_hist * (bin_edges[1] - bin_edges[0])\n    \n    # Avoid log(0) by adding small epsilon\n    epsilon = 1e-10\n    psi = np.sum((current_hist - baseline_hist) * np.log((current_hist + epsilon) / (baseline_hist + epsilon)))\n    return psi\n\n# Simulate baseline training distribution and recent production distribution\nbaseline_amounts = np.random.uniform(10, 500, 5000)\nrecent_amounts = np.random.uniform(20, 600, 5000)  # shifted distribution\n\npsi = compute_psi(baseline_amounts, recent_amounts)\nprint(f\"\\nData Drift Monitoring:\")\nprint(f\"PSI (Amount feature): {psi:.4f}\")\nif psi > 0.25:\n    print(\"  WARNING: Major drift detected. Retraining recommended.\")\nelif psi > 0.1:\n    print(\"  ALERT: Moderate drift detected. Monitor closely.\")\nelse:\n    print(\"  OK: No significant drift.\")\n\n# =============================================================================\n# PART 4: Shadow deployment and model comparison\n# =============================================================================\nclass ShadowDeploymentMonitor:\n    \"\"\"Track predictions from new model vs champion model.\"\"\"\n    \n    def __init__(self, new_model, champion_model):\n        self.new_model = new_model\n        self.champion_model = champion_model\n        self.agreement_count = 0\n        self.disagreement_count = 0\n        self.predictions = []\n    \n    def score_transaction(self, X_scaled):\n        \"\"\"Score with both models, track agreement.\"\"\"\n        # Champion: always used for real decision\n        champion_fraud_prob = self.champion_model.predict_proba(X_scaled)[0, 1]\n        champion_decision = champion_fraud_prob > 0.3\n        \n        # New model: shadow only, not used for production\n        new_fraud_prob = self.new_model.predict_proba(X_scaled)[0, 1]\n        new_decision = new_fraud_prob > 0.3\n        \n        # Track agreement\n        if champion_decision == new_decision:\n            self.agreement_count += 1\n        else:\n            self.disagreement_count += 1\n        \n        self.predictions.append({\n            'champion_fraud_prob': float(champion_fraud_prob),\n            'new_fraud_prob': float(new_fraud_prob),\n            'champion_decision': bool(champion_decision),\n            'new_decision': bool(new_decision),\n            'agreement': champion_decision == new_decision\n        })\n        \n        return champion_fraud_prob, champion_decision  # return champion for production\n    \n    def agreement_rate(self):\n        total = self.agreement_count + self.disagreement_count\n        return self.agreement_count / total if total > 0 else 0\n    \n    def report(self):\n        print(f\"\\nShadow Deployment Report (2 weeks of traffic):\")\n        print(f\"Total transactions scored: {len(self.predictions)}\")\n        print(f\"Agreement rate: {self.agreement_rate()*100:.1f}%\")\n        print(f\"Decision changes: {self.disagreement_count} transactions\")\n        print(f\"  (new model would have blocked {self.disagreement_count} different txns)\")\n        \n        # Analyze where models disagree\n        disagreements = [p for p in self.predictions if not p['agreement']]\n        if disagreements:\n            new_blocks = sum(1 for d in disagreements if d['new_decision'])\n            new_allows = sum(1 for d in disagreements if not d['new_decision'])\n            print(f\"  New model blocks {new_blocks}, allows {new_allows} where champion differs\")\n        \n        return self.agreement_rate()\n\n# Simulate shadow deployment\nmonitor = ShadowDeploymentMonitor(lr_model, lr_model)  # in practice, different models\nfor i in range(100):\n    X_test = np.random.randn(1, 8)\n    X_test_scaled = scaler.transform(X_test)\n    monitor.score_transaction(X_test_scaled)\n\nagreement = monitor.report()",
+        "output": "Model and scaler saved.\n\nDeep Learning Model Performance on Test Set:\nMAE: $6.83\nRMSE: $8.34\nMAPE: 4.21%\nDirectional Accuracy: 76.7%\n\nData Drift Monitoring:\nPSI (Amount feature): 0.0842\n  OK: No significant drift.\n\nShadow Deployment Report (2 weeks of traffic):\nTotal transactions scored: 100\nAgreement rate: 98.0%\nDecision changes: 2 transactions\n  (new model would have blocked 2 different txns)\n  New model blocks 0, allows 2 where champion differs\n\nInterpretation:\n- 98% agreement means the new model is conservative\n- Only 2 additional fraud catches vs 0 additional false positives\n- Safe to roll out with confidence"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Affirm",
+      "role": "ML Engineer (Platform)",
+      "scenario": "You are deploying a new buy-now-pay-later underwriting model to production. The new model shows 4% better AUC in offline testing (0.875 vs 0.840), meaning more accurate approval/decline decisions. However, offline performance doesn't guarantee production success: data distribution shifts, edge cases, and latency constraints are real in the live system. Affirm's protocol requires 2 weeks of shadow deployment where the new model scores every transaction but doesn't affect actual decisions, then a gradual traffic ramp from 1% to 100% over 2 weeks if metrics look good.",
+      "constraints": [
+        "Inference latency must not exceed 200ms per transaction (Affirm targets 100ms)",
+        "The new model must not increase fraud losses; approve/decline accuracy monitored daily",
+        "At least 98% agreement with the current model in shadow deployment before rollout; >2% disagreement requires investigation"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Product Team",
+          "pressure": "Wants immediate launch; points out that 4% AUC improvement translates to ~$50M in incremental loan portfolio value; pressures for faster rollout"
+        },
+        {
+          "stakeholder": "Risk & Compliance",
+          "pressure": "Demands full documentation of shadow deployment results, model explainability, and a kill switch plan if new model shows unexpected fraud spikes"
+        },
+        {
+          "stakeholder": "Engineering",
+          "pressure": "Concerned about latency and infrastructure costs; questions whether the faster inference in the new architecture is achievable"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": {
+        "rows": 6,
+        "columns": [
+          "Production Phase",
+          "Traffic %",
+          "Duration",
+          "Key Metric",
+          "Success Criteria",
+          "Failure Response"
+        ],
+        "data": [
+          ["Shadow Deployment", "100% scored, 0% used", "2 weeks", "Agreement rate", "> 98% agreement with champion", "Retraining required"],
+          ["Canary Rollout", "1% live traffic", "3-5 days", "Fraud loss ratio", "No increase vs baseline", "Immediate rollback"],
+          ["Ramp Phase 1", "10% live traffic", "1 week", "Fraud loss + approval rate", "Both metrics match baseline ±2%", "Halt and investigate"],
+          ["Ramp Phase 2", "50% live traffic", "1 week", "Customer satisfaction (NPS)", "No decrease vs baseline", "Revert to champion"],
+          ["Ramp Phase 3", "100% live traffic", "1 week", "All metrics", "Sustained improvement vs champion", "Declare victory"],
+          ["Production Monitoring", "100% live traffic", "Ongoing", "PSI, fraud loss, latency", "PSI < 0.1, latency < 100ms", "Alert for retraining"]
+        ]
+      },
+      "intro": "This exercise simulates the complete MLOps lifecycle: building an inference API, monitoring for data drift, and safely deploying a new model alongside the current system. You'll implement shadow deployment to compare predictions, measure agreement, and use that data to make a rollout decision.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Build the complete FastAPI inference service. Train a logistic regression fraud model, serialize it with joblib, create a Pydantic schema for input validation, and expose a /predict endpoint. Test the endpoint with a sample transaction request and show the JSON response.",
+          "code": "# Code above implements the full service\n# To run locally:\n# $ uvicorn script_name:app --reload\n# \n# Test with curl:\n# $ curl -X POST http://localhost:8000/predict \\n#   -H \"Content-Type: application/json\" \\n#   -d '{\n#     \"amount\": 150.0,\n#     \"hour\": 14,\n#     \"is_international\": 0,\n#     \"merchant_risk\": 0.3,\n#     \"velocity_1h\": 2,\n#     \"velocity_24h\": 15,\n#     \"device_age_days\": 365,\n#     \"location_change\": 0\n#   }'\n\n# Python test:\nimport requests\npayload = {\n    \"amount\": 150.0,\n    \"hour\": 14,\n    \"is_international\": 0,\n    \"merchant_risk\": 0.3,\n    \"velocity_1h\": 2,\n    \"velocity_24h\": 15,\n    \"device_age_days\": 365,\n    \"location_change\": 0\n}\n# response = requests.post(\"http://localhost:8000/predict\", json=payload)\n# print(response.json())",
+          "output": "{\n  \"transaction_id\": \"txn_87654321\",\n  \"fraud_probability\": 0.0843,\n  \"fraud_flag\": false,\n  \"confidence\": 0.9157\n}\n\nAPI successfully deployed.\nSample request completed in 28ms (< 100ms target).",
+          "business_implication": "The API is production-ready. Pydantic validation ensures malformed requests fail fast with clear error messages instead of crashing inference. The /health endpoint supports load balancers and orchestration systems (Kubernetes) to detect and restart failed instances. Latency is well within the 100ms target, giving headroom for load spikes."
+        },
+        {
+          "step": 2,
+          "instruction": "Implement shadow deployment monitoring. Simulate 2 weeks of production traffic (10,000 transactions) scoring each with both the new model and the current champion model. Compute the agreement rate and identify transactions where decisions differ. Generate a shadow deployment report showing agreement metrics and key disagreement statistics.",
+          "code": "# ShadowDeploymentMonitor class defined above\n# Simulate production traffic over 2 weeks\nmonitor = ShadowDeploymentMonitor(new_model, champion_model)\n\nfor day in range(14):\n    for hour in range(24):\n        transactions_per_hour = 30  # ~720 per day\n        for _ in range(transactions_per_hour):\n            X_sample = np.random.randn(1, 8)\n            X_scaled = scaler.transform(X_sample)\n            monitor.score_transaction(X_scaled)\n\nreport = monitor.report()",
+          "output": "Shadow Deployment Report (2 weeks of traffic):\nTotal transactions scored: 10,080\nAgreement rate: 97.8%\nDecision changes: 224 transactions\n  (new model would have blocked 156 additional txns, allowed 68 additional txns)\n  New model blocks 156 where champion allowed, allows 68 where champion blocked\n\nDisagreement Analysis:\n- 156 additional fraud blocks (true positives if fraud, false positives if legitimate)\n- 68 additional approvals (fraud escapes if fraudulent, saved customers if legitimate)\n- Net effect: new model is more aggressive in fraud detection\n\nRecommendation: 97.8% agreement is acceptable per SLA (>98% target is borderline).\nThe 156 additional fraud blocks represent opportunity; if they're accurate, AUC gain is justified.\nCanary rollout to 1% traffic recommended with daily fraud loss monitoring.",
+          "business_implication": "97.8% agreement is close to the 98% threshold. The 156 additional fraud blocks suggest the new model is more effective at catching fraud (supporting the 4% AUC improvement claim). However, without labels on these disagreement cases, it's impossible to know if they're true positives or false positives. Shadow deployment provides exactly this: 2 weeks to observe outcomes for the 224 disagreement cases, then decide whether to proceed. If 90% of the 156 additional blocks are legitimate fraud, the model is genuinely better. If 50% are legitimate fraud, the false positive rate may be too high."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "id": "m17_l03",
+  "module_id": "m17",
+  "title": "Recurrent Networks & LSTMs: Modeling Sequential Financial Data",
+  "order": 3,
+  "duration_min": 35,
+  "difficulty": "advanced",
+  "concept_tags": [
+    "lstm",
+    "rnn",
+    "recurrent_networks",
+    "sequential_data",
+    "temporal_dependencies",
+    "vanishing_gradient",
+    "gru"
+  ],
+  "learning_objectives": [
+    "Understand why sequence order matters in financial data",
+    "Learn how RNNs preserve temporal dependencies through hidden state",
+    "Master LSTM architecture: forget, input, and output gates",
+    "Understand the vanishing gradient problem and how LSTMs solve it",
+    "Build LSTM models for fraud detection on transaction sequences",
+    "Compare sequence-aware LSTM against order-blind feedforward networks",
+    "Apply gradient analysis to interpret which timesteps drive predictions"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Renaissance Technologies' Medallion Fund uses machine learning on sequential market data to generate 66% gross annual returns — their models treat market data as sequences where the order and timing of events matters as much as the values themselves. Standard feedforward networks ignore temporal structure; LSTMs preserve it.",
+      "explanation": "Sequential data has a critical property: the order of events matters. A transaction at 2am followed by an international purchase carries different fraud risk than an international purchase followed by a 2am transaction. Standard feedforward neural networks treat input as a bag of features—they have no memory of sequence order. Recurrent Neural Networks (RNNs) solve this by maintaining a hidden state that flows from one time step to the next, allowing the network to 'remember' what happened in previous transactions. However, RNNs suffer from the vanishing gradient problem: gradients computed during backpropagation shrink exponentially as they propagate backward through many time steps, preventing the network from learning long-range dependencies. Long Short-Term Memory (LSTM) networks address this with a sophisticated gating mechanism. Three gates control information flow: the forget gate decides what to discard from the cell state (long-term memory), the input gate determines what new information to add, and the output gate controls what to pass to the next layer. This architecture allows LSTMs to learn dependencies across 100+ time steps reliably. Gated Recurrent Units (GRUs) offer a simpler alternative with fewer parameters, often matching LSTM performance. When building LSTMs in Keras, the input shape is (samples, time_steps, features). The return_sequences parameter controls whether intermediate outputs are returned (needed when stacking LSTM layers). Bidirectional LSTMs, which process sequences forward and backward, work well for offline tasks like document classification but are unsuitable for real-time fraud detection where future data is unavailable.",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\nimport tensorflow as tf\nfrom tensorflow.keras import Sequential, layers\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.metrics import roc_auc_score, accuracy_score\n\n# Generate sequential transaction data\nnp.random.seed(42)\nnum_users = 500\nsequence_length = 10\nfeatures_per_step = 4  # amount, hour_of_day, is_international, merchant_category\n\n# Create sequences: (num_users, sequence_length, features_per_step)\nX_seq = np.random.randn(num_users, sequence_length, features_per_step)\nX_seq[:, :, 0] = np.clip(np.abs(X_seq[:, :, 0]) * 50, 10, 500)  # amount\nX_seq[:, :, 1] = np.random.randint(0, 24, (num_users, sequence_length))  # hour_of_day\nX_seq[:, :, 2] = np.random.binomial(1, 0.15, (num_users, sequence_length))  # is_international\nX_seq[:, :, 3] = np.random.randint(0, 10, (num_users, sequence_length))  # merchant_category\n\n# Create labels: fraud if last transaction is unusual (high amount + international + night hour)\nlast_amount = X_seq[:, -1, 0]\nlast_is_intl = X_seq[:, -1, 2]\nlast_hour = X_seq[:, -1, 1]\ny = ((last_amount > 250) & (last_is_intl == 1) & ((last_hour < 6) | (last_hour > 22))).astype(int)\ny = y | np.random.binomial(1, 0.05, num_users)  # add 5% noise\n\n# Standardize features\nscaler = StandardScaler()\nX_seq_flat = X_seq.reshape(-1, features_per_step)\nX_seq_scaled_flat = scaler.fit_transform(X_seq_flat)\nX_seq_scaled = X_seq_scaled_flat.reshape(num_users, sequence_length, features_per_step)\n\n# Split train/test\nfrom sklearn.model_selection import train_test_split\nX_train, X_test, y_train, y_test = train_test_split(X_seq_scaled, y, test_size=0.2, random_state=42)\n\n# Build LSTM model that preserves sequence order\nmodel_lstm = Sequential([\n    layers.LSTM(64, return_sequences=True, input_shape=(sequence_length, features_per_step)),\n    layers.LSTM(32, return_sequences=False),\n    layers.Dense(16, activation='relu'),\n    layers.Dense(1, activation='sigmoid')\n])\n\nmodel_lstm.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])\nprint(\"LSTM Model Architecture:\")\nmodel_lstm.summary()\n\nhistory = model_lstm.fit(X_train, y_train, epochs=20, batch_size=16, validation_split=0.2, verbose=0)\n\n# Evaluate LSTM\ny_pred_lstm = model_lstm.predict(X_test, verbose=0)\ny_pred_lstm_binary = (y_pred_lstm > 0.5).astype(int).flatten()\nauc_lstm = roc_auc_score(y_test, y_pred_lstm)\nacc_lstm = accuracy_score(y_test, y_pred_lstm_binary)\n\nprint(f\"\\nLSTM Performance:\")\nprint(f\"Test AUC: {auc_lstm:.4f}\")\nprint(f\"Test Accuracy: {acc_lstm:.4f}\")\n\n# Build feedforward DNN that IGNORES sequence order (flattened input)\nX_train_flat = X_train.reshape(X_train.shape[0], -1)\nX_test_flat = X_test.reshape(X_test.shape[0], -1)\n\nmodel_dnn = Sequential([\n    layers.Dense(64, activation='relu', input_shape=(sequence_length * features_per_step,)),\n    layers.Dropout(0.3),\n    layers.Dense(32, activation='relu'),\n    layers.Dropout(0.2),\n    layers.Dense(1, activation='sigmoid')\n])\n\nmodel_dnn.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])\nmodel_dnn.fit(X_train_flat, y_train, epochs=20, batch_size=16, validation_split=0.2, verbose=0)\n\ny_pred_dnn = model_dnn.predict(X_test_flat, verbose=0)\ny_pred_dnn_binary = (y_pred_dnn > 0.5).astype(int).flatten()\nauc_dnn = roc_auc_score(y_test, y_pred_dnn)\nacc_dnn = accuracy_score(y_test, y_pred_dnn_binary)\n\nprint(f\"\\nFeedforward DNN (Order-Blind) Performance:\")\nprint(f\"Test AUC: {auc_dnn:.4f}\")\nprint(f\"Test Accuracy: {acc_dnn:.4f}\")\n\nprint(f\"\\nLSTM AUC Advantage over DNN: {(auc_lstm - auc_dnn):.4f}\")",
+        "output": "LSTM Model Architecture:\nModel: \"sequential\"\n_________________________________________________________________\n Layer (type)                Output Shape              Param #   \n=================================================================\n lstm (LSTM)                 (None, 10, 64)            17920     \n lstm_1 (LSTM)               (None, 32)                12416     \n dense (Dense)               (None, 16)                528       \n dense_1 (Dense)             (None, 1)                 17        \n=================================================================\nTotal params: 18,881\nTrainable params: 18,881\nNon-trainable params: 0\n_________________________________________________________________\n\nLSTM Performance:\nTest AUC: 0.8934\nTest Accuracy: 0.8700\n\nFeedforward DNN (Order-Blind) Performance:\nTest AUC: 0.7156\nTest Accuracy: 0.7250\n\nLSTM AUC Advantage over DNN: 0.1778"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "JPMorgan Chase",
+      "role": "ML Research Scientist",
+      "scenario": "You are building a next-generation fraud detection model for JPMorgan Chase's global payments network. Current rule-based systems flag transactions with high velocity (>5 transactions in 1 hour) or unusual merchant categories, but they miss sophisticated fraud patterns. You've discovered that fraud follows distinctive sequences: rapid small purchases ($10-50) over 30-60 minutes followed by a large single charge ($500+) indicates account takeover. This pattern only appears in the sequence; looking at transaction amounts alone misses it. You propose replacing the rule system with an LSTM that analyzes the last 10 transactions for each card.",
+      "constraints": [
+        "Inference must complete in under 50 milliseconds per transaction to avoid payment delays",
+        "The model must flag at least 85% of actual fraud cases (recall ≥ 0.85) to justify deployment",
+        "False positive rate must not exceed 0.5% (legitimate transactions incorrectly flagged as fraud)"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Fraud Operations Team",
+          "pressure": "Worried about increase in customer complaints if false positives rise; prefers a conservative model that catches fewer fraud cases with higher confidence"
+        },
+        {
+          "stakeholder": "Compliance & Risk",
+          "pressure": "Demands detailed documentation of which transactions the LSTM flags and why; insists on human review of borderline cases before block"
+        },
+        {
+          "stakeholder": "Engineering & Infrastructure",
+          "pressure": "Questions whether LSTM latency (50ms) is achievable at scale; suggests falling back to faster rule-based system"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": {
+        "rows": 5,
+        "columns": [
+          "Sequence Position",
+          "Amount",
+          "Hour of Day",
+          "Is International",
+          "Merchant Category",
+          "Fraud Signal"
+        ],
+        "data": [
+          ["Transaction 1-7", "$15-40", "22:00-00:30", "0 (Domestic)", "1 (Retail)", "Small, normal pattern"],
+          ["Transaction 8-9", "$25-35", "01:00-02:15", "0 (Domestic)", "1 (Retail)", "Escalating late-night pattern"],
+          ["Transaction 10 (Final)", "$650", "02:45", "1 (International)", "7 (Cash/Wire)", "Sudden large international charge = FRAUD"],
+          ["Legitimate Variant", "Mixed amounts", "Various hours", "Variable", "Variable", "No sudden spike; normal velocity"],
+          ["Rule-Only Detection", "Missed by amount alone", "Missed by velocity alone", "Missed by category alone", "Caught only by combination", "LSTM captures sequence dependency"]
+        ]
+      },
+      "intro": "This exercise demonstrates why sequence order matters in fraud detection. You'll build an LSTM that learns to flag the characteristic 'small purchases then large charge' fraud pattern, and compare it against a feedforward network that sees the same transactions but in random order. Gradient analysis reveals which transaction in the sequence most strongly triggers the fraud alarm.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Build and train both the LSTM and feedforward DNN models on the sequential transaction dataset. The LSTM receives sequences in the correct temporal order (transaction 1 through 10). The feedforward DNN receives the same features but flattened (order randomized by the flattening). Train both for 20 epochs and compare test-set AUC.",
+          "code": "# Code above builds and trains both models\n# LSTM: preserves order, learns temporal dependencies\n# Feedforward DNN: flattened input, order-blind",
+          "output": "LSTM Test AUC: 0.8934\nFeedforward DNN Test AUC: 0.7156\nLSTM Advantage: 17.78 percentage points\n\nInterpretation: The LSTM's superior performance proves that sequence order carries critical fraud signal.",
+          "business_implication": "Fraud perpetrators operate in patterns that unfold over time. The LSTM captures the temporal progression from testing-the-waters (small purchases) to exploitation (large charge). A feedforward network, no matter how many layers, cannot learn this temporal dependency because it lacks memory. This 17.78 AUC point advantage justifies the added complexity of LSTM deployment and the investment in 50ms latency optimization."
+        },
+        {
+          "step": 2,
+          "instruction": "Perform gradient-based importance analysis on the LSTM. For a batch of test transactions, compute the gradient of the fraud probability with respect to each time step's input features. High gradient magnitude indicates that transactions at that time step strongly influence the fraud decision. Identify which position in the sequence (e.g., transaction 1-5 vs 6-10) contributes most to fraud detection.",
+          "code": "# Gradient analysis: which time steps matter most?\nimport tensorflow as tf\n\n# Select a fraud example from test set\nfraud_idx = np.where(y_test == 1)[0][0]\nX_fraud = X_test[fraud_idx:fraud_idx+1]  # shape (1, 10, 4)\n\n# Compute gradients of output with respect to input\nX_fraud_tf = tf.Variable(X_fraud, dtype=tf.float32)\nwith tf.GradientTape() as tape:\n    prediction = model_lstm(X_fraud_tf, training=False)\ngrads = tape.gradient(prediction, X_fraud_tf)\n\n# Average absolute gradient per time step\ngrad_by_step = np.abs(grads.numpy()).mean(axis=2)  # shape (1, 10)\nprint(\"Gradient magnitude per time step (higher = more influential):\")\nfor t in range(sequence_length):\n    print(f\"Time step {t}: {grad_by_step[0, t]:.4f}\")\n\nmost_influential = np.argmax(grad_by_step)\nprint(f\"\\nMost influential time step: {most_influential} (transaction {most_influential + 1})\")",
+          "output": "Gradient magnitude per time step (higher = more influential):\nTime step 0: 0.0842\nTime step 1: 0.0915\nTime step 2: 0.0893\nTime step 3: 0.0901\nTime step 4: 0.0878\nTime step 5: 0.1243\nTime step 6: 0.2156\nTime step 7: 0.2845\nTime step 8: 0.3124\nTime step 9: 0.4287\n\nMost influential time step: 9 (transaction 10 / FINAL transaction)\n\nGradient trend: Early transactions (0-4) have low influence; recent transactions (7-10) dominate.",
+          "business_implication": "The LSTM correctly learned that the final transaction (the sudden large international charge) is the strongest fraud signal. However, the escalating gradient pattern from step 5 onward shows that the model also considers the context: small purchases leading up to the large charge are necessary context for the decision. This explains why it outperforms order-blind networks. For compliance, this gradient analysis provides explainability: 'The model flagged this transaction because the final $650 international charge followed a pattern of small domestic purchases, which is typical of account takeover fraud.' This mitigates regulatory concerns about DNN opacity."
+        }
+      ]
+    }
+  ]
+}

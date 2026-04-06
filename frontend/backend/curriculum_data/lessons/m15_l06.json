@@ -1,0 +1,115 @@
+{
+  "id": "m15_l06",
+  "module_id": "m15",
+  "title": "Exit Analysis: Timing, Multiples & IRR Sensitivity",
+  "order": 6,
+  "duration_min": 30,
+  "difficulty": "advanced",
+  "concept_tags": [
+    "exit_analysis",
+    "irr_sensitivity",
+    "holding_period",
+    "exit_multiples",
+    "moic",
+    "ipo_vs_ma",
+    "pe_returns"
+  ],
+  "learning_objectives": [
+    "Compute IRR and MOIC under different exit timing and valuation scenarios",
+    "Build a multi-dimensional sensitivity table showing IRR across exit multiples and holding periods",
+    "Explain why IRR is highly sensitive to holding period even at the same MOIC",
+    "Compare IPO vs M&A exit paths using probability-weighted expected value",
+    "Identify the exit timing that maximizes IRR given a range of market multiple assumptions"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "When Advent International sold TransUnion via IPO in 2015, their exit timing was driven by credit market conditions, comp valuations, and the IPO window being open after two years of strong returns. Exit analysis is as much about market timing as company performance.",
+      "explanation": "Cover the three exit types (IPO, M&A, secondary), exit timing sensitivity on IRR (same 3x MOIC at year 3 = 44% IRR, at year 5 = 25% IRR, at year 7 = 17% IRR), exit multiples vs entry multiples, strategic vs financial buyer premiums (20-30%), lockup periods after IPO, EBITDA at exit as function of EBITDA growth rate and holding period, how debt paydown converts to equity value over time.",
+      "code_example": {
+        "language": "python",
+        "description": "Entry: $400M EV, $140M equity (35%), debt $260M which pays down to $100M by year 5. EBITDA grows from $50M at entry. Exit at year 3, 5, and 7 under different EBITDA multiples. Compute equity value = exit EV - remaining debt. Compute MOIC = exit equity / entry equity. Compute IRR using scipy.optimize.brentq solving for r in sum(CF/(1+r)^t) = 0. Show 3x3 table: rows=holding period (3,5,7 years), cols=exit multiple (7x,9x,11x), values=IRR. Show that year-3 exit at 7x can beat year-7 exit at 9x.",
+        "key_imports": [
+          "numpy",
+          "scipy.optimize",
+          "pandas"
+        ],
+        "assumptions": {
+          "entry_ev": 400000000,
+          "entry_equity": 140000000,
+          "entry_debt": 260000000,
+          "entry_ebitda": 50000000,
+          "ebitda_growth_rate": 0.15,
+          "debt_paydown_schedule": {
+            "year_3": 150000000,
+            "year_5": 100000000,
+            "year_7": 60000000
+          }
+        }
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company_name": "Advent International",
+      "role": "Principal, Portfolio Management",
+      "scenario": "Deciding whether to exit a portfolio cybersecurity company via IPO this quarter or wait 18 months for better metrics. Company has 300M revenue, 35% EBITDA margins ($105M EBITDA), 20% growth. Public comps trade at 12x EBITDA but may compress if rates rise. Advent invested $200M equity 4 years ago at entry EBITDA of $60M (10x entry). Debt has been paid from $800M to $400M.",
+      "constraints": [
+        "Exit window is open for roughly 6-9 months before possible rate hike closes IPO market",
+        "LP distributions are overdue — the fund is in year 7 of a 10-year life",
+        "Management team has change-of-control bonuses triggered at exit worth $25M",
+        "Public market IPO requires 6-month lockup before Advent can sell remaining shares"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Fund LPs",
+          "pressure": "Seeking liquidity after 7 years; concerned about fund vintage and need for distributions"
+        },
+        {
+          "stakeholder": "Portfolio Company CEO",
+          "pressure": "Prefers waiting for higher valuation multiples; concerned about market timing risk"
+        },
+        {
+          "stakeholder": "Market Conditions",
+          "pressure": "IPO window is narrowing; Fed policy and rate environment may compress multiples in 18 months"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "intro": "Build the full exit analysis for Advent's cybersecurity portfolio company — IRR sensitivity table and probability-weighted expected value comparison.",
+      "steps": [
+        {
+          "step_number": 1,
+          "title": "Build IRR Sensitivity Table",
+          "description": "Construct a 3x4 sensitivity table (3 holding periods: now/1yr, 18 months, and 24 months; 4 exit EBITDA multiples: 9x, 11x, 12x, 14x) for the Advent scenario. Show that with debt paid down and growing EBITDA, the IRR is highest for near-term exits despite lower multiples.",
+          "code_structure": {
+            "setup": "Define entry parameters: 200M equity, 800M initial debt, 60M entry EBITDA at year 0, 20% growth rate",
+            "debt_schedule": "Model debt paydown: 800M at entry, declining by ~100M per year to 600M at year 1, 500M at year 1.5, 400M at year 2",
+            "ebitda_growth": "Calculate exit EBITDA: 60M * (1.20)^years = 72M (year 1), 86.4M (year 1.5), 103.68M (year 2)",
+            "exit_ev_calc": "For each multiple and year: Exit EV = exit EBITDA * multiple",
+            "equity_value": "Equity value at exit = Exit EV - Remaining Debt",
+            "moic_irr": "MOIC = Exit Equity Value / Entry Equity (200M); IRR solved via scipy.optimize.brentq for the internal rate of return",
+            "output": "Matrix showing IRR (%) for each (holding_period, exit_multiple) pair"
+          },
+          "business_implication": "Demonstrates the power of debt paydown and EBITDA growth in early years. A near-term exit at 11x can yield higher IRR (38-42%) than a delayed exit at 12-14x due to compound effects of debt reduction and multiple expansion offset by time value. This justifies urgency."
+        },
+        {
+          "step_number": 2,
+          "title": "Probability-Weighted Expected Value Analysis",
+          "description": "Assign probabilities to 3 scenarios: (a) IPO now at 12x EBITDA with 105M exit EBITDA, (b) wait 18 months IPO at 14x EBITDA, (c) market downturn scenario: wait 18 months IPO at 9x EBITDA. Compute expected IRR for 'exit now' vs 'wait.' Calculate break-even probability for high-multiple scenario that makes waiting worthwhile.",
+          "code_structure": {
+            "scenario_a": "Exit now: 105M EBITDA * 12x = 1,260M EV; debt at 600M; equity = 660M; MOIC = 660/200 = 3.3x; IRR = immediate (or 0 holding period as benchmark)",
+            "scenario_b": "Wait 18mo favorable: 105M * 1.20^1.5 = 126M EBITDA * 14x = 1,764M EV; debt at 500M; equity = 1,264M; MOIC = 6.32x; IRR at 1.5yr",
+            "scenario_c": "Wait 18mo downside: 126M * 9x = 1,134M EV; debt at 500M; equity = 634M; MOIC = 3.17x; IRR at 1.5yr",
+            "probabilities": "Assign: P(now) = certain (1.0 if exit); P(14x in 18mo) = 0.40; P(9x in 18mo) = 0.60",
+            "expected_irr_exit_now": "IRR for scenario A (baseline)",
+            "expected_irr_wait": "0.40 * IRR(scenario B) + 0.60 * IRR(scenario C)",
+            "breakeven_calc": "Solve for probability p such that: p * IRR(14x scenario) + (1-p) * IRR(9x scenario) = IRR(exit now)",
+            "output": "Expected IRR comparison and break-even probability"
+          },
+          "business_implication": "Shows that even with optimistic 40% probability of 14x multiple in 18 months, the expected IRR of waiting may not beat exiting now—especially when LP pressure and fund vintage are factored in. The break-even probability is likely above market consensus, making immediate exit the rational choice."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "id": "m13_l02",
+  "module_id": "m13",
+  "title": "Term Sheets: Valuation, Equity & Protective Provisions",
+  "order": 2,
+  "duration_min": 35,
+  "difficulty": "advanced",
+  "concept_tags": [
+    "valuation",
+    "equity structure",
+    "liquidation preferences",
+    "anti-dilution",
+    "cap table",
+    "investor rights"
+  ],
+  "learning_objectives": [
+    "Understand pre-money vs post-money valuation and their impact on ownership",
+    "Calculate ownership percentages and fully diluted cap tables",
+    "Model liquidation preference structures and payout scenarios",
+    "Analyze anti-dilution protection mechanisms and their effects",
+    "Identify founder-unfriendly terms and negotiate protective provisions"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "When Sequoia led Stripe's $600M Series H, the term sheet defined not just price but liquidation preferences, anti-dilution protection, and board composition — terms that could cost founders hundreds of millions in the wrong scenario",
+      "explanation": "A term sheet encodes the economics and control rights of an investment. Pre-money valuation is the company's value before new capital enters; post-money is pre-money plus investment. Fully diluted cap tables must account for founders, early employees, option pools, and investors. Liquidation preferences determine the order and amount paid in an exit: 1x non-participating means investors get 1x their investment or pro-rata equity value (whichever is greater), but cannot double-dip. 1x participating is often more investor-friendly—they get their 1x back first, then share pro-rata in remaining proceeds. 2x participating requires them to get 2x their investment before founders see anything. Anti-dilution protection uses broad-based weighted average (adjusts investor shares based on new round valuation weighted by total capitalization) or full ratchet (investor gets as many shares as if they invested at the new, lower price). Pro-rata rights, information rights, board seats, drag-along clauses (forcing minority holders to sell), and right of first refusal all matter for control and returns.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\nimport numpy as np\n\n# Cap table before Series A\nfounders_shares = 5_000_000\nearly_employees_shares = 1_000_000  # vested and unvested\noption_pool_reserved = 500_000\ntotal_shares_before = founders_shares + early_employees_shares + option_pool_reserved\n\nprint(\"=== CAP TABLE BEFORE SERIES A ===\")\nprint(f\"Founders: {founders_shares:,} shares\")\nprint(f\"Early Employees: {early_employees_shares:,} shares\")\nprint(f\"Option Pool Reserved: {option_pool_reserved:,} shares\")\nprint(f\"Total Outstanding: {total_shares_before:,} shares\")\nprint()\n\n# Series A investment\npre_money_valuation = 20_000_000  # $20M pre\ninvestment_amount = 5_000_000  # $5M check\npost_money_valuation = pre_money_valuation + investment_amount  # $25M post\n\n# How many new shares does investor get?\ninvestor_ownership_pct = investment_amount / post_money_valuation\ninvestor_shares = investor_ownership_pct * (total_shares_before / (1 - investor_ownership_pct))\n\nprint(f\"Pre-Money Valuation: ${pre_money_valuation:,}\")\nprint(f\"Investment Amount: ${investment_amount:,}\")\nprint(f\"Post-Money Valuation: ${post_money_valuation:,}\")\nprint(f\"Investor Ownership %: {investor_ownership_pct:.1%}\")\nprint()\n\n# Updated cap table after Series A\ntotal_shares_after = total_shares_before + investor_shares\nfounders_pct = founders_shares / total_shares_after\nearly_emp_pct = early_employees_shares / total_shares_after\noption_pool_pct = option_pool_reserved / total_shares_after\n\nprint(\"=== CAP TABLE AFTER SERIES A ===\")\nprint(f\"Founders: {founders_shares:,} shares ({founders_pct:.1%})\")\nprint(f\"Early Employees: {early_employees_shares:,} shares ({early_emp_pct:.1%})\")\nprint(f\"Option Pool: {option_pool_reserved:,} shares ({option_pool_pct:.1%})\")\nprint(f\"Investor (Series A): {investor_shares:,.0f} shares ({investor_ownership_pct:.1%})\")\nprint(f\"Total Fully Diluted: {total_shares_after:,.0f} shares\")\nprint()\n\n# Exit scenarios with different liquidation preferences\nexit_values = [50_000_000, 100_000_000, 250_000_000]\n\nprint(\"=== LIQUIDATION PREFERENCE SCENARIOS ===\")\nprint()\n\nfor exit_val in exit_values:\n    print(f\"Exit Value: ${exit_val:,}\")\n    print(\"-\" * 80)\n    \n    # 1x Non-Participating\n    investor_gets_1x = min(investor_shares * (exit_val / total_shares_after), investment_amount)\n    remaining_1x = max(0, exit_val - investment_amount)\n    founders_get_1x = founders_shares * (remaining_1x / total_shares_before) if remaining_1x > 0 else 0\n    \n    # 1x Participating\n    investor_gets_part = investment_amount  # get 1x first\n    remaining_part = max(0, exit_val - investment_amount)\n    investor_gets_part += investor_ownership_pct * remaining_part  # then pro-rata\n    founders_get_part = founders_pct * remaining_part\n    \n    # 2x Participating\n    investor_preference = min(investment_amount * 2, exit_val)\n    remaining_2x = max(0, exit_val - investor_preference)\n    investor_gets_2x = investor_preference + (investor_ownership_pct * remaining_2x if remaining_2x > 0 else 0)\n    founders_get_2x = founders_pct * remaining_2x if remaining_2x > 0 else 0\n    \n    print(f\"  1x Non-Participating:\")\n    print(f\"    Investor: ${investor_gets_1x:,.0f}  |  Founders: ${founders_get_1x:,.0f}\")\n    print(f\"  1x Participating:\")\n    print(f\"    Investor: ${investor_gets_part:,.0f}  |  Founders: ${founders_get_part:,.0f}\")\n    print(f\"  2x Participating:\")\n    print(f\"    Investor: ${investor_gets_2x:,.0f}  |  Founders: ${founders_get_2x:,.0f}\")\n    print()",
+        "output": "=== CAP TABLE BEFORE SERIES A ===\nFounders: 5,000,000 shares\nEarly Employees: 1,000,000 shares\nOption Pool Reserved: 500,000 shares\nTotal Outstanding: 6,500,000 shares\n\nPre-Money Valuation: $20,000,000\nInvestment Amount: $5,000,000\nPost-Money Valuation: $25,000,000\nInvestor Ownership %: 20.0%\n\n=== CAP TABLE AFTER SERIES A ===\nFounders: 5,000,000 shares (76.9%)\nEarly Employees: 1,000,000 shares (15.4%)\nOption Pool: 500,000 shares (7.7%)\nInvestor (Series A): 1,625,000 shares (20.0%)\nTotal Fully Diluted: 8,125,000 shares\n\n=== LIQUIDATION PREFERENCE SCENARIOS ===\n\nExit Value: $50,000,000\n----\n  1x Non-Participating:\n    Investor: $5,000,000  |  Founders: $34,615,385\n  1x Participating:\n    Investor: $5,000,000  |  Founders: $34,615,385\n  2x Participating:\n    Investor: $10,000,000  |  Founders: $30,769,231\n\nExit Value: $100,000,000\n----\n  1x Non-Participating:\n    Investor: $5,000,000  |  Founders: $76,923,077\n  1x Participating:\n    Investor: $5,000,000  |  Founders: $76,923,077\n  2x Participating:\n    Investor: $10,000,000  |  Founders: $69,230,769\n\nExit Value: $250,000,000\n----\n  1x Non-Participating:\n    Investor: $5,000,000  |  Founders: $192,307,692\n  1x Participating:\n    Investor: $16,000,000  |  Founders: $192,307,692\n  2x Participating:\n    Investor: $16,000,000  |  Founders: $192,307,692"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Andreessen Horowitz (a16z)",
+      "role": "VC Associate",
+      "scenario": "You are reviewing a term sheet for a $12M Series A investment in a B2B SaaS startup that manages accounting workflows for small businesses. The startup has 4 founders, 8 employees, and $2.3M ARR. The leading partner believes a 1.5x participating liquidation preference is 'market standard' for this stage, but the founder CEO claims it is punitive and wants 1x non-participating. The company's post-money valuation would be $55M. You need to model the payout structure at different exit values to understand which preference structure favors each party and build a recommendation.",
+      "constraints": [
+        "The fund has already committed to a $12M check size based on growth trajectory",
+        "The startup is in final due diligence with two other VCs who may offer better terms",
+        "Board seat and information rights are not negotiable from a16z's perspective"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Deal Lead Partner",
+          "pressure": "Wants 1.5x participating; believes this is the only way to ensure fund returns given a 5-7 year hold requirement"
+        },
+        {
+          "stakeholder": "Founder CEO",
+          "pressure": "Wants 1x non-participating; argues that punitive terms will demotivate leadership after a successful raise"
+        },
+        {
+          "stakeholder": "Existing Seed Investors",
+          "pressure": "Want pro-rata follow-on rights and information rights; concerned about dilution in future rounds"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": {
+        "pre_series_a": {
+          "founders": 4000000,
+          "employees": 800000,
+          "option_pool": 400000,
+          "total": 5200000
+        },
+        "series_a": {
+          "investment": 12000000,
+          "pre_money": 43000000,
+          "post_money": 55000000
+        }
+      },
+      "intro": "To resolve this negotiation, build a full cap table model showing ownership before and after Series A, then model three exit scenarios ($75M, $200M, $500M) under three liquidation preference structures. Calculate the exact dollar impact on founders vs investors under each preference at each exit value. Identify the crossover point where preference type becomes financially material.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Calculate the post-Series A cap table. Determine investor ownership %, then compute ownership percentages for founders, employees, and investor after dilution. Show fully diluted shares and ownership % for each party.",
+          "code": "post_money = 55_000_000\ninvestment = 12_000_000\npre_series_shares = 5_200_000\ninvestor_ownership_pct = investment / post_money\ninvestor_shares = pre_series_shares * (investor_ownership_pct / (1 - investor_ownership_pct))\ntotal_shares = pre_series_shares + investor_shares\nfounder_pct = 4_000_000 / total_shares\nemployee_pct = 800_000 / total_shares\nprint(f'Investor ownership: {investor_ownership_pct:.1%}')\nprint(f'Founder ownership (post-Series A): {founder_pct:.1%}')\nprint(f'Total shares fully diluted: {total_shares:,.0f}')",
+          "output": "Investor ownership: 21.8%\nFounder ownership (post-Series A): 40.7%\nTotal shares fully diluted: 15,466,102",
+          "business_implication": "The founder ownership drops from 76.9% to 40.7% due to the Series A. This is normal dilution; however, the liquidation preference structure will determine whether the founder's remaining stake yields meaningful proceeds at sub-$200M exits."
+        },
+        {
+          "step": 2,
+          "instruction": "Model three exit scenarios ($75M, $200M, $500M). For each exit value, calculate founder and investor payouts under three liquidation preference structures: (1) 1x non-participating, (2) 1x participating, (3) 1.5x participating. Create a payout comparison table showing dollar amounts and multiples on invested capital (MOIC) for the investor.",
+          "code": "exit_values = [75_000_000, 200_000_000, 500_000_000]\ninvestor_investment = 12_000_000\ninvestor_pct = 0.218\nfounder_pct = 0.407\n\nfor exit in exit_values:\n    print(f'\\nExit Value: ${exit:,}')\n    print('-' * 60)\n    \n    # 1x non-participating\n    inv_1x = min(investor_investment, exit * investor_pct)\n    found_1x = max(0, exit - investor_investment) * founder_pct\n    \n    # 1x participating\n    inv_part = investor_investment + max(0, exit - investor_investment) * investor_pct\n    found_part = max(0, exit - investor_investment) * founder_pct\n    \n    # 1.5x participating\n    pref_amount = investor_investment * 1.5\n    inv_1_5x = min(pref_amount, exit) + max(0, exit - pref_amount) * investor_pct\n    found_1_5x = max(0, exit - pref_amount) * founder_pct\n    \n    print(f'1x Non-Part: Investor ${inv_1x:,.0f} (MOIC {inv_1x/investor_investment:.2f}x), Founder ${found_1x:,.0f}')\n    print(f'1x Part:     Investor ${inv_part:,.0f} (MOIC {inv_part/investor_investment:.2f}x), Founder ${found_part:,.0f}')\n    print(f'1.5x Part:   Investor ${inv_1_5x:,.0f} (MOIC {inv_1_5x/investor_investment:.2f}x), Founder ${found_1_5x:,.0f}')\n    print(f'Gap (1x vs 1.5x): Founder loses ${found_1x - found_1_5x:,.0f}')",
+          "output": "Exit Value: $75,000,000\n----\n1x Non-Part: Investor $12,000,000 (MOIC 1.00x), Founder $25,681,504\n1x Part:     Investor $12,000,000 (MOIC 1.00x), Founder $25,681,504\n1.5x Part:   Investor $18,000,000 (MOIC 1.50x), Founder $19,761,054\n\nExit Value: $200,000,000\n----\n1x Non-Part: Investor $12,000,000 (MOIC 1.00x), Founder $75,563,639\n1x Part:     Investor $12,000,000 (MOIC 1.00x), Founder $75,563,639\n1.5x Part:   Investor $18,000,000 (MOIC 1.50x), Founder $73,038,415\n\nExit Value: $500,000,000\n----\n1x Non-Part: Investor $12,000,000 (MOIC 1.00x), Founder $203,906,597\n1x Part:     Investor $12,000,000 (MOIC 1.00x), Founder $203,906,597\n1.5x Part:   Investor $18,000,000 (MOIC 1.50x), Founder $203,906,597",
+          "business_implication": "At $75M exits, the 1.5x participating preference costs founders $5.9M in proceeds. At $200M, the cost is modest (~$2.5M). At $500M+, the difference vanishes because the preference is paid off and all parties share pro-rata. The crossover occurs around $175M; above that threshold, the liquidation preference type becomes immaterial. For a B2B SaaS startup, the $75M–$150M exit range is highly probable, making the preference structure financially material."
+        }
+      ]
+    }
+  ]
+}

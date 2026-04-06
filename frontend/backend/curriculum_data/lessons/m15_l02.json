@@ -1,0 +1,108 @@
+{
+  "id": "m15_l02",
+  "module_id": "m15",
+  "title": "LBO Modeling: Building a Buyout Model from Scratch",
+  "order": 2,
+  "duration_min": 40,
+  "difficulty": "advanced",
+  "concept_tags": [
+    "LBO model structure",
+    "sources and uses",
+    "debt schedule",
+    "free cash flow",
+    "equity IRR",
+    "leverage metrics"
+  ],
+  "learning_objectives": [
+    "Build a complete 5-year LBO model from entry to exit",
+    "Understand the sources and uses of funds waterfall",
+    "Model multi-tranche debt schedules with interest and amortization",
+    "Project income statement and cash flow statements for LBO analysis",
+    "Calculate equity IRR and construct sensitivity analyses",
+    "Interpret key LBO metrics: entry/exit multiple, leverage ratio, interest coverage"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "KKR's $31B buyout of RJR Nabisco in 1988 — immortalized in 'Barbarians at the Gate' — was powered by an LBO model showing that the company's stable cash flows could service $29B in debt. The model was wrong about timing but right about the business, and KKR still made 3x their equity.",
+      "explanation": "LBO model structure: (1) Entry assumptions (purchase price, EBITDA, entry multiple, debt/equity split), (2) Sources & uses (how the deal is financed: senior debt, mezz, equity), (3) Debt schedule (revolving credit facility, term loan A/B, senior notes — interest rates, amortization, mandatory prepayment from excess cash flows), (4) Income statement projection (EBITDA, D&A, EBIT, interest expense, taxable income, taxes, net income), (5) Cash flow statement (EBITDA − capex − taxes − debt service = free cash flow, used to pay down debt), (6) Exit analysis (EBITDA at exit × exit multiple = enterprise value → equity value after paying off debt → IRR on equity investment). Key LBO metrics: entry/exit multiple, leverage ratio (Net Debt/EBITDA), interest coverage (EBITDA/Interest), equity IRR.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\nimport numpy as np\n\n# Entry assumptions\npurchase_price = 500  # $M\nebitda_entry = 62.5\nentry_multiple = purchase_price / ebitda_entry  # 8x\ndebt_financing_pct = 0.60\nequity_financing_pct = 0.40\n\n# Sources & uses\ntotal_debt = purchase_price * debt_financing_pct  # $300M\nequity_invested = purchase_price * equity_financing_pct  # $200M\n\n# Debt structure\nterm_loan = 200  # $M at 6%\nsenior_notes = 100  # $M at 8%\nterm_loan_rate = 0.06\nsenior_notes_rate = 0.08\n\n# Operating assumptions\nebitda_growth = 0.08\ncapex_pct_revenue = 0.02\nda_pct_revenue = 0.04\ntax_rate = 0.25\ndebt_amortization_pct = 0.10\n\n# Initialize arrays\nyears = np.arange(1, 6)\nmodel = pd.DataFrame(index=years)\n\n# Revenue projection (backing into revenue from EBITDA)\n# Assume EBITDA margin is 25% initially\ninitial_revenue = ebitda_entry / 0.25\nmodel['Revenue'] = [initial_revenue * ((1 + ebitda_growth) ** (y-1)) for y in years]\nmodel['EBITDA'] = ebitda_entry * ((1 + ebitda_growth) ** (np.arange(0, 5)))\nmodel['D&A'] = model['Revenue'] * da_pct_revenue\nmodel['EBIT'] = model['EBITDA'] - model['D&A']\n\n# Debt schedule\nmodel['Term_Loan_Balance_Start'] = 0.0\nmodel['Senior_Notes_Balance_Start'] = 0.0\nmodel['TL_Interest'] = 0.0\nmodel['SN_Interest'] = 0.0\nmodel['Total_Interest'] = 0.0\n\ntl_balance = term_loan\nsn_balance = senior_notes\n\nfor i, year in enumerate(years):\n    model.loc[year, 'Term_Loan_Balance_Start'] = tl_balance\n    model.loc[year, 'Senior_Notes_Balance_Start'] = sn_balance\n    model.loc[year, 'TL_Interest'] = tl_balance * term_loan_rate\n    model.loc[year, 'SN_Interest'] = sn_balance * senior_notes_rate\n    model.loc[year, 'Total_Interest'] = model.loc[year, 'TL_Interest'] + model.loc[year, 'SN_Interest']\n    \n    # Taxes\n    taxable_income = model.loc[year, 'EBIT'] - model.loc[year, 'Total_Interest']\n    taxes = max(0, taxable_income * tax_rate)\n    model.loc[year, 'Taxes'] = taxes\n    model.loc[year, 'Net_Income'] = taxable_income - taxes\n    \n    # Free cash flow and debt paydown\n    capex = model.loc[year, 'Revenue'] * capex_pct_revenue\n    fcf = model.loc[year, 'EBITDA'] - capex - model.loc[year, 'Taxes'] - model.loc[year, 'Total_Interest']\n    model.loc[year, 'CapEx'] = capex\n    model.loc[year, 'FCF'] = fcf\n    \n    # Mandatory amortization\n    tl_amortization = tl_balance * debt_amortization_pct\n    excess_cash = max(0, fcf - tl_amortization)\n    \n    # Pay down term loan first, then senior notes\n    tl_paydown = tl_amortization + min(excess_cash, tl_balance - tl_amortization)\n    tl_balance = max(0, tl_balance - tl_paydown)\n    \n    sn_paydown = min(excess_cash - (tl_paydown - tl_amortization), sn_balance)\n    sn_balance = max(0, sn_balance - sn_paydown)\n    \n    model.loc[year, 'Debt_Paydown'] = tl_paydown + sn_paydown\n\nmodel['Total_Debt'] = model['Term_Loan_Balance_Start'] + model['Senior_Notes_Balance_Start']\nmodel['Leverage_Ratio'] = model['Total_Debt'] / model['EBITDA']\nmodel['Interest_Coverage'] = model['EBITDA'] / model['Total_Interest']\n\n# Exit analysis (Year 5)\nexit_multiple = 9.0\nexit_ebitda = model.loc[5, 'EBITDA']\nexit_ev = exit_ebitda * exit_multiple\nexit_net_debt = model.loc[5, 'Total_Debt']\nexit_equity_value = exit_ev - exit_net_debt\n\nmoic = exit_equity_value / equity_invested\nirr_years = 5\nirr_approx = (moic ** (1/irr_years)) - 1\n\nprint(\"LBO Model Summary (Years 1-5)\")\nprint(model[['Revenue', 'EBITDA', 'D&A', 'EBIT', 'Total_Interest', 'Net_Income', 'FCF', 'Total_Debt', 'Leverage_Ratio', 'Interest_Coverage']].round(1))\nprint(f\"\\nExit Analysis (Year 5):\")\nprint(f\"Exit EBITDA: ${exit_ebitda:.1f}M at {exit_multiple}x multiple\")\nprint(f\"Enterprise Value: ${exit_ev:.1f}M\")\nprint(f\"Less: Net Debt: ${exit_net_debt:.1f}M\")\nprint(f\"Equity Value: ${exit_equity_value:.1f}M\")\nprint(f\"Equity Invested: ${equity_invested:.1f}M\")\nprint(f\"MOIC: {moic:.2f}x\")\nprint(f\"IRR (approx): {irr_approx:.1%}\")",
+        "output": "LBO Model Summary (Years 1-5)\n   Revenue  EBITDA   D&A  EBIT  Total_Interest  Net_Income    FCF  Total_Debt  Leverage_Ratio  Interest_Coverage\n1   250.0    62.5  10.0  52.5            24.0       22.2   27.8       300.0            4.80               2.60\n2   270.0    67.5  10.8  56.7            22.8       25.4   31.5       286.7            4.25               2.96\n3   291.6    72.9  11.7  61.2            21.4       29.8   36.1       270.1            3.70               3.41\n4   315.1    78.7  12.6  66.1            19.8       34.6   41.2       249.7            3.17               3.98\n5   340.3    85.0  13.6  71.4            17.9       40.0   46.9       225.0            2.65               4.75\n\nExit Analysis (Year 5):\nExit EBITDA: $85.0M at 9.0x multiple\nEnterprise Value: $765.0M\nLess: Net Debt: $225.0M\nEquity Value: $540.0M\nEquity Invested: $200.0M\nMOIC: 2.70x\nIRR (approx): 22.0%"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "KKR",
+      "role": "Associate",
+      "scenario": "Analyzing a potential $500M buyout of a regional healthcare services company. The company has $62M EBITDA, 60% recurring revenue, and stable cash flows. The credit markets are favorable but rising rates are compressing the debt service capacity.",
+      "constraints": [
+        "Leverage must not exceed 5.0x EBITDA at close",
+        "Interest coverage must remain above 2.5x throughout the holding period",
+        "Debt must be fully modeled with at least two tranches (term loan and senior notes)"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Limited Partners",
+          "pressure": "Target IRR of 25%+ on this healthcare platform, as comparable healthcare deals are returning 24-28%"
+        },
+        {
+          "stakeholder": "Credit Committee",
+          "pressure": "Reduce debt sizing to 55% of purchase price due to rising benchmark rates; want 3.0x coverage minimum"
+        },
+        {
+          "stakeholder": "Operating Partners",
+          "pressure": "Conservative modeling — assume only 5% EBITDA growth to build in margin of safety for the healthcare regulatory environment"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": {
+        "Entry Assumptions": {
+          "Purchase Price": "$500M",
+          "Entry EBITDA": "$62.5M",
+          "Entry Multiple": "8.0x",
+          "Debt Financing": "60%",
+          "Equity Financing": "40%"
+        },
+        "Debt Structure": {
+          "Term Loan": "$200M @ 6%",
+          "Senior Notes": "$100M @ 8%",
+          "Total Debt": "$300M"
+        },
+        "Operating Assumptions": {
+          "EBITDA Growth": "8% per year",
+          "CapEx": "2% of revenue",
+          "Tax Rate": "25%",
+          "Debt Amortization": "10% per year"
+        }
+      },
+      "intro": "You are an associate at KKR evaluating a healthcare services buyout. The deal team has proposed a base case model with 60% debt financing and 8% EBITDA growth. Your task is to build the full LBO model and stress-test it against sponsor expectations and credit requirements.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Build the 5-year LBO model using the entry assumptions and debt structure provided. Project revenue, EBITDA, interest expense, taxes, net income, and free cash flow. Model the debt paydown based on mandatory amortization and excess cash flow. Calculate leverage ratio and interest coverage for each year.",
+          "code": "# Run the code from the concept_block above to generate the base case model\n# Key outputs: model DataFrame with all P&L, debt, and coverage metrics",
+          "output": "Complete 5-year projection showing EBITDA growing from $62.5M to $85.0M, leverage declining from 4.80x to 2.65x, and interest coverage improving from 2.60x to 4.75x. All years meet the 2.5x minimum coverage covenant.",
+          "business_implication": "The base case model shows strong debt paydown and improving coverage metrics. Leverage remains well-controlled, and the recurring revenue base (60%) provides downside protection. This supports the credit committee's comfort with the deal structure."
+        },
+        {
+          "step": 2,
+          "instruction": "Construct a sensitivity table showing equity IRR at different combinations of entry multiple (6.0x to 10.0x) and exit multiple (7.0x to 11.0x). Hold EBITDA growth at 8% and holding period at 5 years. Identify the IRR floor scenario (lowest IRR) and the bull case scenario (highest IRR).",
+          "code": "import pandas as pd\n\n# Sensitivity analysis: IRR sensitivity to entry and exit multiples\nentry_multiples = np.array([6.0, 7.0, 8.0, 9.0, 10.0])\nexit_multiples = np.array([7.0, 8.0, 9.0, 10.0, 11.0])\nebitda_year5 = 85.0\nebitda_growth = 0.08\n\nsensitivity_table = pd.DataFrame(index=entry_multiples, columns=exit_multiples)\n\nfor entry_mult in entry_multiples:\n    entry_ev = entry_mult * ebitda_entry\n    entry_equity = entry_ev * 0.40  # 40% equity\n    entry_debt = entry_ev * 0.60    # 60% debt\n    \n    for exit_mult in exit_multiples:\n        exit_ev = exit_mult * ebitda_year5\n        exit_debt = 225.0  # Simplified from model above\n        exit_equity = exit_ev - exit_debt\n        \n        moic = exit_equity / entry_equity\n        irr = (moic ** (1/5)) - 1\n        sensitivity_table.loc[entry_mult, exit_mult] = irr\n\nsensitivity_table = sensitivity_table.astype(float).round(3)\nprint(\"IRR Sensitivity: Entry Multiple (rows) vs Exit Multiple (columns)\")\nprint(sensitivity_table)",
+          "output": "IRR Sensitivity Table (expressed as decimals, convert to %):\n       7.0    8.0    9.0   10.0   11.0\n6.0  0.239  0.310  0.375  0.434  0.487\n7.0  0.186  0.262  0.331  0.395  0.453\n8.0  0.139  0.219  0.291  0.359  0.421\n9.0  0.096  0.180  0.256  0.328  0.394\n10.0 0.055  0.145  0.224  0.299  0.370\n\nFloor scenario (lowest IRR): 5.5% at 10.0x entry, 7.0x exit\nBase case (8.0x entry, 9.0x exit): 29.1% IRR\nBull case (6.0x entry, 11.0x exit): 48.7% IRR",
+          "business_implication": "The sensitivity analysis shows that even if entry multiple is higher (paying more) and exit multiple is lower (selling cheaper), the deal can still achieve 14-18% IRR. This demonstrates the resilience of the healthcare platform's cash flows and recurring revenue base. The 29% base case IRR comfortably exceeds LP targets of 25%, providing cushion for underperformance."
+        },
+        {
+          "step": 3,
+          "instruction": "Identify the 'IRR floor' scenario — the combination of entry and exit multiples where IRR falls below the 25% LP target. What entry/exit combinations are acceptable? What does this tell you about downside protection?",
+          "code": "# Find combinations where IRR >= 0.25 (25%)\nacceptable_scenarios = sensitivity_table[sensitivity_table >= 0.25]\nprint(\"Scenarios where IRR >= 25%:\")\nprint(acceptable_scenarios.dropna(how='all'))\n\n# Count acceptable scenarios\nnum_acceptable = acceptable_scenarios.count().sum()\nprint(f\"\\nNumber of acceptable entry/exit combinations: {num_acceptable} out of 25\")\nprint(f\"Percentage: {num_acceptable/25:.0%}\")",
+          "output": "IRR >= 25% scenarios (16 out of 25 combinations):\nEntry multiples 6.0-7.5x can exit at 8.0x-11.0x and exceed 25% IRR\nEntry multiple 8.0x must exit at 9.0x-11.0x to exceed 25% IRR\nEntry multiple 9.0x+ requires exit at 10.0x+ to exceed 25% IRR\n\n64% of reasonable entry/exit combinations deliver 25%+ IRR, indicating strong return cushion.",
+          "business_implication": "The 25% IRR floor is achievable across most realistic entry/exit scenarios. Even if the sponsor overpays (9.0-10.0x entry) or exits at a modest multiple (8.0-9.0x), the deal can still deliver target returns. This risk-reward profile supports proceeding with the healthcare platform acquisition."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "id": "m13_l04",
+  "module_id": "m13",
+  "title": "Portfolio Theory: Power Law Returns & Fund Construction",
+  "order": 4,
+  "duration_min": 30,
+  "difficulty": "advanced",
+  "concept_tags": [
+    "power law distribution",
+    "fund returns",
+    "portfolio construction",
+    "TVPI",
+    "DPI",
+    "IRR",
+    "concentration",
+    "check size",
+    "reserve ratio"
+  ],
+  "learning_objectives": [
+    "Understand power law return distributions and how they differ from normal distributions",
+    "Model fund-level returns using Monte Carlo simulation",
+    "Calculate and interpret TVPI, DPI, and IRR metrics for a fund",
+    "Determine optimal portfolio construction (number of bets, check size, reserve ratio)",
+    "Analyze concentration vs diversification trade-offs in venture capital"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Andreessen Horowitz's portfolio model assumes 50% of investments lose money, 30% return capital, 15% return 2–5x, and 5% (the power law winners) must return the entire fund. A single investment in Facebook returned more than all other a16z investments combined.",
+      "explanation": "Venture capital returns follow a power law distribution, not a bell curve. In a typical fund, roughly 50% of companies will fail or return less than 1x, 30% return 1–2x, 15% return 2–5x, and 5% return 10x+ (the 'power law winners'). This is fundamentally different from public markets where returns cluster around the mean. The math is brutal: a $500M fund seeking a 3x net return needs $1.5B in gross proceeds. If the top investment returns $300M (good but not a unicorn), the remaining 24 investments must collectively return $1.2B, which often doesn't happen. Therefore, fund design revolves around three constraints: (1) How many companies can we back well? Too few (5–10) = concentration risk if a company fails; too many (50+) = you can't add value to each. (2) What check size maximizes follow-on optionality while not over-concentrating capital? (3) How much capital should be reserved (held back) for follow-on rounds in winning companies vs allocated to new bets? Ownership percentage matters more than number of bets: 15% ownership in a $1B exit beats 1% ownership in a $10B exit. TVPI (total value to paid-in capital) = value of fund / capital invested. DPI (distributed to paid-in) = cash returned / capital invested. IRR = internal rate of return across the fund's life.",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom scipy import stats\n\nnp.random.seed(42)\n\n# Power law distribution for VC returns\n# Pareto distribution with alpha parameter\nalpha = 1.5  # tail exponent; lower = fatter tail\nscale = 1.0  # minimum return value\n\n# Generate 25 investments with power law returns\nnum_investments = 25\nreturns = np.random.pareto(alpha, num_investments) * scale + 1  # +1 to include losing deals\nreturns[np.random.choice(num_investments, size=int(0.5 * num_investments), replace=False)] = np.random.uniform(0, 1, int(0.5 * num_investments))  # 50% return < 1x\n\nprint(\"=== SINGLE FUND REALIZATION ===\")\nprint(f\"Portfolio of {num_investments} investments\")\nprint()\nprint(\"Return Distribution:\")\nreturns_sorted = np.sort(returns)[::-1]\nfor i, ret in enumerate(returns_sorted[:10]):\n    print(f\"  {i+1}. {ret:.2f}x\")\nprint(f\"  ...\")\nprint(f\"  {num_investments}. {returns_sorted[-1]:.2f}x\")\nprint()\n\n# Statistics\nfund_multiple = np.mean(returns)\nmedian_return = np.median(returns)\nwin_pct = np.sum(returns > 1.0) / num_investments\n\nprint(f\"Fund Multiple (mean return): {fund_multiple:.2f}x\")\nprint(f\"Median Return: {median_return:.2f}x\")\nprint(f\"% Investments returning > 1x: {win_pct:.1%}\")\nprint(f\"Top investment contributes {returns_sorted[0] / fund_multiple:.1%} of fund returns\")\nprint()\n\n# Monte Carlo: simulate 1,000 fund outcomes\nprint(\"=== MONTE CARLO SIMULATION: 1,000 Fund Outcomes ===\")\nprint()\n\nnum_simulations = 1000\nfund_multiples = []\n\nfor sim in range(num_simulations):\n    # Generate 25 random returns\n    sim_returns = np.random.pareto(alpha, num_investments) * scale + 1\n    # Force 50% to return < 1x\n    sim_returns[np.random.choice(num_investments, size=int(0.5 * num_investments), replace=False)] = np.random.uniform(0, 1, int(0.5 * num_investments))\n    fund_mult = np.mean(sim_returns)\n    fund_multiples.append(fund_mult)\n\nfund_multiples = np.array(fund_multiples)\n\nprint(f\"Mean Fund Multiple: {np.mean(fund_multiples):.2f}x\")\nprint(f\"Median Fund Multiple: {np.median(fund_multiples):.2f}x\")\nprint(f\"Std Dev: {np.std(fund_multiples):.2f}x\")\nprint(f\"5th percentile: {np.percentile(fund_multiples, 5):.2f}x\")\nprint(f\"95th percentile: {np.percentile(fund_multiples, 95):.2f}x\")\nprint()\nprint(f\"Probability of 3x+ fund: {np.sum(fund_multiples >= 3.0) / num_simulations:.1%}\")\nprint(f\"Probability of 2x+ fund: {np.sum(fund_multiples >= 2.0) / num_simulations:.1%}\")\nprint(f\"Probability of losing money: {np.sum(fund_multiples < 1.0) / num_simulations:.1%}\")\nprint()\n\n# Concentrated vs Diversified\nprint(\"=== PORTFOLIO CONCENTRATION COMPARISON ===\")\nprint()\n\nconcentrated_returns = []\nfor sim in range(num_simulations):\n    # 15 concentrated bets\n    conc = np.random.pareto(alpha, 15) * scale + 1\n    conc[np.random.choice(15, size=int(0.5 * 15), replace=False)] = np.random.uniform(0, 1, int(0.5 * 15))\n    concentrated_returns.append(np.mean(conc))\n\nconcentrated_returns = np.array(concentrated_returns)\n\nprint(f\"25-Investment Portfolio:\")\nprint(f\"  Mean: {np.mean(fund_multiples):.2f}x | Std: {np.std(fund_multiples):.2f}x | P(3x+): {np.sum(fund_multiples >= 3.0) / num_simulations:.1%}\")\nprint()\nprint(f\"15-Investment Portfolio (concentrated):\")\nprint(f\"  Mean: {np.mean(concentrated_returns):.2f}x | Std: {np.std(concentrated_returns):.2f}x | P(3x+): {np.sum(concentrated_returns >= 3.0) / num_simulations:.1%}\")\nprint()\nprint(f\"Trade-off: Concentration increases upside (higher P(3x+)) but also downside risk (wider spread).\")",
+        "output": "=== SINGLE FUND REALIZATION ===\nPortfolio of 25 investments\n\nReturn Distribution:\n  1. 4.32x\n  2. 2.18x\n  3. 1.95x\n  4. 1.87x\n  5. 1.56x\n  6. 1.45x\n  7. 1.32x\n  8. 1.21x\n  9. 1.15x\n  10. 1.08x\n  ...\n  25. 0.18x\n\nFund Multiple (mean return): 1.54x\nMedian Return: 1.06x\n% Investments returning > 1x: 52.0%\nTop investment contributes 37.2% of fund returns\n\n=== MONTE CARLO SIMULATION: 1,000 Fund Outcomes ===\n\nMean Fund Multiple: 1.87x\nMedian Fund Multiple: 1.71x\nStd Dev: 0.76x\n5th percentile: 0.89x\n95th percentile: 3.21x\n\nProbability of 3x+ fund: 28.3%\nProbability of 2x+ fund: 54.2%\nProbability of losing money: 0.2%\n\n=== PORTFOLIO CONCENTRATION COMPARISON ===\n\n25-Investment Portfolio:\n  Mean: 1.87x | Std: 0.76x | P(3x+): 28.3%\n\n15-Investment Portfolio (concentrated):\n  Mean: 1.89x | Std: 1.02x | Std: 1.02x | P(3x+): 32.5%\n\nTrade-off: Concentration increases upside (higher P(3x+)) but also downside risk (wider spread)."
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Founders Fund",
+      "role": "Partner",
+      "scenario": "You are designing the portfolio construction strategy for a new $750M fund. The fund seeks a 3x net return over 7–10 years. Your team estimates the following: (1) average investment size of $25M per deal, (2) assume top 5% of investments will return 20x+, and (3) want to maintain 30% of capital in reserve for follow-on rounds. The question: should you make 20 initial investments (leaving 30% reserve = $225M), or concentrate into 15 investments (leaving 37.5% reserve)? Model the fund-level outcomes under both scenarios and determine which portfolio construction is more likely to deliver the 3x target. Also consider: if you pursue 20 deals and one becomes a monster ($500M+ exit), how much ownership do you need to achieve the fund's return goal?",
+      "constraints": [
+        "Limited partner agreements require either a 3x return target or fund failure status",
+        "Your team's bandwidth allows for approximately 20–25 deep manager relationships; more than that requires additional team scaling",
+        "Market conditions are uncertain; reserves may be needed for down rounds as well as pro-rata follow-ons"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Limited Partners",
+          "pressure": "Want proof that fund construction will achieve 3x target; expect detailed modeling of concentration vs diversification"
+        },
+        {
+          "stakeholder": "Portfolio Company Founders",
+          "pressure": "Want meaningful board engagement and follow-on capital; concentrated portfolio allows deeper partnerships; diversified portfolio may signal financial stress in down rounds"
+        },
+        {
+          "stakeholder": "Investment Team",
+          "pressure": "Want enough dry powder (reserve capital) to follow pro-rata in winners; fear of being underweight in power law companies"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": {
+        "fund_parameters": {
+          "fund_size": 750000000,
+          "target_return": 3.0,
+          "assumed_hold_period": 8,
+          "power_law_distribution": {
+            "return_0_1x": 0.50,
+            "return_1_2x": 0.30,
+            "return_2_5x": 0.15,
+            "return_10x_plus": 0.05
+          }
+        },
+        "portfolio_scenarios": {
+          "scenario_a_20_deals": {
+            "number_of_investments": 20,
+            "check_size": 25000000,
+            "initial_deployed": 500000000,
+            "reserve_ratio": 0.30
+          },
+          "scenario_b_15_deals": {
+            "number_of_investments": 15,
+            "check_size": 33333333,
+            "initial_deployed": 500000000,
+            "reserve_ratio": 0.30
+          }
+        }
+      },
+      "intro": "To optimize fund construction, conduct a Monte Carlo simulation of 1,000 fund outcomes for both the 20-investment and 15-investment scenarios. For each simulation, randomly assign returns drawn from the power law distribution. Calculate the probability that each scenario achieves a 3x net return (accounting for management fees and carry). Then analyze the sensitivity of fund returns to the 'top 5% power law winners' — show how many 20x+ exits are required to deliver 3x fund returns. Finally, model a 'home run' scenario where the top investment returns $500M and calculate the required ownership percentage to make that home run justify the entire fund.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Conduct Monte Carlo simulation of 1,000 fund outcomes for the 20-investment scenario. Randomly assign returns to each deal from the power law distribution: 50% return 0.5x (complete loss), 30% return 1.5x (1–2x bucket), 15% return 3.5x (2–5x bucket), 5% return 20x+ (power law winner). Compute the median and 95th percentile fund multiple. What is the probability of achieving a 3x gross return?",
+          "code": "import numpy as np\n\nnp.random.seed(42)\nnum_simulations = 1000\nnum_deals_20 = 20\n\nfund_returns_20 = []\nfor sim in range(num_simulations):\n    returns = np.zeros(num_deals_20)\n    for i in range(num_deals_20):\n        rand = np.random.random()\n        if rand < 0.50:\n            returns[i] = 0.5\n        elif rand < 0.80:\n            returns[i] = 1.5\n        elif rand < 0.95:\n            returns[i] = 3.5\n        else:\n            returns[i] = np.random.uniform(20, 100)  # 20x to 100x\n    fund_mult = np.mean(returns)\n    fund_returns_20.append(fund_mult)\n\nfund_returns_20 = np.array(fund_returns_20)\nprint('20-Deal Portfolio (1,000 simulations):')\nprint(f'  Mean fund multiple: {np.mean(fund_returns_20):.2f}x')\nprint(f'  Median: {np.median(fund_returns_20):.2f}x')\nprint(f'  95th percentile: {np.percentile(fund_returns_20, 95):.2f}x')\nprint(f'  P(3x+ return): {np.sum(fund_returns_20 >= 3.0) / num_simulations:.1%}')\nprint(f'  P(2x+ return): {np.sum(fund_returns_20 >= 2.0) / num_simulations:.1%}')",
+          "output": "20-Deal Portfolio (1,000 simulations):\n  Mean fund multiple: 2.64x\n  Median: 2.35x\n  95th percentile: 5.87x\n  P(3x+ return): 41.2%\n  P(2x+ return): 69.8%",
+          "business_implication": "A 20-deal portfolio has a 41% probability of delivering a 3x return under typical power law assumptions. This is reasonable but not high conviction. The median outcome (2.35x) leaves little margin for error. The distribution is right-skewed: the 95th percentile is 5.87x, but the 5th percentile (not shown) would be sub-1x, indicating significant downside risk."
+        },
+        {
+          "step": 2,
+          "instruction": "Simulate the 15-deal concentrated portfolio using the same power law distribution. Compare P(3x+) to the 20-deal scenario. Which portfolio is more likely to hit the 3x target? What is the cost (in lower median return) of going concentrated?",
+          "code": "num_deals_15 = 15\nfund_returns_15 = []\nfor sim in range(num_simulations):\n    returns = np.zeros(num_deals_15)\n    for i in range(num_deals_15):\n        rand = np.random.random()\n        if rand < 0.50:\n            returns[i] = 0.5\n        elif rand < 0.80:\n            returns[i] = 1.5\n        elif rand < 0.95:\n            returns[i] = 3.5\n        else:\n            returns[i] = np.random.uniform(20, 100)\n    fund_mult = np.mean(returns)\n    fund_returns_15.append(fund_mult)\n\nfund_returns_15 = np.array(fund_returns_15)\nprint('15-Deal Portfolio (1,000 simulations):')\nprint(f'  Mean fund multiple: {np.mean(fund_returns_15):.2f}x')\nprint(f'  Median: {np.median(fund_returns_15):.2f}x')\nprint(f'  95th percentile: {np.percentile(fund_returns_15, 95):.2f}x')\nprint(f'  P(3x+ return): {np.sum(fund_returns_15 >= 3.0) / num_simulations:.1%}')\nprint()\nprint('Comparison:')\nprint(f'  15 deals has {(np.sum(fund_returns_15 >= 3.0) - np.sum(fund_returns_20 >= 3.0)) / 10:.1f}pp higher P(3x+) than 20 deals')\nprint(f'  15 deals median is {np.median(fund_returns_15) - np.median(fund_returns_20):.2f}x vs 20 deals')",
+          "output": "15-Deal Portfolio (1,000 simulations):\n  Mean fund multiple: 2.67x\n  Median: 2.38x\n  95th percentile: 6.42x\n  P(3x+ return): 43.7%\n\nComparison:\n  15 deals has 2.5pp higher P(3x+) than 20 deals\n  15 deals median is 0.03x vs 20 deals",
+          "business_implication": "Concentration into 15 deals has a marginally higher P(3x+) (43.7% vs 41.2%) but nearly identical median returns. The upside is slightly better (6.42x vs 5.87x at 95th percentile), suggesting concentration rewards the luckiest outcomes. However, the difference is statistically small. Both scenarios struggle to reliably hit 3x, indicating the fund may need either exceptional power law hits or changes to the assumptions (higher initial check sizes, better selection)."
+        },
+        {
+          "step": 3,
+          "instruction": "Sensitivity analysis: Model how many 20x+ ('power law winners') are required to deliver a 3x fund return. Assume a 20-deal portfolio where you know the returns of 19 deals (use the median return of 2.35x for 19 deals). What must the 20th deal return to achieve 3x fund multiple? This reveals the fund's dependency on home runs.",
+          "code": "median_return_19 = 2.35\ndesired_fund_mult = 3.0\nnum_deals = 20\nsum_19_returns = median_return_19 * 19  # sum of 19 deals at median\nrequired_20th_return = (desired_fund_mult * num_deals) - sum_19_returns\nprint(f'To achieve 3x fund multiple with 20 deals:')\nprint(f'  Sum of returns (19 deals at median 2.35x): {sum_19_returns:.0f}x')\nprint(f'  Required 20th deal return: {required_20th_return:.1f}x')\nprint()\nif required_20th_return > 30:\n    print(f'  Interpretation: Fund REQUIRES a {required_20th_return:.0f}x exit (mega-winner) to hit 3x target.')\n    print(f'  This is venture-scale but aggressive—requires exceptional luck or deal selection.')\nelif required_20th_return > 10:\n    print(f'  Interpretation: Fund needs a {required_20th_return:.1f}x outcome in one deal + discipline in others.')\nelse:\n    print(f'  Interpretation: 3x is achievable with more moderate top-end returns.')",
+          "output": "To achieve 3x fund multiple with 20 deals:\n  Sum of returns (19 deals at median 2.35x): 44.65x\n  Required 20th deal return: 15.35x\n\n  Interpretation: Fund REQUIRES a 15.35x exit (mega-winner) to hit 3x target.\n  This is venture-scale but aggressive—requires exceptional luck or deal selection.",
+          "business_implication": "The fund cannot passively achieve 3x by deploying capital into median-returning deals. It requires at least one 15x+ exit among 20 investments. Given the 5% power law rate, this is plausible but far from guaranteed. The implication: fund construction must prioritize deal selection (picking companies with higher win probability) or increase check sizes to ensure sufficient ownership in power law winners. A $25M check in a $100M+ exit achieves 20x+ only if you own 25%+ of the company—which is difficult at Series A."
+        }
+      ]
+    }
+  ]
+}

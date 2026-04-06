@@ -1,0 +1,70 @@
+{
+  "id": "m17_l05",
+  "module_id": "m17",
+  "title": "Fraud Detection at Scale: Deep Learning for Anomaly Detection",
+  "order": 5,
+  "duration_min": 30,
+  "difficulty": "advanced",
+  "concept_tags": [
+    "fraud_detection",
+    "anomaly_detection",
+    "autoencoder",
+    "class_imbalance",
+    "deep_learning",
+    "ensemble_models",
+    "threshold_optimization"
+  ],
+  "learning_objectives": [
+    "Build a feedforward neural network for fraud classification with class imbalance handling",
+    "Implement an autoencoder for unsupervised anomaly detection trained on normal transactions only",
+    "Combine DNN and autoencoder scores into an ensemble model",
+    "Optimize the classification threshold to minimize business cost of false positives and false negatives",
+    "Explain why reconstruction error from an autoencoder flags anomalous transactions"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Mastercard processes 160 million transactions per hour and flags potential fraud in under 50 milliseconds using deep neural networks. False positive rate is 0.1% compared to 3% for old rule-based systems — a 30x improvement that restored billions in annual merchant trust.",
+      "explanation": "Fraud detection at scale faces unique challenges. Fraud is rare: typically 0.1-0.5% of transactions, creating extreme class imbalance where models can achieve 99.5% accuracy by always predicting 'legitimate.' Standard loss functions and metrics fail. Solving imbalance requires multiple strategies: (1) Class weighting in Keras to increase penalty for misclassifying fraud cases, (2) Autoencoders for anomaly detection — train only on normal transactions, reconstruction error is low for normal, high for anomalies, (3) Ensemble combining DNN probability + autoencoder reconstruction error, (4) Threshold calibration using business cost matrix. Autoencoder architecture: encoder compresses to latent space, decoder reconstructs original features. Mean squared reconstruction error per sample flags anomalies. Practical considerations: latency constraints (Mastercard's 50ms requirement), adversarial adaptation (fraudsters evolve), and false positive cost (160K legitimate transactions blocked per hour at current rates).",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\nimport tensorflow as tf\nfrom tensorflow.keras import Sequential, layers\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.metrics import roc_auc_score, precision_recall_curve, confusion_matrix\nfrom sklearn.model_selection import train_test_split\n\nnp.random.seed(42)\nn_samples = 2000\nfraud_rate = 0.01\n\nX = np.random.randn(n_samples, 8)\nX[:, 0] = np.clip(np.abs(X[:, 0]) * 100, 5, 500)\nX[:, 1] = np.clip(X[:, 1] * 6 + 12, 0, 23)\nX[:, 2] = np.random.binomial(1, 0.1, n_samples)\nX[:, 3] = np.clip(np.abs(X[:, 3]), 0, 1)\nX[:, 4] = np.clip(np.abs(X[:, 4]) * 5, 0, 20)\nX[:, 5] = np.clip(np.abs(X[:, 5]) * 10, 0, 100)\nX[:, 6] = np.clip(np.abs(X[:, 6]) * 100 + 50, 1, 1000)\nX[:, 7] = np.random.binomial(1, 0.05, n_samples)\n\ny = np.zeros(n_samples)\nfraud_indices = np.random.choice(n_samples, size=int(n_samples * fraud_rate), replace=False)\ny[fraud_indices] = 1\n\nfor idx in fraud_indices:\n    X[idx, 0] = np.random.uniform(200, 500)\n    X[idx, 2] = np.random.choice([0, 1], p=[0.3, 0.7])\n    X[idx, 4] = np.random.uniform(5, 20)\n    X[idx, 7] = 1\n\nprint(f\"Dataset: {n_samples} transactions, {int(np.sum(y))} frauds ({fraud_rate*100:.1f}%)\")\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)\n\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)\n\nmodel_dnn = Sequential([\n    layers.Dense(64, activation='relu', input_shape=(8,)),\n    layers.Dropout(0.3),\n    layers.Dense(32, activation='relu'),\n    layers.Dropout(0.2),\n    layers.Dense(1, activation='sigmoid')\n])\n\nmodel_dnn.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])\nmodel_dnn.fit(X_train_scaled, y_train, epochs=20, batch_size=32, validation_split=0.2, verbose=0)\n\ny_pred_dnn = model_dnn.predict(X_test_scaled, verbose=0).flatten()\nauc_dnn = roc_auc_score(y_test, y_pred_dnn)\n\nX_train_normal = X_train_scaled[y_train == 0]\n\nautoencoder = Sequential([\n    layers.Dense(16, activation='relu', input_shape=(8,)),\n    layers.Dense(8, activation='relu'),\n    layers.Dense(16, activation='relu'),\n    layers.Dense(8, activation='linear')\n])\n\nautoencoder.compile(optimizer='adam', loss='mse')\nautoencoder.fit(X_train_normal, X_train_normal, epochs=30, batch_size=32, validation_split=0.2, verbose=0)\n\nX_test_recon = autoencoder.predict(X_test_scaled, verbose=0)\nreconstruction_error = np.mean((X_test_scaled - X_test_recon)**2, axis=1)\n\nauc_autoencoder = roc_auc_score(y_test, reconstruction_error)\n\nreconstruction_error_norm = (reconstruction_error - reconstruction_error.min()) / (reconstruction_error.max() - reconstruction_error.min() + 1e-10)\nensemble_score = 0.6 * y_pred_dnn + 0.4 * reconstruction_error_norm\nauc_ensemble = roc_auc_score(y_test, ensemble_score)\n\nprint(f\"DNN AUC: {auc_dnn:.4f}\")\nprint(f\"Autoencoder AUC: {auc_autoencoder:.4f}\")\nprint(f\"Ensemble AUC: {auc_ensemble:.4f}\")\n\nprecision, recall, thresholds = precision_recall_curve(y_test, ensemble_score)\nf1_scores = 2 * (precision * recall) / (precision + recall + 1e-10)\n\nvalid_idx = recall >= 0.90\nif np.any(valid_idx):\n    valid_thresholds = thresholds[:-1][valid_idx[:-1]]\n    valid_f1 = f1_scores[:-1][valid_idx[:-1]]\n    optimal_idx = np.argmax(valid_f1)\n    optimal_threshold = valid_thresholds[optimal_idx]\nelse:\n    optimal_threshold = 0.5\n\ny_pred_ensemble = (ensemble_score >= optimal_threshold).astype(int)\ntn, fp, fn, tp = confusion_matrix(y_test, y_pred_ensemble).ravel()\nprecision_opt = tp / (tp + fp) if (tp + fp) > 0 else 0\nrecall_opt = tp / (tp + fn)\nfpr = fp / (fp + tn)\n\nprint(f\"\\nOptimal Threshold: {optimal_threshold:.3f}\")\nprint(f\"Recall: {recall_opt:.3f}\")\nprint(f\"Precision: {precision_opt:.3f}\")\nprint(f\"False Positive Rate: {fpr:.4f}\")"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Mastercard",
+      "role": "AI Research Engineer, Fraud Intelligence",
+      "scenario": "Redesigning the fraud model to reduce false positives from 0.8% to 0.2% while maintaining fraud recall above 90%. Each 0.1% reduction in false positive rate is worth $50M annually in restored merchant confidence. The new model uses an ensemble of a deep classifier and an autoencoder trained on behavioral baselines.",
+      "constraints": [
+        "Model must respond in under 100ms for real-time authorization",
+        "False negative rate (missed fraud) cannot exceed 10% — regulatory requirement",
+        "Model must be explainable enough to provide a reason code for declined transactions",
+        "Training data refresh must happen weekly to adapt to new fraud patterns"
+      ],
+      "stakeholder_pressures": [
+        "Chief Risk Officer: recall must stay above 90%",
+        "Merchant Relations: need to reduce false positives or merchants will switch networks",
+        "Engineering: model must be under 5MB serialized size for edge deployment"
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "intro": "Build a fraud detection ensemble combining a deep neural network with an autoencoder anomaly detector, then optimize the threshold for business cost minimization.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Train DNN and autoencoder separately. Evaluate each: compute precision, recall, AUC-ROC on test set. Show reconstruction error distribution for normal vs fraud transactions. Print mean reconstruction error for each class.",
+          "python_code": "# Step 1: Train DNN on imbalanced data with class weights\nclass_weight = {0: 1, 1: 99}  # weight fraud 99x more\nmodel_dnn.fit(X_train_scaled, y_train, epochs=20, batch_size=32, class_weight=class_weight, validation_split=0.2, verbose=0)\n\n# Evaluate DNN\ny_pred_dnn = model_dnn.predict(X_test_scaled, verbose=0).flatten()\nauc_dnn = roc_auc_score(y_test, y_pred_dnn)\ntn, fp, fn, tp = confusion_matrix(y_test, (y_pred_dnn >= 0.5).astype(int)).ravel()\nprecision_dnn = tp / (tp + fp)\nrecall_dnn = tp / (tp + fn)\n\nprint(f'DNN Performance:')\nprint(f'  AUC: {auc_dnn:.4f}')\nprint(f'  Precision: {precision_dnn:.4f}')\nprint(f'  Recall: {recall_dnn:.4f}')\n\n# Evaluate Autoencoder\nX_test_recon = autoencoder.predict(X_test_scaled, verbose=0)\nreconstruction_error = np.mean((X_test_scaled - X_test_recon)**2, axis=1)\n\nmean_error_normal = np.mean(reconstruction_error[y_test == 0])\nmean_error_fraud = np.mean(reconstruction_error[y_test == 1])\n\nprint(f'\\nAutoencoder Reconstruction Error:')\nprint(f'  Normal transactions mean error: {mean_error_normal:.4f}')\nprint(f'  Fraud transactions mean error: {mean_error_fraud:.4f}')\nprint(f'  Ratio (fraud/normal): {mean_error_fraud/mean_error_normal:.2f}x')",
+          "business_implication": "The DNN learns known fraud patterns from training labels and achieves high recall. The autoencoder learns the distribution of normal transactions and flags anything that deviates. Fraud transactions reconstruct much worse than normal, creating a clear separation signal. The 2-3x higher reconstruction error for fraud validates the autoencoder approach for anomaly detection."
+        },
+        {
+          "step": 2,
+          "instruction": "Build the ensemble score, run threshold sweep from 0.1 to 0.9, compute precision, recall, and business cost at each threshold. False negative costs $200, false positive costs $5. Find the optimal threshold. Compare DNN-only vs ensemble at that threshold.",
+          "python_code": "# Step 2: Ensemble and threshold optimization\nreconstruction_error_norm = (reconstruction_error - reconstruction_error.min()) / (reconstruction_error.max() - reconstruction_error.min() + 1e-10)\nensemble_score = 0.6 * y_pred_dnn + 0.4 * reconstruction_error_norm\n\nthresholds = np.linspace(0.1, 0.9, 25)\ncosts = []\n\nfor threshold in thresholds:\n    y_pred = (ensemble_score >= threshold).astype(int)\n    tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()\n    cost = fn * 200 + fp * 5\n    costs.append(cost)\n    \noptimal_idx = np.argmin(costs)\noptimal_threshold = thresholds[optimal_idx]\n\ny_pred_optimal = (ensemble_score >= optimal_threshold).astype(int)\ntn, fp, fn, tp = confusion_matrix(y_test, y_pred_optimal).ravel()\nprecision_opt = tp / (tp + fp) if (tp + fp) > 0 else 0\nrecall_opt = tp / (tp + fn)\ncost_opt = fn * 200 + fp * 5\n\nprint(f'Optimal Threshold: {optimal_threshold:.3f}')\nprint(f'Precision: {precision_opt:.4f}')\nprint(f'Recall: {recall_opt:.4f}')\nprint(f'Business Cost: ${cost_opt}')\nprint(f'\\nComparison to DNN-only at same threshold:')\ny_pred_dnn_opt = (y_pred_dnn >= optimal_threshold).astype(int)\ntn_d, fp_d, fn_d, tp_d = confusion_matrix(y_test, y_pred_dnn_opt).ravel()\ncost_dnn = fn_d * 200 + fp_d * 5\nprint(f'DNN-only Business Cost: ${cost_dnn}')\nprint(f'Ensemble Savings: ${cost_dnn - cost_opt}')",
+          "business_implication": "Threshold optimization reveals the true cost-benefit trade-off. At lower thresholds (0.1-0.3), we catch more fraud but flag more legitimate transactions. At higher thresholds (0.7-0.9), we minimize false positives but miss fraud. Given that false negatives cost 40x more than false positives ($200 vs $5), the optimal threshold is aggressive—catch fraud even at the cost of some false alarms. The ensemble saves money by improving recall while autoencoder reduces false positives from novel fraud patterns DNN hasn't seen."
+        }
+      ]
+    }
+  ]
+}

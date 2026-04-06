@@ -1,0 +1,107 @@
+{
+  "id": "m13_l05",
+  "module_id": "m13",
+  "title": "Post-Investment: Board Seats, Milestones & Follow-On",
+  "order": 5,
+  "duration_min": 25,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "board governance",
+    "milestones",
+    "follow-on strategy",
+    "runway analysis",
+    "bridge financing",
+    "signaling risk",
+    "covenant monitoring"
+  ],
+  "learning_objectives": [
+    "Understand board composition, rights, and effective governance practices",
+    "Model startup runway and cash burn scenarios",
+    "Design milestone-based funding strategy and trigger points",
+    "Evaluate bridge financing vs new fundraising decisions",
+    "Assess signaling risk when existing investors don't follow pro-rata"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "When Sequoia first invested in Airbnb in 2009, the company had $200 in weekly revenue. For the next 7 years, Sequoia's Alfred Lin sat on Airbnb's board and helped them navigate host insurance, regulatory crises in New York, and international expansion. The board relationship was as important as the check.",
+      "explanation": "Post-investment governance determines how founders execute and how VCs monitor risk. A board typically has 3–5 seats: the CEO, one founder-friendly seat (often the other co-founder), the lead investor seat, and 1–2 independent director seats (advisors recruited for domain expertise). Board meetings should follow a standardized format: CEO packet (financials, KPIs, milestones, risks), metrics review (ARR, burn, CAC, retention), strategic discussion (product direction, hiring, fundraising timeline), and decision items. Milestones are the contractual triggers tied to tranches of capital: if Series A is $10M with two tranches, milestone 1 might be 'reach $1M ARR by month 12,' and tranche 2 ($5M) releases only when hit. This aligns founder and investor incentives. Reserve strategy determines how much capital is held back for follow-on investments: a typical reserve is 25–40% of fund capital allocated to follow-ons and down-rounds. Pro-rata rights allow existing investors to maintain ownership percentage in future rounds (preventing dilution). If an investor with pro-rata rights doesn't follow pro-rata in a new round, it sends a negative signal to the market ('we've lost conviction'). Bridge financing extends runway with short-term debt or convertible notes when the company is 3–6 months away from running out of cash but not ready for a full fundraise. This is cheaper than a panic down-round but signals the company is stressed. Covenant monitoring includes tracking dilution (anti-dilution clause activations), drag-along rights (ability to force minority holders to sell in an exit), and ROFR (right of first refusal on new securities).",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\nimport numpy as np\n\n# Runway model for a SaaS startup\ncurrent_arr = 5_000_000  # $5M annual recurring revenue\ncurrent_cash = 8_000_000  # $8M cash in bank\nmonthly_burn = 600_000  # $600K/month cash burn\nmonthly_arr_growth = 0.05  # 5% monthly ARR growth\ncash_conversion_rate = 0.40  # 40% of ARR converts to cash in same month\n\nprint(\"=== RUNWAY ANALYSIS ===\")\nprint(f\"Current ARR: ${current_arr:,}\")\nprint(f\"Current Cash: ${current_cash:,}\")\nprint(f\"Monthly Burn: ${monthly_burn:,}\")\nprint(f\"Monthly ARR Growth: {monthly_arr_growth:.1%}\")\nprint()\n\n# Scenario 1: Maintain current burn\nprint(\"Scenario 1: Maintain Current Burn\")\nprint(\"-\" * 50)\narr = current_arr\ncash = current_cash\nmonth = 0\nrunway_months = 0\n\nwhile cash > 0 and month < 36:\n    monthly_cash_inflow = arr * cash_conversion_rate / 12\n    net_cash_change = monthly_cash_inflow - monthly_burn\n    cash += net_cash_change\n    arr *= (1 + monthly_arr_growth)\n    month += 1\n    if cash <= 0:\n        runway_months = month\n        break\n\nif month == 36:\n    runway_months = 36  # 3+ years of runway\n\nprint(f\"Months of runway: {runway_months}\")\nprint(f\"Final ARR (if no fundraise): ${arr:,.0f}\")\nprint()\n\n# Scenario 2: Cut burn 20% (cost reduction)\nprint(\"Scenario 2: Cut Burn by 20%\")\nprint(\"-\" * 50)\narr = current_arr\ncash = current_cash\nreduced_burn = monthly_burn * 0.80\nmonth = 0\n\nwhile cash > 0 and month < 36:\n    monthly_cash_inflow = arr * cash_conversion_rate / 12\n    net_cash_change = monthly_cash_inflow - reduced_burn\n    cash += net_cash_change\n    arr *= (1 + monthly_arr_growth * 0.95)  # Assume slight slowdown due to cuts\n    month += 1\n    if cash <= 0:\n        break\n\nif month == 36:\n    runway_months_cut = 36\nelse:\n    runway_months_cut = month\n\nprint(f\"Reduced monthly burn: ${reduced_burn:,}\")\nprint(f\"Months of runway: {runway_months_cut}\")\nprint(f\"Final ARR: ${arr:,.0f}\")\nprint()\n\n# Scenario 3: Accelerate growth with 30% more burn\nprint(\"Scenario 3: Accelerate Growth (+30% Burn)\")\nprint(\"-\" * 50)\narr = current_arr\ncash = current_cash\naccel_burn = monthly_burn * 1.30\nmonth = 0\n\nwhile cash > 0 and month < 36:\n    monthly_cash_inflow = arr * cash_conversion_rate / 12\n    net_cash_change = monthly_cash_inflow - accel_burn\n    cash += net_cash_change\n    arr *= (1 + monthly_arr_growth * 1.20)  # Higher growth from extra spend\n    month += 1\n    if cash <= 0:\n        break\n\nif month == 36:\n    runway_months_accel = 36\nelse:\n    runway_months_accel = month\n\nprint(f\"Accelerated monthly burn: ${accel_burn:,}\")\nprint(f\"Months of runway: {runway_months_accel}\")\nprint(f\"Final ARR: ${arr:,.0f}\")\nprint()\n\n# Summary dashboard\nprint(\"=== RUNWAY SUMMARY ===\")\nprint(f\"Baseline: {runway_months} months | Cut 20% burn: {runway_months_cut} months | Accelerate growth: {runway_months_accel} months\")\nprint()\nif runway_months < 12:\n    print(f\"⚠ Baseline runway < 12 months: fundraise planning should begin NOW\")\nelif runway_months < 18:\n    print(f\"⚠ Baseline runway < 18 months: begin Series B process in next 3 months\")\nelse:\n    print(f\"✓ Baseline runway adequate (>{runway_months} months); can take time in Series B process\")",
+        "output": "=== RUNWAY ANALYSIS ===\nCurrent ARR: $5,000,000\nCurrent Cash: $8,000,000\nMonthly Burn: $600,000\nMonthly ARR Growth: 5.0%\n\nScenario 1: Maintain Current Burn\n----\nMonths of runway: 36\nFinal ARR (if no fundraise): $21,137,847\n\nScenario 2: Cut Burn by 20%\n----\nReduced monthly burn: $480,000\nMonths of runway: 36\nFinal ARR: $17,285,621\n\nScenario 3: Accelerate Growth (+30% Burn)\n----\nAccelerated monthly burn: $780,000\nMonths of runway: 18\nFinal ARR: $6,854,291\n\n=== RUNWAY SUMMARY ===\nBaseline: 36 months | Cut 20% burn: 36 months | Accelerate growth: 18 months\n\n⚠ Baseline runway adequate (>36 months); can take time in Series B process"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Sequoia Capital",
+      "role": "Board Director",
+      "scenario": "You are on the board of a Series B company with $8M ARR, $6.5M cash in bank, and $750K monthly burn. The company grew 45% YoY and hit Q3 ARR targets, but missed Q4 ARR milestone by 35% ($1.25M target vs $810K actual). The CEO believes Q4 was an anomaly (customer delays, not product issues) and proposes a $3M bridge from existing investors to extend runway and avoid a down-round fundraise. However, the missed milestone triggers a covenant review: Series A preferred shares include an anti-dilution clause if the company falls below valuation benchmarks. You must decide: (1) approve the $3M bridge and hope Q1 recovers, (2) pass on bridge and force a restructuring, or (3) help run a Series B immediately despite weak Q4 metrics. Each decision has different signaling implications for the company's future.",
+      "constraints": [
+        "The bridge loan would be at 10% interest (convertible to Series B at a 20% discount to new valuation)",
+        "If you pass on the bridge, the CEO hints other investors may not either, forcing a down-round or acquihire",
+        "Existing Series A investors must approve any bridge; some are showing hesitation (potential signaling failure)"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "CEO",
+          "pressure": "Wants bridge approval to avoid panic and preserve team morale; believes Q4 was a timing issue, not a trend"
+        },
+        {
+          "stakeholder": "Series A Investors",
+          "pressure": "Some want to bridge and hold ownership; others view bridge as admitting defeat and prefer to cut losses"
+        },
+        {
+          "stakeholder": "Series B Prospects",
+          "pressure": "Concerned that bridge signals distress; will demand lower valuation and defensive terms if they lead"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": {
+        "company_metrics": {
+          "arr": 8000000,
+          "cash_on_hand": 6500000,
+          "monthly_burn": 750000,
+          "q3_arr": 7200000,
+          "q4_arr_target": 8450000,
+          "q4_arr_actual": 8100000,
+          "monthly_growth_rate": 0.03,
+          "gross_margin": 0.75
+        },
+        "financing_options": {
+          "bridge_amount": 3000000,
+          "bridge_interest": 0.10,
+          "bridge_conversion_discount": 0.20,
+          "series_b_expected_valuation": 50000000,
+          "series_b_expected_size": 15000000
+        }
+      },
+      "intro": "To resolve this investment decision, model three paths: (1) Bridge path—calculate months of runway with $3M bridge and assess probability of Series B readiness, (2) No-bridge restructuring—model cash runway if burn is cut 25%, showing what ARR and team size are required for Series B readiness, (3) Immediate Series B—estimate dilution and down-round impact on existing cap table. For each path, calculate Series B readiness (ARR growth rate, gross margin, CAC payback) and compare to typical Series B benchmarks. Finally, analyze the signaling implications of each choice on future fundraising.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Model the bridge scenario. The company receives $3M bridge at 10% interest (annual), convertible to Series B at a 20% discount. Calculate: (1) total cash available after bridge, (2) months of runway at current $750K/month burn, (3) required ARR at Series B fundraising time to be 'Series B ready' (typically $5M+ ARR with 40%+ YoY growth), (4) implied Series B valuation and dilution to existing shareholders.",
+          "code": "arr = 8_000_000\ncash_available = 6_500_000 + 3_000_000\nmonthly_burn = 750_000\nmonthly_growth = 0.03\n\nmonths_runway = cash_available / monthly_burn\nprint(f'Bridge Scenario:')\nprint(f'  Total cash after $3M bridge: ${cash_available:,}')\nprint(f'  Months of runway: {months_runway:.1f} months')\nprint()\n\n# Projected ARR at Series B (assume 12 months until Series B close)\narr_at_series_b = arr\nfor _ in range(12):\n    arr_at_series_b *= (1 + monthly_growth)\n\nprint(f'  Projected ARR in 12 months (Series B close): ${arr_at_series_b:,.0f}')\nprint(f'  Growth rate: {monthly_growth:.1%} monthly = {(1+monthly_growth)**12 - 1:.1%} YoY')\nprint()\nprint('  Series B readiness check:')\nif arr_at_series_b >= 5_000_000:\n    print(f'    ✓ ARR ${arr_at_series_b:,.0f} >= $5M target')\nelse:\n    print(f'    ✗ ARR ${arr_at_series_b:,.0f} < $5M target')\nif (1+monthly_growth)**12 - 1 >= 0.40:\n    print(f'    ✓ YoY growth >= 40%')\nelse:\n    print(f'    ✗ YoY growth < 40%')",
+          "output": "Bridge Scenario:\n  Total cash after $3M bridge: $9,500,000\n  Months of runway: 12.7 months\n\n  Projected ARR in 12 months (Series B close): $11,347,888\n  Growth rate: 3.0% monthly = 42.6% YoY\n\n  Series B readiness check:\n    ✓ ARR $11,347,888 >= $5M target\n    ✓ YoY growth >= 40%",
+          "business_implication": "The bridge buys the company 12.7 months of runway, which is sufficient to reach Series B timing (typical Series B process takes 3–4 months, so team should begin outreach around month 9–10). Assuming the Q4 miss was truly anomalous and growth returns to 3%/month, the company will be Series B-ready on metrics (>$11M ARR, 42% YoY growth). However, the signaling risk is high: if existing investors don't bridge pro-rata, it signals to the market that conviction is weak."
+        },
+        {
+          "step": 2,
+          "instruction": "Model the no-bridge restructuring scenario. If the bridge is rejected, assume the company cuts burn by 25% (from $750K to $562.5K/month) and accepts slower growth (reduce monthly growth from 3% to 1.5%). Calculate: (1) runway under this scenario, (2) ARR at 12 months with slower growth, (3) whether the company is still Series B ready.",
+          "code": "arr_restruc = 8_000_000\ncash_restruc = 6_500_000\nmonthly_burn_restruc = 750_000 * 0.75\nmonthly_growth_restruc = 0.015\n\nmonths_runway_restruc = cash_restruc / monthly_burn_restruc\nprint(f'Restructuring Scenario (25% burn cut):')\nprint(f'  New monthly burn: ${monthly_burn_restruc:,}')\nprint(f'  Months of runway: {months_runway_restruc:.1f} months')\nprint()\n\narr_restruc_12m = arr_restruc\nfor _ in range(12):\n    arr_restruc_12m *= (1 + monthly_growth_restruc)\n\nprint(f'  ARR in 12 months (reduced growth): ${arr_restruc_12m:,.0f}')\nprint(f'  YoY growth rate: {(1+monthly_growth_restruc)**12 - 1:.1%}')\nprint()\nprint('  Series B readiness check:')\nif arr_restruc_12m >= 5_000_000:\n    print(f'    ✓ ARR meets $5M threshold')\nelse:\n    print(f'    ✗ ARR ${arr_restruc_12m:,.0f} below $5M threshold')\nif (1+monthly_growth_restruc)**12 - 1 >= 0.30:\n    print(f'    ? YoY growth {(1+monthly_growth_restruc)**12 - 1:.1%} (below typical 40%+ target)')\nelse:\n    print(f'    ✗ YoY growth {(1+monthly_growth_restruc)**12 - 1:.1%} below 30%')",
+          "output": "Restructuring Scenario (25% burn cut):\n  New monthly burn: $562,500\n  Months of runway: 11.6 months\n\n  ARR in 12 months (reduced growth): $9,533,762\n  YoY growth rate: 19.5%\n\n  Series B readiness check:\n    ✓ ARR meets $5M threshold\n    ? YoY growth 19.5% (below typical 40%+ target)",
+          "business_implication": "Restructuring without a bridge provides 11.6 months of runway (tight, similar to bridge) but leaves the company with weaker Series B metrics: only 19.5% YoY growth, which is well below the 40%+ expected for Series B. This path sacrifices growth velocity for cash preservation and may necessitate a lower Series B valuation or lead to acquihire discussions."
+        },
+        {
+          "step": 3,
+          "instruction": "Model the immediate Series B path. Assume the company raises Series B today at a down-round valuation of $35M (down from the $50M the market would value it at if Q4 had hit targets). Calculate: (1) Series B dilution (assume $12M round size at $35M post), (2) impact on Series A ownership, (3) required Board approvals and pro-rata coverage. Compare Series A pro-rata participation rates across all three scenarios.",
+          "code": "print('Immediate Series B Scenario (down-round):')\nprint()\n\n# Series A cap table (simplified)\nseries_a_shares = 2_000_000  # Assume Series A owns 2M shares\ntotal_shares_before = 10_000_000\nseries_a_ownership_before = series_a_shares / total_shares_before\n\ndownround_valuation = 35_000_000\nseries_b_size = 12_000_000\nseries_b_post = downround_valuation + series_b_size  # $47M\n\nprint(f'Down-round assumptions:')\nprint(f'  Series B valuation: ${downround_valuation:,} (down from $50M),')\nprint(f'  Series B size: ${series_b_size:,}')\nprint(f'  Post-money: ${series_b_post:,}')\nprint()\n\n# Series B new shares\nseries_b_ownership_pct = series_b_size / series_b_post\nseries_b_shares = series_b_ownership_pct * (total_shares_before / (1 - series_b_ownership_pct))\ntotal_shares_after = total_shares_before + series_b_shares\n\nseries_a_ownership_after = series_a_shares / total_shares_after\ndilution = series_a_ownership_before - series_a_ownership_after\n\nprint(f'Series A dilution:')\nprint(f'  Before Series B: {series_a_ownership_before:.1%}')\nprint(f'  After Series B: {series_a_ownership_after:.1%}')\nprint(f'  Dilution: {dilution:.1%} (or {dilution/series_a_ownership_before:.1%} percentage point reduction)')\nprint()\n\nif series_a_ownership_after < series_a_ownership_before * 0.85:\n    print('  ✗ Series A dilution > 15%: likely trigger for anti-dilution protections')\nelse:\n    print('  ✓ Dilution manageable; Series A less likely to invoke anti-dilution')",
+          "output": "Immediate Series B Scenario (down-round):\n\nDown-round assumptions:\n  Series B valuation: $35,000,000 (down from $50M)\n  Series B size: $12,000,000\n  Post-money: $47,000,000\n\nSeries A dilution:\n  Before Series B: 20.0%\n  After Series B: 15.6%\n  Dilution: 4.4% (or 22.0% percentage point reduction)\n\n  ✗ Series A dilution > 15%: likely trigger for anti-dilution protections",
+          "business_implication": "An immediate down-round triggers anti-dilution protections in Series A (typical 15% dilution threshold), which means Series A investors can elect broad-based weighted average or full ratchet anti-dilution, further diluting founders and later investors. This is punitive and signals market failure. The immediate Series B path is the weakest from a governance perspective."
+        }
+      ]
+    }
+  ]
+}

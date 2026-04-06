@@ -1,0 +1,118 @@
+{
+  "id": "m13_l06",
+  "module_id": "m13",
+  "title": "Exit Strategies: IPO, M&A & Secondary Sales",
+  "order": 6,
+  "duration_min": 30,
+  "difficulty": "advanced",
+  "concept_tags": [
+    "IPO",
+    "M&A",
+    "secondary sales",
+    "MOIC",
+    "IRR",
+    "exit timing",
+    "strategic acquisition",
+    "lock-up period",
+    "earnout"
+  ],
+  "learning_objectives": [
+    "Understand the three primary exit paths (IPO, M&A, secondary sales) and their mechanics",
+    "Calculate and compare returns across multiple exit scenarios using MOIC and IRR",
+    "Analyze the relationship between exit timing, valuation, and investor returns",
+    "Model earnout structures and their impact on post-acquisition returns",
+    "Evaluate when secondary sales create value vs signaling negative information"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "When Instacart went public via IPO in September 2023 at a $9.9B valuation — down from a $39B peak in 2021 — early investors still returned 7x their Series A investment. Exit timing and structure matter as much as picking winners.",
+      "explanation": "Every venture-backed company must eventually return capital to investors. Three exit types dominate. (1) IPO: Company files an S-1, undergoes SEC review, goes on a roadshow (CEO presents to institutional investors), and prices shares. Lock-up periods (typically 180 days) prevent insiders from selling immediately. Valuation multiples in public markets are typically lower than private (e.g., 8–15x revenue for SaaS vs 15–25x in private markets), but liquidity is gained. Timing matters: IPO markets open and close, and first-mover advantage exists (if two SaaS companies are similar, the first public offering captures a premium). (2) M&A (Strategic Acquisition): A buyer acquires the company. Strategic buyers (existing industry players) often pay premiums because they capture synergies (cost savings, cross-sell, technology integration). Financial buyers (PE firms, other VCs) typically pay multiples closer to market comps. Earnouts tie some payment to post-acquisition performance, incentivizing founders to stay and hit milestones. Reps and warranties insurance covers indemnification claims (founder tax representation, no litigation), protecting the seller. (3) Secondary Sales: Founders, employees, or investors sell shares before a liquidity event. GP-led secondaries let the fund acquire shares from early investors at a discount, then sell them to new investors or the company itself. Tender offers let companies buy back shares from employees. Secondaries signal either (a) founders with conviction want to take chips off the table before a big risk (positive signal), or (b) the company is struggling and early investors want liquidity (negative signal). MOIC (multiple on invested capital) = exit proceeds / initial investment. IRR = annual return rate accounting for time value. A $100M exit in year 3 on a $10M investment = 10x MOIC and 115% IRR, but a $300M exit in year 7 = 30x MOIC and only 58% IRR.",
+      "code_example": {
+        "language": "python",
+        "code": "import numpy as np\n\n# Portfolio company exit analysis\ninitial_investment = 10_000_000  # $10M invested in Series A\nseries_a_post_money = 50_000_000  # $50M post-money valuation\ninitial_ownership = initial_investment / series_a_post_money  # 20% ownership\n\nprint(\"=== EXIT SCENARIO ANALYSIS ===\")\nprint(f\"Initial Investment: ${initial_investment:,}\")\nprint(f\"Series A Post-Money: ${series_a_post_money:,}\")\nprint(f\"Investor Ownership: {initial_ownership:.1%}\")\nprint()\n\n# Scenario 1: IPO in 3 years at $2B valuation\nprint(\"Scenario 1: IPO in 3 Years at $2B\")\nprint(\"-\" * 50)\nexit_value_ipo = 2_000_000_000\nexit_years_ipo = 3\nproceeds_ipo = initial_ownership * exit_value_ipo\nmoic_ipo = proceeds_ipo / initial_investment\nirr_ipo = (proceeds_ipo / initial_investment) ** (1 / exit_years_ipo) - 1\n\nprint(f\"Exit Value: ${exit_value_ipo:,}\")\nprint(f\"Investor Proceeds: ${proceeds_ipo:,}\")\nprint(f\"MOIC: {moic_ipo:.1f}x\")\nprint(f\"IRR: {irr_ipo:.1%}\")\nprint()\n\n# Scenario 2: M&A acquisition in 2 years at $1.5B (strategic premium)\nprint(\"Scenario 2: M&A in 2 Years at $1.5B (Strategic)\")\nprint(\"-\" * 50)\nexit_value_ma = 1_500_000_000\nexit_years_ma = 2\nearnout_percentage = 0.15  # 15% of deal value is earnout (tied to performance)\nearnout_amount = exit_value_ma * earnout_percentage\ncash_at_close = exit_value_ma - earnout_amount\n\nproceeds_ma = initial_ownership * cash_at_close\nearnout_proceeds_ma = initial_ownership * earnout_amount * 0.75  # assume founder hits 75% of earnout\ntotal_proceeds_ma = proceeds_ma + earnout_proceeds_ma\n\nmoic_ma = total_proceeds_ma / initial_investment\nirr_ma = (total_proceeds_ma / initial_investment) ** (1 / exit_years_ma) - 1\n\nprint(f\"Exit Value: ${exit_value_ma:,}\")\nprint(f\"Earnout (15% of deal): ${earnout_amount:,} (assume 75% hit)\")\nprint(f\"Cash at Close: ${cash_at_close:,}\")\nprint(f\"Investor Proceeds (cash): ${proceeds_ma:,}\")\nprint(f\"Investor Earnout Proceeds: ${earnout_proceeds_ma:,}\")\nprint(f\"Total Proceeds: ${total_proceeds_ma:,}\")\nprint(f\"MOIC: {moic_ma:.1f}x\")\nprint(f\"IRR: {irr_ma:.1%}\")\nprint()\n\n# Scenario 3: Secondary sale (partial liquidity) in Year 1, then IPO in Year 5\nprint(\"Scenario 3: Secondary Sale in Year 1 ($800M valuation) + IPO in Year 5 ($3B)\")\nprint(\"-\" * 50)\nsecondary_valuation = 800_000_000\nsecondary_sell_pct = 0.50  # Sell 50% of stake\nsecondary_proceeds = initial_ownership * secondary_sell_pct * secondary_valuation\nremaining_ownership = initial_ownership * (1 - secondary_sell_pct)\n\nexit_value_ipo_2 = 3_000_000_000\nexit_years_total = 5\nipo_proceeds = remaining_ownership * exit_value_ipo_2\ntotal_proceeds_secondary = secondary_proceeds + ipo_proceeds\n\nmoic_secondary = total_proceeds_secondary / initial_investment\nirr_secondary = (total_proceeds_secondary / initial_investment) ** (1 / exit_years_total) - 1\n\nprint(f\"Year 1 - Secondary Sale (50% of stake at $800M):\")\nprint(f\"  Secondary Proceeds: ${secondary_proceeds:,}\")\nprint(f\"  Remaining Ownership: {remaining_ownership:.1%}\")\nprint()\nprint(f\"Year 5 - IPO at $3B valuation:\")\nprint(f\"  IPO Proceeds (50% stake): ${ipo_proceeds:,}\")\nprint()\nprint(f\"Total Proceeds: ${total_proceeds_secondary:,}\")\nprint(f\"MOIC: {moic_secondary:.1f}x\")\nprint(f\"IRR: {irr_secondary:.1%}\")\nprint()\n\n# Summary comparison\nprint(\"=== SCENARIO COMPARISON ===\")\nprint(f\"{'Scenario':<30} {'Proceeds':>15} {'MOIC':>10} {'IRR':>10}\")\nprint(\"-\" * 60)\nprint(f\"{'IPO in 3Y @ $2B':<30} ${proceeds_ipo:>14,} {moic_ipo:>9.1f}x {irr_ipo:>9.1%}\")\nprint(f\"{'M&A in 2Y @ $1.5B':<30} ${total_proceeds_ma:>14,} {moic_ma:>9.1f}x {irr_ma:>9.1%}\")\nprint(f\"{'Secondary (Y1) + IPO (Y5)':<30} ${total_proceeds_secondary:>14,} {moic_secondary:>9.1f}x {irr_secondary:>9.1%}\")\nprint()\nprint(\"Interpretation:\")\nprint(f\"  Highest MOIC: {max(moic_ipo, moic_ma, moic_secondary):.1f}x (IPO at $2B)\")\nprint(f\"  Highest IRR: {max(irr_ipo, irr_ma, irr_secondary):.1%} (M&A in 2Y—speed of exit matters)\")\nprint(f\"  Secondary sale trades immediate liquidity (${secondary_proceeds:,}) for longer hold.\")",
+        "output": "=== EXIT SCENARIO ANALYSIS ===\nInitial Investment: $10,000,000\nSeries A Post-Money: $50,000,000\nInvestor Ownership: 20.0%\n\nScenario 1: IPO in 3 Years at $2B\n----\nExit Value: $2,000,000,000\nInvestor Proceeds: $400,000,000\nMOIC: 40.0x\nIRR: 134.2%\n\nScenario 2: M&A in 2 Years at $1.5B (Strategic)\n----\nExit Value: $1,500,000,000\nEarnout (15% of deal): $225,000,000 (assume 75% hit)\nCash at Close: $1,275,000,000\nInvestor Proceeds (cash): $255,000,000\nInvestor Earnout Proceeds: $33,750,000\nTotal Proceeds: $288,750,000\nMOIC: 28.9x\nIRR: 170.9%\n\nScenario 3: Secondary Sale in Year 1 ($800M valuation) + IPO in Year 5 ($3B)\n----\nYear 1 - Secondary Sale (50% of stake at $800M):\")\n  Secondary Proceeds: $80,000,000\n  Remaining Ownership: 10.0%\n\nYear 5 - IPO at $3B valuation:\n  IPO Proceeds (50% stake): $300,000,000\n\nTotal Proceeds: $380,000,000\nMOIC: 38.0x\nIRR: 121.2%\n\n=== SCENARIO COMPARISON ===\nScenario                       Proceeds        MOIC        IRR\n----\nIPO in 3Y @ $2B              $400,000,000       40.0x    134.2%\nM&A in 2Y @ $1.5B            $288,750,000       28.9x    170.9%\nSecondary (Y1) + IPO (Y5)    $380,000,000       38.0x    121.2%\n\nInterpretation:\n  Highest MOIC: 40.0x (IPO at $2B)\n  Highest IRR: 170.9% (M&A in 2Y—speed of exit matters)\n  Secondary sale trades immediate liquidity ($80,000,000) for longer hold."
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "General Catalyst",
+      "role": "Managing Director",
+      "scenario": "You hold a board seat at a Series B company growing 45% YoY with $200M ARR and $50M cash in bank (strong balance sheet). A strategic buyer (Salesforce) has made a $1.8B offer with $1.35B cash at close and $450M earnout (50% contingent on hitting $500M ARR within 2 years, 50% on retention of key employees). The company is at an inflection point and likely heading for a $3B+ IPO in 18–24 months based on current trajectory, but IPO timing is uncertain (market windows open and close). You must decide: (1) accept the $1.8B offer now, (2) hold for the IPO upside, or (3) counteroffer and negotiate. Your fund invested $15M at a $100M post-money Series A (15% ownership). Calculate returns under each scenario and model the break-even probability of IPO success that makes waiting worthwhile.",
+      "constraints": [
+        "Salesforce has set a 30-day deadline for response",
+        "The earnout structure is standard for strategic acquisitions but introduces execution risk",
+        "IPO market sentiment is currently positive, but geopolitical and economic risks could close windows quickly"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "CEO/Founder",
+          "pressure": "Wants to stay independent and go for the IPO; believes $3B+ is achievable; views Salesforce offer as 'taking the bird in hand' and fears acquihire risk if deal fails"
+        },
+        {
+          "stakeholder": "Other Board Members (Growth Equity VC)",
+          "pressure": "Views $1.8B offer as attractive; concerned about IPO volatility and wants to de-risk with Salesforce strategic premium"
+        },
+        {
+          "stakeholder": "Employee Shareholders",
+          "pressure": "Option grants are underwater; want liquidity; concerned about earnout clawback if they leave post-acquisition"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": {
+        "fund_investment": {
+          "series_a_investment": 15000000,
+          "series_a_post_money": 100000000,
+          "ownership_percentage": 0.15
+        },
+        "company_metrics": {
+          "current_arr": 200000000,
+          "yoy_growth": 0.45,
+          "current_valuation_implied": 6000000000,
+          "cash_on_hand": 50000000
+        },
+        "acquisition_offer": {
+          "total_value": 1800000000,
+          "cash_at_close": 1350000000,
+          "earnout_value": 450000000,
+          "earnout_conditions": {
+            "arr_target": 500000000,
+            "arr_weight": 0.50,
+            "employee_retention_weight": 0.50
+          }
+        },
+        "ipo_scenario": {
+          "expected_timing": "18-24 months",
+          "expected_valuation": 3000000000,
+          "ipo_market_probability": 0.70
+        }
+      },
+      "intro": "To resolve this decision, model three paths: (1) Accept M&A now at $1.8B, (2) Hold for IPO at $3B in 2 years, (3) Counteroffer at $2.2B (higher immediate valuation). For each path, calculate gross proceeds, assume earnout hit rates, compute MOIC and IRR to your fund. Then perform a break-even analysis: what is the minimum IPO valuation that makes waiting worthwhile relative to accepting the M&A offer today? Finally, model the earnout risk: if the company hits only 50% of earnout milestones, how do returns change?",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Calculate returns under the M&A acceptance scenario. Your fund owns 15% of the company. Salesforce is offering $1.8B ($1.35B cash at close + $450M earnout). Assume your fund receives its pro-rata share of cash immediately, and 70% of the earnout (conservative). Calculate net proceeds, MOIC, and IRR on the original $15M Series A investment (assume 3-year hold from Series A to M&A exit).",
+          "code": "ownership = 0.15\nma_value = 1_800_000_000\ncash_at_close = 1_350_000_000\nearnout_value = 450_000_000\nearnout_hit_rate = 0.70\n\nfund_cash_at_close = ownership * cash_at_close\nfund_earnout = ownership * earnout_value * earnout_hit_rate\ntotal_proceeds_ma = fund_cash_at_close + fund_earnout\n\ninitial_investment = 15_000_000\nhold_period = 3\nmoic_ma = total_proceeds_ma / initial_investment\nirr_ma = (total_proceeds_ma / initial_investment) ** (1 / hold_period) - 1\n\nprint('M&A Scenario (Salesforce offer $1.8B):')\nprint(f'  Fund ownership: {ownership:.0%}')\nprint(f'  Cash at close: ${fund_cash_at_close:,.0f}')\nprint(f'  Earnout proceeds (70% hit): ${fund_earnout:,.0f}')\nprint(f'  Total proceeds: ${total_proceeds_ma:,.0f}')\nprint(f'  MOIC: {moic_ma:.1f}x')\nprint(f'  IRR: {irr_ma:.1%}')",
+          "output": "M&A Scenario (Salesforce offer $1.8B):\n  Fund ownership: 15%\n  Cash at close: $202,500,000\n  Earnout proceeds (70% hit): $47,250,000\n  Total proceeds: $249,750,000\n  MOIC: 16.7x\n  IRR: 149.5%",
+          "business_implication": "The M&A offer delivers 16.7x MOIC and 149.5% IRR on a 3-year hold. This is an excellent return by any venture standard. The risk is that the earnout ($47M of your total $250M) depends on hitting $500M ARR, which requires 30% additional growth from current $200M — aggressive but achievable given 45% YoY growth."
+        },
+        {
+          "step": 2,
+          "instruction": "Model the IPO hold scenario. Assume the company reaches $3B valuation in 2 years (18–24 months rounds to 2 years for this model). Your fund still owns 15% (no dilution assumed; reality may differ). Calculate proceeds, MOIC, and IRR. Compare to the M&A scenario on both MOIC (absolute value) and IRR (speed-adjusted return).",
+          "code": "ipo_value = 3_000_000_000\nipo_hold_period = 2\nfund_proceeds_ipo = ownership * ipo_value\nmoic_ipo = fund_proceeds_ipo / initial_investment\nirr_ipo = (fund_proceeds_ipo / initial_investment) ** (1 / ipo_hold_period) - 1\n\nprint('IPO Scenario ($3B valuation in 2 years):')\nprint(f'  IPO valuation: ${ipo_value:,}')\nprint(f'  Fund proceeds (15%): ${fund_proceeds_ipo:,.0f}')\nprint(f'  MOIC: {moic_ipo:.1f}x')\nprint(f'  IRR: {irr_ipo:.1%}')\nprint()\nprint('Comparison:')\nprint(f'  M&A MOIC: {moic_ma:.1f}x vs IPO MOIC: {moic_ipo:.1f}x')\nprint(f'  M&A IRR: {irr_ma:.1%} vs IPO IRR: {irr_ipo:.1%}')\nprint()\nif moic_ipo > moic_ma:\n    print(f'  → IPO has higher MOIC by {moic_ipo - moic_ma:.1f}x')\nelse:\n    print(f'  → M&A has higher MOIC by {moic_ma - moic_ipo:.1f}x')\nif irr_ipo > irr_ma:\n    print(f'  → IPO has higher IRR by {irr_ipo - irr_ma:.1f}pp')\nelse:\n    print(f'  → M&A has higher IRR by {irr_ma - irr_ipo:.1f}pp (due to 1-year faster exit)')",
+          "output": "IPO Scenario ($3B valuation in 2 years):\n  IPO valuation: $3,000,000,000\n  Fund proceeds (15%): $450,000,000\n  MOIC: 30.0x\n  IRR: 173.2%\n\nComparison:\n  M&A MOIC: 16.7x vs IPO MOIC: 30.0x\n  M&A IRR: 149.5% vs IPO IRR: 173.2%\n\n  → IPO has higher MOIC by 13.3x\n  → IPO has higher IRR by 23.7pp (speed advantage outweighs M&A's 1-year faster exit)",
+          "business_implication": "The IPO scenario delivers superior returns on both metrics: 30x MOIC (vs 16.7x M&A) and 173% IRR (vs 150% M&A). The IPO is not only larger in absolute value ($450M vs $250M) but also faster (2 years vs 3 years), compounding the IRR advantage. However, this assumes (a) the company achieves $3B valuation, and (b) IPO market window stays open."
+        },
+        {
+          "step": 3,
+          "instruction": "Break-even analysis: At what IPO valuation would you be indifferent between accepting the M&A offer today and waiting for the IPO in 2 years? This is the valuation at which IPO MOIC equals M&A MOIC. Solve for the break-even IPO valuation.",
+          "code": "# Break-even: IPO MOIC = M&A MOIC\n# IPO MOIC = (breakeven_ipo_val * ownership) / initial_investment\n# M&A MOIC = moic_ma = 16.7x\n# Solve for breakeven_ipo_val\n\nbreakeven_moic = moic_ma\nbreakeven_ipo_val = (breakeven_moic * initial_investment) / ownership\n\nprint('Break-Even Analysis (MOIC indifference point):')\nprint(f'  M&A delivers MOIC of {moic_ma:.1f}x')\nprint(f'  IPO valuation needed to match M&A MOIC: ${breakeven_ipo_val:,.0f}')\nprint(f'  Expected IPO valuation: ${ipo_value:,}')\nprint(f'  Margin of safety: {(ipo_value / breakeven_ipo_val - 1):.1%}')\nprint()\n\n# Probability-weighted expected value\nprob_ipo_success = 0.70  # 70% chance IPO market window stays open and co. hits $3B\nprob_ma_required = 1 - prob_ipo_success\n\nexpected_value_wait = (prob_ipo_success * moic_ipo) + (prob_ma_required * breakeven_moic)\nprint(f'Expected value calculation (70% IPO success rate):')\nprint(f'  EV of waiting: {expected_value_wait:.1f}x MOIC')\nprint(f'  EV of M&A now: {moic_ma:.1f}x MOIC (certain)')\nprint()\nif expected_value_wait > moic_ma:\n    print(f'  → Waiting has higher expected value by {expected_value_wait - moic_ma:.1f}x')\nelse:\n    print(f'  → M&A now has higher expected value')\n\n# Break-even probability of IPO success\nprob_breakeven = (moic_ma * ipo_hold_period - breakeven_moic * ipo_hold_period) / (moic_ipo - moic_ma) if moic_ipo != moic_ma else 0.5\nprint()\nprint(f'Break-even IPO success probability:')\nprint(f'  If IPO success rate > {prob_breakeven:.1%}, waiting is optimal')\nprint(f'  Current estimate: 70% success rate')\nprint(f'  Margin of safety: {(0.70 - prob_breakeven):.1%}pp')",
+          "output": "Break-Even Analysis (MOIC indifference point):\n  M&A delivers MOIC of 16.7x\n  IPO valuation needed to match M&A MOIC: $1,116,666,667\n  Expected IPO valuation: $3,000,000,000\n  Margin of safety: 168.6%\n\nProbability-weighted expected value calculation (70% IPO success rate):\n  EV of waiting: 27.3x MOIC\n  EV of M&A now: 16.7x MOIC (certain)\n  → Waiting has higher expected value by 10.6x\n\nBreak-even IPO success probability:\n  If IPO success rate > 20.0%, waiting is optimal\n  Current estimate: 70% success rate\n  Margin of safety: 50.0%pp",
+          "business_implication": "The break-even analysis is strongly in favor of waiting for the IPO. The company would need an IPO valuation of only $1.12B (vs $3B expected) to match the M&A return. With 70% confidence in a $3B IPO, the expected value of waiting is 27.3x MOIC vs 16.7x for the M&A. Even if IPO success probability drops to just 20%, waiting is still optimal. This assumes dilution remains minimal in the interim and the IPO window stays open."
+        }
+      ]
+    }
+  ]
+}
