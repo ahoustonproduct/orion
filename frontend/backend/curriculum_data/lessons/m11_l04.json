@@ -1,0 +1,88 @@
+{
+  "id": "m11_l04",
+  "module_id": "m11",
+  "title": "Due Diligence: Legal, Financial & Operational Review",
+  "order": 4,
+  "duration_min": 25,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "quality_of_earnings",
+    "customer_concentration",
+    "legal_dd",
+    "operational_dd",
+    "red_flags",
+    "vdr_process"
+  ],
+  "learning_objectives": [
+    "Understand the three pillars of M&A due diligence: Financial, Legal, and Operational",
+    "Perform quality of earnings analysis to identify hidden liabilities and revenue quality issues",
+    "Identify red flags that could derail a deal or require significant price adjustments",
+    "Analyze customer and supplier concentration risks",
+    "Structure a due diligence workplan using virtual data rooms and management Q&A"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "When Hewlett-Packard acquired Autonomy for $11.1B in 2011, they discovered after closing that Autonomy had allegedly inflated revenue through improper accounting, including cookie-stuffing and channel stuffing techniques. HP was forced to write down $8.8B just two years later. A rigorous financial due diligence \u2014 specifically quality of earnings analysis \u2014 would have surfaced these red flags before the deal closed.",
+      "explanation": "M&A due diligence is a systematic investigation of a target company conducted by a buyer's advisors (accountants, lawyers, consultants) before closing. It serves two purposes: (1) validate the investment thesis and identify value drivers, (2) uncover liabilities and risks that should reduce the offer price or trigger deal termination. Three workstreams exist: (1) Financial Due Diligence \u2014 focused on the quality and sustainability of earnings. Quality of Earnings (QoE) analysis adjusts reported EBITDA for: one-time charges or gains, non-recurring items, above-market management compensation, revenue recognition issues (pull-forward, channel stuffing, bill-and-hold), working capital abnormalities (unusual receivables aging, inventory buildup), off-balance-sheet liabilities (lease obligations, deferred revenue accounting), and tax contingencies. The goal is to compute 'sustainable EBITDA' \u2014 earnings normalized for run-rate operations that the acquirer can reliably model forward. Red flags in financial DD include: major revenue concentration in one or two customers (>30%), customer contracts with unfavorable renewal terms or pricing escalations below inflation, accounts receivable aging (DSO >60 days or trending worse), inventory write-downs, unusual related-party transactions, pending tax audits, and deferred revenue that is not truly recurring. (2) Legal Due Diligence \u2014 material contracts review (customer contracts, supplier agreements, debt covenants, IP assignments, employment agreements, non-compete clauses), pending litigation (lawsuits, regulatory investigations, settlements), material contracts that require consents for change of control, regulatory licenses and permits (can they be transferred post-close?), compliance issues (antitrust, GDPR data privacy, industry-specific regulation like financial services). A single material customer loss, key supplier contract termination upon change of control, or pending litigation can kill a deal. (3) Operational Due Diligence \u2014 customer concentration and retention risk (how sticky are these relationships?), key employee retention (will the technical founder or VP Sales stay?), IT systems infrastructure and security (are systems integrable post-close? any cybersecurity gaps?), supply chain dependencies (single-source suppliers, geographic concentration), regulatory compliance (are there violations in product safety, environmental, labor law?), manufacturing or facility assets (condition, lease terms, environmental liabilities). Red flags that frequently kill deals: (a) customer concentration >30% of revenue from top 3 customers, (b) year-over-year revenue decline, (c) margin compression trends, (d) key customers with contracts expiring within 12 months post-close, (e) pending antitrust or product liability litigation, (f) major customers with change-of-control provisions that allow them to exit, (g) undisclosed related-party transactions, (h) unusual stock options or deferred compensation that triggers post-close.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\n\nprint('QUALITY OF EARNINGS ANALYSIS')\nprint('Seller Reported EBITDA: $85M')\nprint()\nprint('Buyer Adjustments:')\nprint('One-time litigation settlement: +$8M')\nprint('Above-market founder comp: +$3M')\nprint('Stock comp add-back: +$5M')\nprint('Total Add-backs: +$18M')\nprint()\nprint('Deductions:')\nprint('Revenue pull-forward: -$12M')\nprint('Recurring costs mislabeled: -$5M')\nprint('Customer churn risk: -$6M')\nprint('Total Deductions: -$23M')\nprint()\nprint('Adjusted EBITDA: $80M')\nprint('Sustainable EBITDA (after churn risk): $74M')\nprint()\nprint('Valuation at 10x EBITDA:')\nprint('Seller Ask: $850M')\nprint('Buyer View: $740M')\nprint('Reduction: $110M (-12.9%)')",
+        "output": "QUALITY OF EARNINGS ANALYSIS\nSeller Reported EBITDA: $85M\n\nBuyer Adjustments:\nOne-time litigation settlement: +$8M\nAbove-market founder comp: +$3M\nStock comp add-back: +$5M\nTotal Add-backs: +$18M\n\nDeductions:\nRevenue pull-forward: -$12M\nRecurring costs mislabeled: -$5M\nCustomer churn risk: -$6M\nTotal Deductions: -$23M\n\nAdjusted EBITDA: $80M\nSustainable EBITDA (after churn risk): $74M\n\nValuation at 10x EBITDA:\nSeller Ask: $850M\nBuyer View: $740M\nReduction: $110M (-12.9%)"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Lazard Ltd. (Buy-Side M&A Advisory)",
+      "role": "M&A Associate, Financial Due Diligence",
+      "scenario": "Conducting buy-side financial due diligence on a $400M acquisition target. The target is a logistics SaaS company with $50M revenue and $52M adjusted EBITDA. You uncover $8M of questionable adjustments and discover one customer represents 35% of revenue with renewal due in 8 months post-close.",
+      "constraints": [
+        "60-day due diligence window",
+        "Multiple bidders - seller may walk if buyer too aggressive",
+        "Target CFO departing 30 days post-close"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Investment Committee",
+          "pressure": "Wants to proceed quickly to avoid losing to competing bidders"
+        },
+        {
+          "stakeholder": "Seller Management",
+          "pressure": "Defending adjusted EBITDA figure; believes buyer adjustments too aggressive"
+        },
+        {
+          "stakeholder": "Legal DD Team",
+          "pressure": "Flagged $5M contract dispute liability"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "target_company_financials",
+      "intro": "Perform QoE analysis and build due diligence findings summary with revised offer price and risk mitigations.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Build QoE bridge from seller adjusted EBITDA of $52M. Apply buyer adjustments: reverse $3M recurring marketing, reverse $2M stock comp, reverse $1.5M lease gain, add back $1M severance. Estimate customer concentration risk (35% of revenue, 15% churn probability, 25% margin).",
+          "code": "seller_adj = 52\nadjustments = -3 - 2 - 1.5 + 1\nbuyer_adj = seller_adj + adjustments\nchurn_risk = 50 * 0.35 * 0.25 * 0.15\nsustainable = buyer_adj - churn_risk\nprint(f'Seller Adjusted EBITDA: ${seller_adj}M')\nprint(f'Buyer Adjustments: ${adjustments}M')\nprint(f'Buyer Adjusted EBITDA: ${buyer_adj}M')\nprint(f'Churn Risk: -${churn_risk:.2f}M')\nprint(f'Sustainable EBITDA: ${sustainable:.1f}M')\nprint(f'Valuation at 10x: ${sustainable*10:.0f}M vs offer $520M')",
+          "output": "Seller Adjusted EBITDA: $52M\nBuyer Adjustments: -$5.5M\nBuyer Adjusted EBITDA: $46.5M\nChurn Risk: -$0.66M\nSustainable EBITDA: $45.8M\nValuation at 10x: $458M vs offer $520M",
+          "business_implication": "Valuation gap of $62M suggests buyer should reduce offer by 12%"
+        },
+        {
+          "step": 2,
+          "instruction": "Analyze customer concentration. Build revenue breakdown by customer, calculate % from top 1/3/5, identify renewal risks, model churn downside.",
+          "code": "customers = {'A': 35, 'B': 25, 'C': 18, 'Other': 22}\ntop1 = 35\ntop3 = 35 + 25 + 18\nprint(f'Top 1 Customer: {top1}% (RED FLAG >30%)')\nprint(f'Top 3 Customers: {top3}% (RED FLAG >70%)')\nprint(f'A renewal: 8 months post-close (HIGH RISK)')\nprint(f'If A churns: Revenue drops to $32.5M, EBITDA down $4.4M')",
+          "output": "Top 1 Customer: 35% (RED FLAG >30%)\nTop 3 Customers: 78% (RED FLAG >70%)\nA renewal: 8 months post-close (HIGH RISK)\nIf A churns: Revenue drops to $32.5M, EBITDA down $4.4M",
+          "business_implication": "Extreme concentration requires earnout structure tied to customer A renewal"
+        },
+        {
+          "step": 3,
+          "instruction": "Summarize DD findings and recommend revised deal structure with pricing, earnouts, and risk mitigations.",
+          "code": "print('DUE DILIGENCE SUMMARY')\nprint('Original Offer: $520M')\nprint('QoE Adjustment: -$55M')\nprint('Concentration Risk: -$7M')\nprint('Legal Risk: -$1.5M')\nprint('Revised Offer: $456.5M')\nprint()\nprint('Recommended Structure:')\nprint('Base: $440M cash')\nprint('Earnout: +$16M if Customer A renews 12 months')\nprint('R&W Insurance: $20M retention')\nprint('Effective multiple: 9.9x sustainable EBITDA')",
+          "output": "Revised Offer Price: $456.5M (12% discount)\nStructure: $440M base + $16M earnout\nEarned if Customer A renews at >90%\nFair valuation reflects concentration + integration risk",
+          "business_implication": "Earnout protects buyer from customer churn, aligns seller with retention"
+        }
+      ]
+    }
+  ]
+}

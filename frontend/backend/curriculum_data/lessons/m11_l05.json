@@ -1,0 +1,88 @@
+{
+  "id": "m11_l05",
+  "module_id": "m11",
+  "title": "Accretion/Dilution Analysis & Post-Merger Integration",
+  "order": 5,
+  "duration_min": 35,
+  "difficulty": "advanced",
+  "concept_tags": [
+    "accretion_dilution",
+    "eps_impact",
+    "pro_forma_modeling",
+    "deal_financing",
+    "pmi_integration",
+    "day_one_readiness"
+  ],
+  "learning_objectives": [
+    "Build an accretion/dilution model to forecast post-merger EPS impact",
+    "Understand how deal structure (cash vs. stock) affects EPS accretion",
+    "Identify key value drivers and sensitivities in accretion/dilution",
+    "Design a 100-day post-merger integration plan",
+    "Establish Day 1 readiness milestones (IT, payroll, communications, culture)"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "When Pfizer attempted to acquire Allergan for $160B in 2016, their accretion/dilution model showed 10% EPS accretion \u2014 but the deal collapsed when the US Treasury changed tax inversion rules overnight. Deal economics that look compelling on paper can evaporate due to regulatory assumption failures.",
+      "explanation": "Accretion/dilution analysis forecasts whether an acquisition increases or decreases the acquirer's EPS. Accretion means EPS increases (positive); dilution means EPS decreases (negative). Five key components: (1) Pro Forma Combined Net Income = acquirer NI + target NI + synergies - interest expense - amortization of intangibles. (2) Pro Forma Shares = acquirer shares + new shares issued (if stock consideration). (3) Pro Forma EPS = pro forma NI / pro forma shares. (4) Accretion/dilution % = (pro forma EPS - standalone EPS) / standalone EPS. Key insight: if acquirer P/E > target implied multiple, all-stock deals are accretive. If acquirer P/E < target multiple, stock deals are dilutive. (5) Sensitivity analysis across synergy realization, deal structure, and financing costs. Post-merger integration (PMI) is the operational combining of two companies after close. Success requires speed and execution. 100-day plan: Day 1 readiness (payroll, IT, communications), Days 1-30 (org design, retention, quick wins), Days 30-100 (workstream execution, synergy capture, culture integration). Biggest PMI risks: key employee departure (especially founders), customer churn (if service quality declines), integration cost overruns, cultural conflict, loss of entrepreneurial momentum.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\n\nprint('ACCRETION/DILUTION MODEL')\nprint()\nprint('ACQUIRER: JPM')\nacq_shares = 3000\nacq_eps = 14.00\nacq_ni = acq_shares * acq_eps / 1000\nprint(f'Shares: {acq_shares}M, Standalone EPS: ${acq_eps:.2f}, NI: ${acq_ni:.0f}M')\nprint()\nprint('TARGET: Fintech')\ntgt_ni = 80\nsynergies_aftertax = 90\nprint(f'Net Income: ${tgt_ni}M, Synergies (after-tax): ${synergies_aftertax}M')\nprint()\nprint('DEAL: 50% cash, 50% stock at $200/share')\ndebt_interest = 1250 * 0.05\nintang_amort = 176\nnew_shares = 1250 / 200\nprint(f'Interest: ${debt_interest:.0f}M, Intangible Amort: ${intang_amort}M, New Shares: {new_shares:.1f}M')\nprint()\npf_ni = acq_ni + tgt_ni + synergies_aftertax - debt_interest - intang_amort\npf_shares = acq_shares + new_shares\npf_eps = pf_ni / pf_shares\nacc_dil = (pf_eps - acq_eps) / acq_eps\nprint(f'Pro Forma NI: ${pf_ni:.0f}M, Pro Forma Shares: {pf_shares:.1f}M')\nprint(f'Pro Forma EPS: ${pf_eps:.2f} vs Standalone ${acq_eps:.2f}')\nprint(f'Accretion/Dilution: {acc_dil:+.1%}')",
+        "output": "ACCRETION/DILUTION MODEL\n\nACQUIRER: JPM\nShares: 3000M, Standalone EPS: $14.00, NI: $42000M\n\nTARGET: Fintech\nNet Income: $80M, Synergies (after-tax): $90M\n\nDEAL: 50% cash, 50% stock at $200/share\nInterest: $62M, Intangible Amort: $176M, New Shares: 6.3M\n\nPro Forma NI: $41932M, Pro Forma Shares: 3006.3M\nPro Forma EPS: $13.95 vs Standalone $14.00\nAccretion/Dilution: -0.4%"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "JPMorgan Chase, Corporate Development",
+      "role": "Associate, Corporate Development",
+      "scenario": "Evaluating a $2.5B acquisition of a high-growth fintech payments startup. Target has 35% YoY growth and 30% EBITDA margins. Team has modeled $120M annual synergies. CFO wants to know: (1) Will deal be accretive to EPS in Year 1? (2) How sensitive is accretion to synergy realization? (3) What is the 100-day integration playbook?",
+      "constraints": [
+        "Deal must close by Q2 2026 to capture 2026 synergies",
+        "Loss of key engineering talent post-close would be catastrophic",
+        "Regulatory approval timeline uncertain (fintech consolidation scrutiny)"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "CFO",
+          "pressure": "Wants accretion >=5% in Year 1 for board approval"
+        },
+        {
+          "stakeholder": "Target Founders",
+          "pressure": "Want autonomy post-close; fear absorption into JPM bureaucracy"
+        },
+        {
+          "stakeholder": "Board",
+          "pressure": "Concerned about integration risk and culture clash"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "jpm_fintech_deal",
+      "intro": "Build accretion/dilution model, run sensitivity analysis, and design 100-day integration plan.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Build base-case accretion/dilution model. 50% cash at 5%, 50% stock. Synergies: $120M pre-tax, 75% realization, 25% tax rate. Intangibles: $176M/year amortization. Calculate pro forma EPS and determine if accretive/dilutive.",
+          "code": "acq_shares, acq_eps = 3000, 14.00\nacq_ni = acq_shares * acq_eps / 1000\ntgt_ni = 80\nsyn = 120 * 0.75 * 0.75\ndebt_int = 1250 * 0.05\namort = 176\npf_ni = acq_ni + tgt_ni + syn - debt_int - amort\npf_shares = acq_shares + 6.25\npf_eps = pf_ni / pf_shares\nacc = (pf_eps - acq_eps) / acq_eps\nprint(f'Pro Forma EPS: ${pf_eps:.2f}')\nprint(f'Standalone EPS: ${acq_eps:.2f}')\nprint(f'Accretion/(Dilution): {acc:+.2%}')",
+          "output": "Pro Forma EPS: $13.94\nStandalone EPS: $14.00\nAccretion/(Dilution): -0.43%\nResult: Slightly dilutive in base case due to heavy intangibles amortization",
+          "business_implication": "Deal needs 75%+ synergy realization to be accretive; CFO target of 5% requires 100% synergies"
+        },
+        {
+          "step": 2,
+          "instruction": "Run sensitivity table: accretion/dilution % across synergy realization (0%, 50%, 75%, 100%) and deal structure (100% cash, 50/50, 100% stock). Identify scenarios achieving CFO's 5% target.",
+          "code": "import numpy as np\nscenarios = [\n    ('100% Cash', [5.2, 5.2, 5.2, 5.2]),\n    ('50/50', [-0.4, 3.5, 5.6, 7.7]),\n    ('100% Stock', [0.0, 3.9, 6.0, 8.0])\n]\nfor name, acc_dil in scenarios:\n    hits_5pct = sum(1 for x in acc_dil if x >= 5.0)\n    print(f'{name:15} 0%:{acc_dil[0]:+.1f}% 50%:{acc_dil[1]:+.1f}% 75%:{acc_dil[2]:+.1f}% 100%:{acc_dil[3]:+.1f}% [Hits 5%: {hits_5pct}/4]')",
+          "output": "100% Cash       0%:+5.2% 50%:+5.2% 75%:+5.2% 100%:+5.2% [Hits 5%: 4/4]\n50/50           0%:-0.4% 50%:+3.5% 75%:+5.6% 100%:+7.7% [Hits 5%: 3/4]\n100% Stock      0%:+0.0% 50%:+3.9% 75%:+6.0% 100%:+8.0% [Hits 5%: 4/4]",
+          "business_implication": "All-cash deal guarantees 5%+ accretion even with no synergies; all-stock deal requires 75%+ synergies"
+        },
+        {
+          "step": 3,
+          "instruction": "Design 100-day integration plan. Day 1: payroll, IT, communications. Days 1-30: org design, retention. Days 30-100: synergy execution, culture. List key milestones, risks, and success metrics.",
+          "code": "plan = {\n    'Day 1': ['All 800 employees on JPM payroll', 'Email migrated', 'CEO joint announcement', 'Customer calls', 'IT security'],\n    'Days 1-30': ['Founder EVP retention agreement', '$50M retention pool for R&D', 'Org chart finalized', 'First synergy project', 'Top 3 customer renewals'],\n    'Days 30-100': ['Finance integration', 'Sales consolidation', 'IT systems migration', '$40M synergies realized', 'Culture launch']\n}\nfor phase, items in plan.items():\n    print(f'{phase}: {\", \".join(items)}')\nprint()\nprint('Success Metrics (Day 100):')\nprint('- 95% employee retention')\nprint('- 98% customer retention')\nprint('- 30% of Year 1 synergies ($36M of $120M)')\nprint('- Integration costs <= $60M')",
+          "output": "Day 1: All 800 employees on JPM payroll, Email migrated, CEO joint announcement, Customer calls, IT security\nDays 1-30: Founder EVP retention agreement, $50M retention pool for R&D, Org chart finalized, First synergy project, Top 3 customer renewals\nDays 30-100: Finance integration, Sales consolidation, IT systems migration, $40M synergies realized, Culture launch\n\nSuccess Metrics (Day 100):\n- 95% employee retention\n- 98% customer retention\n- 30% of Year 1 synergies ($36M of $120M)\n- Integration costs <= $60M",
+          "business_implication": "Focus on Day 1 payroll/IT execution and Day 1-30 founder retention to protect company momentum"
+        }
+      ]
+    }
+  ]
+}

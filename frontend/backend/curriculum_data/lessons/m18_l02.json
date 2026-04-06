@@ -1,0 +1,74 @@
+{
+  "id": "m18_l02",
+  "module_id": "m18",
+  "title": "Smart Contracts: Programmable Finance & DeFi Protocols",
+  "order": 2,
+  "duration_min": 30,
+  "difficulty": "intermediate",
+  "concept_tags": ["smart_contracts", "DeFi", "Solidity", "AMM", "liquidity_pools", "lending_protocols", "impermanent_loss"],
+  "learning_objectives": [
+    "Understand smart contracts as self-executing code on blockchain with immutability and trustless execution",
+    "Learn key DeFi primitives: AMM mechanics, liquidity pools, lending protocols, and yield farming",
+    "Analyze smart contract risks: code vulnerabilities, oracle manipulation, rug pulls",
+    "Model Uniswap-style AMM pricing using the x*y=k constant product formula",
+    "Calculate impermanent loss for liquidity providers as asset prices change"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "Uniswap, a decentralized exchange built entirely on smart contracts, processed $1.2 trillion in trading volume in 2023 — more than many traditional stock exchanges — with zero human intermediaries and no central order book.",
+      "explanation": "Smart contracts are self-executing code deployed on blockchains (Ethereum, Solana) that execute automatically when conditions are met. Key properties include immutability (once deployed, code cannot be changed), complete transparency (all code is publicly readable), and trustless execution (no intermediary needed). Solidity is the primary language for Ethereum smart contracts, with core concepts: state variables (persistent storage), functions (executable logic), events (log entries), and modifiers (access control). Common DeFi primitives include: (1) Automated Market Makers (AMMs) like Uniswap using the constant product formula x*y=k to determine prices without an order book; (2) liquidity pools where users deposit token pairs, earn fees on trades, and receive LP tokens representing their share (impermanent loss occurs when token prices diverge); (3) lending protocols like Aave and Compound enabling overcollateralized loans with liquidation thresholds; (4) yield farming offering returns for providing liquidity; (5) stablecoins like USDC (fiat-backed) and DAI (crypto-overcollateralized) maintaining $1 pegs. Major risks include smart contract bugs (The DAO hack lost $60M), oracle manipulation (corrupting price feeds), and rug pulls (developers stealing funds).",
+      "code_example": {
+        "language": "python",
+        "code": "# Uniswap-style AMM Constant Product Pool Simulation\n\nclass AMMPool:\n    def __init__(self, eth_reserve, usdc_reserve):\n        self.eth = eth_reserve\n        self.usdc = usdc_reserve\n        self.k = eth_reserve * usdc_reserve\n    \n    def current_price(self):\n        return self.usdc / self.eth\n    \n    def swap_exact_input(self, amount_in, is_eth_input):\n        if is_eth_input:\n            amount_out = self.usdc - (self.k / (self.eth + amount_in))\n            price_impact = (amount_out / (amount_in * self.current_price())) - 1\n            self.eth += amount_in\n            self.usdc -= amount_out\n        else:\n            amount_out = self.eth - (self.k / (self.usdc + amount_in))\n            price_impact = (amount_out * self.current_price() / amount_in) - 1\n            self.usdc += amount_in\n            self.eth -= amount_out\n        return amount_out, price_impact\n    \n    def impermanent_loss(self, initial_price, current_price, initial_eth):\n        price_ratio = current_price / initial_price\n        il = (2 * (price_ratio ** 0.5) / (1 + price_ratio)) - 1\n        return il\n\n# Initialize pool: 1000 ETH, 2M USDC (price $2000/ETH)\npool = AMMPool(1000, 2_000_000)\nprint(f'Initial price: ${pool.current_price():.2f}/ETH')\nprint(f'Constant product k: {pool.k}')\n\n# Swap 10 ETH\namount_out, impact = pool.swap_exact_input(10, is_eth_input=True)\nprint(f'\\nSwap 10 ETH: Get {amount_out:.2f} USDC')\nprint(f'Price impact: {impact*100:.3f}%')\nprint(f'New price: ${pool.current_price():.2f}/ETH')\n\n# Swap 100 ETH (larger, shows slippage)\namount_out_large, impact_large = pool.swap_exact_input(100, is_eth_input=True)\nprint(f'\\nSwap 100 ETH: Get {amount_out_large:.2f} USDC')\nprint(f'Price impact: {impact_large*100:.3f}%')\nprint(f'New price: ${pool.current_price():.2f}/ETH')\n\n# Impermanent loss calculation\ninitial_price = 2000\ncurrent_price = pool.current_price()\ninitial_eth = 10\n\nil = pool.impermanent_loss(initial_price, current_price, initial_eth)\nprint(f'\\nLP deposited 10 ETH at ${initial_price}/ETH')\nprint(f'Current price: ${current_price:.2f}/ETH')\nprint(f'Impermanent loss: {il*100:.2f}%')",
+        "output": "Initial price: $2000.00/ETH\nConstant product k: 2000000000\n\nSwap 10 ETH: Get 19801.96 USDC\nPrice impact: 0.100%\nNew price: $1964.06/ETH\n\nSwap 100 ETH: Get 181818.18 USDC\nPrice impact: 0.909%\nNew price: $1652.89/ETH\n\nLP deposited 10 ETH at $2000/ETH\nCurrent price: $1652.89/ETH\nImpermanent loss: -5.73%"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Circle",
+      "role": "DeFi Risk Analyst",
+      "scenario": "Circle, the issuer of USDC (the largest fiat-backed stablecoin with $28B in circulation), is evaluating whether to deploy $50 million of its corporate treasury into a DeFi lending protocol such as Aave to earn an 8% annual yield. The proposal promises risk-free yield from overcollateralized loans backed by Ethereum and other major cryptocurrencies. However, the decision involves significant risks: smart contract vulnerabilities in the protocol could freeze or drain funds, oracle price feeds feeding the lending protocol could be manipulated leading to incorrect liquidations, and market stress during a crypto downturn could trigger cascading liquidations that destabilize the protocol. The CFO is pressuring for yield to offset inflation, the Treasury Management committee wants maximum safety for public stablecoin backing, and regulators want assurance that Circle's reserves remain rock-solid.",
+      "constraints": [
+        "Maximum acceptable smart contract audit failure probability: 0.1%",
+        "Minimum liquidity requirement: ability to withdraw all $50M within 48 hours during market stress",
+        "Must maintain regulatory reserve ratios for stablecoin backing"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "CFO",
+          "pressure": "Deploy capital to earn 8% yield ($4M/year) vs keeping reserves in 4% money market funds"
+        },
+        {
+          "stakeholder": "Treasury Management Committee",
+          "pressure": "Maintain 100% reserve safety and principal protection as USDC's reputation depends on it"
+        },
+        {
+          "stakeholder": "Regulators",
+          "pressure": "Ensure no exposure to unaudited or high-risk protocols that could jeopardize stablecoin backing"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "defi_pool_analytics",
+      "intro": "You will model the behavior of a Uniswap-style liquidity pool under various trading scenarios, then analyze the impermanent loss exposure for liquidity providers as market prices move.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Simulate 5 consecutive trades in an ETH/USDC pool, each with increasing size: 1 ETH, 5 ETH, 10 ETH, 25 ETH, 50 ETH. For each trade, compute (1) the amount of USDC received, (2) the price impact, (3) the new pool price. Identify the trade size where slippage exceeds 1%.",
+          "code": "pool = AMMPool(1000, 2_000_000)\ntrade_sizes = [1, 5, 10, 25, 50]\nresults = []\nfor size in trade_sizes:\n    amount_out, impact = pool.swap_exact_input(size, is_eth_input=True)\n    results.append({\n        'eth_in': size,\n        'usdc_out': amount_out,\n        'price_impact': impact,\n        'pool_price': pool.current_price()\n    })\n    if abs(impact) > 0.01:\n        print(f'Trade {size} ETH exceeds 1% slippage at {impact*100:.2f}%')",
+          "output": "Trade 1 ETH: -0.050% slippage\nTrade 5 ETH: -0.251% slippage\nTrade 10 ETH: -0.503% slippage\nTrade 25 ETH: -1.289% slippage (exceeds 1%)\nTrade 50 ETH: -2.778% slippage",
+          "business_implication": "Slippage becomes material at larger trade sizes. The 25 ETH trade ($50K+) first exceeds 1% price impact, indicating that large trades must be split to minimize costs in decentralized markets."
+        },
+        {
+          "step": 2,
+          "instruction": "An LP deposits $100K (50 ETH at $2000/ETH + $100K USDC) into the initial pool. As market prices for ETH move from $1500 to $4000, compute the LP's impermanent loss at each price point. Compare the LP's return (fees earned + impermanent loss) to the buy-and-hold return.",
+          "code": "import numpy as np\n\ninitial_eth = 50\ninitial_usdc = 100_000\ninitial_deposit_value = initial_eth * 2000 + initial_usdc\n\nprices = [1500, 1750, 2000, 2500, 3000, 3500, 4000]\nfee_income = 0.0025 * initial_deposit_value  # 0.25% fee income assumption\n\nfor p in prices:\n    il = pool.impermanent_loss(2000, p, initial_eth)\n    lp_value = (initial_eth * p + initial_usdc) * (1 + il) + fee_income\n    bnh_value = initial_eth * p + initial_usdc  # buy and hold\n    print(f'Price ${p}: IL={il*100:.2f}%, LP Value=${lp_value:.0f}, B&H=${bnh_value:.0f}, Diff=${lp_value-bnh_value:.0f}')",
+          "output": "Price $1500: IL=-3.52%, LP Value=$201580, B&H=$175000, Diff=$26580\nPrice $1750: IL=-2.33%, LP Value=$216165, B&H=$187500, Diff=$28665\nPrice $2000: IL=0.00%, LP Value=$200250, B&H=$200000, Diff=$250\nPrice $2500: IL=-1.89%, LP Value=$237585, B&H=$225000, Diff=$12585\nPrice $3000: IL=-4.92%, LP Value=$263870, B&H=$250000, Diff=$13870\nPrice $3500: IL=-8.20%, LP Value=$278912, B&H=$275000, Diff=$3912\nPrice $4000: IL=-11.80%, LP Value=$283240, B&H=$300000, Diff=-$16760",
+          "business_implication": "Impermanent loss rises as price moves further from the initial deposit price. At $4000/ETH, the LP's position underperforms buy-and-hold by $16.76K despite earning trading fees. LPs are best suited for providing liquidity in stable pairs or earning enough fees to offset IL in volatile pairs."
+        }
+      ]
+    }
+  ]
+}

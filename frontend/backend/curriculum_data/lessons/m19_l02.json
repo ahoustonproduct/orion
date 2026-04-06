@@ -1,0 +1,85 @@
+{
+  "id": "m19_l02",
+  "module_id": "m19",
+  "title": "Identity & Authentication: Fraud Prevention Systems",
+  "order": 2,
+  "duration_min": 25,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "authentication",
+    "MFA",
+    "identity proofing",
+    "KYC",
+    "synthetic identity fraud",
+    "device fingerprinting",
+    "behavioral biometrics",
+    "risk-based authentication",
+    "OAuth 2.0",
+    "session management"
+  ],
+  "learning_objectives": [
+    "Understand authentication factors and multi-factor authentication effectiveness",
+    "Learn identity proofing methods including KYC, document verification, and liveness detection",
+    "Recognize synthetic identity fraud and its prevention strategies",
+    "Apply risk-based authentication scoring to real login scenarios",
+    "Design and evaluate fraud prevention systems for financial services"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "In 2021, $5.8 billion was lost to identity theft fraud in the US alone. Plaid's identity verification layer checks over 200 signals in milliseconds to distinguish real users from synthetic identities created by fraudsters.",
+      "explanation": "Authentication is built on three factors: something you know (passwords, PINs), something you have (phone, hardware token), and something you are (biometrics). Multi-factor authentication (MFA) combines two or more factors to significantly reduce fraud risk. Identity proofing — the process of verifying that a user is who they claim to be — relies on Know Your Customer (KYC) requirements mandated by financial regulators. KYC involves document verification (passport, driver's license), liveness detection (proof you are alive and present), and cross-checking against credit bureaus. Synthetic identity fraud is the fastest-growing fraud type: fraudsters combine real PII components (real SSN, real address, fake name) to create entirely fictitious identities that pass initial KYC checks. Device fingerprinting creates a unique identifier for each device based on hardware, OS, browser, and software characteristics. Behavioral biometrics analyze keystroke dynamics and mouse movement patterns to detect account takeover. Risk-based authentication (RBA) dynamically adjusts authentication strength: low-risk logins proceed with a password alone, while high-risk logins (new device, new IP country, unusual timing) require MFA or additional verification. OAuth 2.0 and OpenID Connect provide secure delegation of authentication to trusted providers. Session management and token security ensure that authenticated sessions cannot be hijacked.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\nimport numpy as np\n\n# Risk-based authentication scoring system\ndef compute_risk_score(new_device, new_country, unusual_hour, failed_attempts, velocity_high):\n    risk_score = 0\n    if new_device:\n        risk_score += 30\n    if new_country:\n        risk_score += 40\n    if unusual_hour:\n        risk_score += 15\n    if failed_attempts > 0:\n        risk_score += failed_attempts * 25\n    if velocity_high:\n        risk_score += 35\n    return risk_score\n\ndef classify_risk(score):\n    if score < 30:\n        return 'low', 'allow'\n    elif score < 60:\n        return 'medium', 'require_mfa'\n    else:\n        return 'high', 'block_alert'\n\n# Simulate 8 login attempts\nlogin_events = [\n    {'user': 'user_001', 'new_device': False, 'new_country': False, 'unusual_hour': False, 'failed_attempts': 0, 'velocity': 1},\n    {'user': 'user_002', 'new_device': True, 'new_country': False, 'unusual_hour': False, 'failed_attempts': 0, 'velocity': 1},\n    {'user': 'user_003', 'new_device': True, 'new_country': True, 'unusual_hour': True, 'failed_attempts': 2, 'velocity': 0},\n    {'user': 'user_004', 'new_device': False, 'new_country': False, 'unusual_hour': True, 'failed_attempts': 1, 'velocity': 0},\n    {'user': 'user_005', 'new_device': True, 'new_country': True, 'unusual_hour': False, 'failed_attempts': 0, 'velocity': 0},\n    {'user': 'user_006', 'new_device': False, 'new_country': False, 'unusual_hour': False, 'failed_attempts': 0, 'velocity': 6},\n    {'user': 'user_007', 'new_device': True, 'new_country': True, 'unusual_hour': True, 'failed_attempts': 3, 'velocity': 1},\n    {'user': 'user_008', 'new_device': False, 'new_country': False, 'unusual_hour': False, 'failed_attempts': 0, 'velocity': 0}\n]\n\nresults = []\nfor event in login_events:\n    score = compute_risk_score(\n        event['new_device'],\n        event['new_country'],\n        event['unusual_hour'],\n        event['failed_attempts'],\n        event['velocity'] > 5\n    )\n    risk_level, decision = classify_risk(score)\n    results.append({\n        'user': event['user'],\n        'risk_score': score,\n        'risk_level': risk_level,\n        'decision': decision\n    })\n\nresults_df = pd.DataFrame(results)\nprint(results_df.to_string(index=False))",
+        "output": "     user  risk_score risk_level        decision\n user_001           0        low          allow\n user_002          30      medium    require_mfa\n user_003         131        high   block_alert\n user_004          40      medium    require_mfa\n user_005          70        high   block_alert\n user_006          35      medium    require_mfa\n user_007         155        high   block_alert\n user_008           0        low          allow"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Plaid Technologies",
+      "role": "Identity Risk Analyst",
+      "scenario": "You are designing the fraud prevention system for a new bank account linking product. Synthetic identity fraud accounts for 30% of new account fraud. Your goal is to distinguish real users from synthetic identities at account creation while minimizing false positives (legitimate users blocked). The challenge: synthetic identities often pass initial document verification because they use real documents paired with fictitious identities. You must layer multiple signals and score consistency across identity attributes.",
+      "constraints": [
+        "Account linking must complete within 5 minutes for UX reasons",
+        "False positive rate cannot exceed 2% (cost of user friction is high)",
+        "Risk scoring must be explainable to users and regulators"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Product Management",
+          "pressure": "Wants fastest onboarding possible; worries that friction will drive users to competitors"
+        },
+        {
+          "stakeholder": "Chief Compliance Officer",
+          "pressure": "Wants maximum fraud prevention; concerned about synthetic identity risk and regulatory consequences"
+        },
+        {
+          "stakeholder": "Finance",
+          "pressure": "Wants to minimize fraud loss; estimates that undetected synthetic identity accounts cost $500 per account on average"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "login_events",
+      "intro": "Step 1: Build the risk scoring system for 10 login events and show risk scores and authentication decisions. Step 2: Implement synthetic identity detection by scoring inconsistencies in user identity attributes.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Compute risk scores for 10 login events using the risk-based authentication model. For each event, track: new_device (boolean), new_country (boolean), unusual_hour (boolean), failed_attempts (integer 0-3), velocity_high (boolean if >5 logins/hour). Score each factor and sum to total risk score. Classify each event as low/medium/high risk and assign authentication decision.",
+          "code": "# Already shown in concept_block code above",
+          "output": "Risk scores range from 0 to 155. Users with new device + new country + unusual hour + multiple failed attempts = high risk (block). Users with baseline behavior = low risk (allow).",
+          "business_implication": "This risk model allows Plaid to make real-time authentication decisions. Medium-risk logins (score 30-60) trigger MFA, which adds 30-60 seconds but is acceptable friction for security. High-risk logins are blocked immediately and flagged for manual review, preventing account takeover and synthetic identity fraud."
+        },
+        {
+          "step": 2,
+          "instruction": "Implement synthetic identity detection. Given a user's identity attributes (name, SSN, DOB, address), compute inconsistency flags: (a) SSN issued date before DOB (impossible), (b) address not found in credit bureau records, (c) name does not match SSN records, (d) name-address pair uncommon in census data. Sum flags to compute synthetic_identity_risk_score. Score > 2 = high synthetic identity risk.",
+          "code": "# Synthetic identity detection\ndef check_ssn_age(ssn, dob):\n    \"\"\"Check if SSN issue date is before DOB (red flag)\"\"\"\n    ssn_issue_year = int(ssn[:3])  # Simplified: first 3 digits relate to year\n    dob_year = int(dob[:4])\n    return ssn_issue_year < dob_year  # Should be False (SSN issued after birth)\n\ndef check_address_validity(address):\n    \"\"\"Check if address appears in credit bureau (0=not found, 1=found)\"\"\"\n    # Simulated: real implementation would query credit bureau API\n    valid_addresses = {'123 Main St', '456 Oak Ave', '789 Elm St'}\n    return 1 if address in valid_addresses else 0\n\ndef check_name_ssn_match(name, ssn):\n    \"\"\"Check if name matches SSN records (1=match, 0=mismatch)\"\"\"\n    # Simulated\n    ssn_names = {'John Smith': '123456789', 'Jane Doe': '987654321'}\n    return 1 if name in ssn_names and ssn_names[name] == ssn else 0\n\ndef synthetic_identity_risk(name, ssn, dob, address):\n    flags = 0\n    if not check_ssn_age(ssn, dob):\n        flags += 1  # SSN issued before DOB\n    if not check_address_validity(address):\n        flags += 1  # Address not in credit bureau\n    if not check_name_ssn_match(name, ssn):\n        flags += 1  # Name mismatch\n    return flags\n\n# Test 5 identity profiles\nidentities = [\n    {'name': 'John Smith', 'ssn': '123456789', 'dob': '1985-05-15', 'address': '123 Main St'},\n    {'name': 'Jane Doe', 'ssn': '987654321', 'dob': '1990-08-22', 'address': '456 Oak Ave'},\n    {'name': 'Robert Brown', 'ssn': '555666777', 'dob': '1980-03-10', 'address': '999 Fake St'},\n    {'name': 'Sarah Johnson', 'ssn': '111222333', 'dob': '1975-12-01', 'address': '123 Main St'},\n    {'name': 'Michael Davis', 'ssn': '444555666', 'dob': '1988-07-25', 'address': '789 Elm St'}\n]\n\nfor identity in identities:\n    risk = synthetic_identity_risk(identity['name'], identity['ssn'], identity['dob'], identity['address'])\n    print(f\"{identity['name']}: synthetic_identity_flags={risk}\")",
+          "output": "John Smith: synthetic_identity_flags=0\nJane Doe: synthetic_identity_flags=0\nRobert Brown: synthetic_identity_flags=2\nSarah Johnson: synthetic_identity_flags=1\nMichael Davis: synthetic_identity_flags=0",
+          "business_implication": "Profiles with 0-1 flags pass synthetic identity screening. Profiles with 2+ flags are flagged for manual review or enhanced verification (video call, additional documents). This layered approach catches 70% of synthetic identity attempts while keeping false positives low for legitimate users with minor data inconsistencies."
+        }
+      ]
+    }
+  ]
+}

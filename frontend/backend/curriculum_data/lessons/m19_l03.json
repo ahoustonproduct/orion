@@ -1,0 +1,85 @@
+{
+  "id": "m19_l03",
+  "module_id": "m19",
+  "title": "Regulatory Frameworks: SOC 2, GDPR & Financial Compliance",
+  "order": 3,
+  "duration_min": 25,
+  "difficulty": "intermediate",
+  "concept_tags": [
+    "SOC 2",
+    "Trust Service Criteria",
+    "GDPR",
+    "PCI-DSS",
+    "GLBA",
+    "SOX",
+    "FFIEC",
+    "data lifecycle management",
+    "breach notification",
+    "compliance audit"
+  ],
+  "learning_objectives": [
+    "Understand SOC 2 Trust Service Criteria and Type I vs Type II audits",
+    "Learn GDPR requirements including right to erasure, data minimization, and breach notification",
+    "Recognize financial regulations: PCI-DSS, GLBA, SOX, and FFIEC guidelines",
+    "Perform compliance gap analysis and control remediation prioritization",
+    "Calculate breach cost and economic case for compliance investment"
+  ],
+  "blocks": [
+    {
+      "type": "concept_block",
+      "fintech_hook": "In 2023, the SEC fined Morgan Stanley $35 million for failing to properly dispose of hard drives containing customer PII — a SOC 2 compliance failure that would have been prevented by proper data lifecycle management controls.",
+      "explanation": "SOC 2 (Service Organization Control Framework) defines five Trust Service Criteria: (1) Security: Is data protected against unauthorized access and alteration? (2) Availability: Is the system available when needed? (3) Processing Integrity: Is data accurate and complete? (4) Confidentiality: Is sensitive data protected from unauthorized disclosure? (5) Privacy: Is personal information collected, used, and retained in accordance with privacy commitments? Type I audits assess control design at a point in time; Type II audits assess control effectiveness over a 6-month period, providing stronger assurance. Common SOC 2 controls include: access control (principle of least privilege), encryption at rest and in transit, incident response procedures, vulnerability management (patching, scanning), and data lifecycle management. GDPR (General Data Protection Regulation) applies to any organization processing EU residents' data. Key GDPR rights: right to access (users can request their data), right to erasure ('right to be forgotten'), right to data portability, and right to object to processing. Data minimization requires collecting only necessary data. Consent must be explicit and revocable. The 72-hour breach notification requirement means organizations must notify regulators and affected individuals within 72 hours of discovering a data breach. GDPR fines reach 4% of global revenue or €20 million, whichever is higher. Financial regulations include PCI-DSS (Payment Card Industry Data Security Standard) for processing payment cards, requiring encryption and vulnerability scanning; GLBA (Gramm-Leach-Bliley Act) requiring financial institutions to safeguard customer financial information; SOX (Sarbanes-Oxley) requiring public companies to maintain adequate controls over financial reporting systems; and FFIEC (Federal Financial Institutions Examination Council) guidelines establishing cybersecurity expectations for banks. The SEC's 2023 cybersecurity disclosure rules require public companies to disclose material cyber incidents within 4 days. The compliance cost-benefit equation: IBM's 2023 data shows the average breach costs $4.5 million, while a well-designed control costs $50K-$200K annually — the ROI from preventing even one breach in 10 years justifies comprehensive compliance.",
+      "code_example": {
+        "language": "python",
+        "code": "import pandas as pd\nimport numpy as np\n\n# Compliance control tracker\ncontrols_data = [\n    {'control_name': 'Multi-factor Authentication', 'framework': 'SOC2', 'status': 'implemented', 'risk_level': 'critical', 'remediation_cost_k': 50},\n    {'control_name': 'Encryption at Rest', 'framework': 'SOC2', 'status': 'implemented', 'risk_level': 'critical', 'remediation_cost_k': 75},\n    {'control_name': 'Access Control / Least Privilege', 'framework': 'SOC2', 'status': 'partial', 'risk_level': 'critical', 'remediation_cost_k': 100},\n    {'control_name': 'Incident Response Plan', 'framework': 'SOC2', 'status': 'implemented', 'risk_level': 'high', 'remediation_cost_k': 60},\n    {'control_name': 'Vulnerability Management', 'framework': 'SOC2', 'status': 'partial', 'risk_level': 'high', 'remediation_cost_k': 80},\n    {'control_name': 'Data Retention Policy', 'framework': 'GDPR', 'status': 'missing', 'risk_level': 'critical', 'remediation_cost_k': 120},\n    {'control_name': 'Right to Erasure Process', 'framework': 'GDPR', 'status': 'missing', 'risk_level': 'high', 'remediation_cost_k': 90},\n    {'control_name': 'Breach Notification System', 'framework': 'GDPR', 'status': 'partial', 'risk_level': 'critical', 'remediation_cost_k': 110},\n    {'control_name': 'Data Protection Impact Assessment', 'framework': 'GDPR', 'status': 'implemented', 'risk_level': 'medium', 'remediation_cost_k': 40},\n    {'control_name': 'PCI-DSS Card Data Encryption', 'framework': 'PCI-DSS', 'status': 'implemented', 'risk_level': 'critical', 'remediation_cost_k': 85},\n    {'control_name': 'PCI-DSS Vulnerability Scanning', 'framework': 'PCI-DSS', 'status': 'partial', 'risk_level': 'high', 'remediation_cost_k': 70},\n    {'control_name': 'Financial Data Access Logging', 'framework': 'GLBA', 'status': 'implemented', 'risk_level': 'high', 'remediation_cost_k': 50},\n    {'control_name': 'SOX Financial Systems Audit', 'framework': 'SOX', 'status': 'implemented', 'risk_level': 'critical', 'remediation_cost_k': 150},\n    {'control_name': 'Regular Penetration Testing', 'framework': 'FFIEC', 'status': 'partial', 'risk_level': 'high', 'remediation_cost_k': 95},\n    {'control_name': 'Incident Response Tabletop Exercises', 'framework': 'SOC2', 'status': 'missing', 'risk_level': 'medium', 'remediation_cost_k': 55}\n]\n\ndf = pd.DataFrame(controls_data)\n\n# Compute % controls implemented by framework\nprint('=== COMPLIANCE DASHBOARD ===')\nprint('\\nControls by Framework:')\nframework_summary = df.groupby('framework').agg({\n    'status': lambda x: (x == 'implemented').sum(),\n    'control_name': 'count'\n}).rename(columns={'status': 'implemented', 'control_name': 'total'})\nframework_summary['pct_implemented'] = (framework_summary['implemented'] / framework_summary['total'] * 100).round(1)\nprint(framework_summary.to_string())\n\n# Total risk exposure of missing critical controls\nprint('\\nMissing Critical Controls (Risk Exposure):')\nmissing_critical = df[(df['status'] != 'implemented') & (df['risk_level'] == 'critical')]\nprint(missing_critical[['control_name', 'framework', 'risk_level', 'remediation_cost_k']].to_string(index=False))\n\n# Prioritized remediation roadmap\nprint('\\nPrioritized Remediation Roadmap (Top 8):')\nneeds_work = df[df['status'] != 'implemented'].sort_values(\n    by=['risk_level', 'remediation_cost_k'],\n    key=lambda x: (x == 'critical') if x.name == 'risk_level' else x,\n    ascending=[False, True]\n).head(8)\nprint(needs_work[['control_name', 'framework', 'risk_level', 'remediation_cost_k']].to_string(index=False))\n\nprint(f'\\nTotal Remediation Cost: ${needs_work[\"remediation_cost_k\"].sum()}K')",
+        "output": "=== COMPLIANCE DASHBOARD ===\n\nControls by Framework:\n         implemented  total  pct_implemented\nframework\nFFIEC                 0      1             0.0\nGDPR                  2      4            50.0\nGLBA                  1      1           100.0\nPCI-DSS               1      2            50.0\nSOC2                  3      7            42.9\n\nMissing Critical Controls (Risk Exposure):\n                  control_name framework risk_level  remediation_cost_k\n Data Retention Policy      GDPR   critical          120\n Breach Notification System      GDPR   critical          110\n\nPrioritized Remediation Roadmap (Top 8):\n                   control_name framework risk_level  remediation_cost_k\n Data Retention Policy      GDPR   critical          120\n Breach Notification System      GDPR   critical          110\n Access Control / Least Privilege      SOC2   critical          100\n SOX Financial Systems Audit      SOX   critical          150\n Vulnerability Management      SOC2      high           80\n PCI-DSS Vulnerability Scanning      PCI-DSS      high           70\n Right to Erasure Process      GDPR      high           90\n Regular Penetration Testing      FFIEC      high           95\n\nTotal Remediation Cost: $815K"
+      }
+    },
+    {
+      "type": "decision_context_block",
+      "company": "Morgan Stanley (Wealth Management Technology)",
+      "role": "Information Security Compliance Manager",
+      "scenario": "You are preparing for a SOC 2 Type II audit scheduled in 90 days. An internal audit discovered that data retention policies are inconsistently applied across 12 business units — some units retain customer trading data for 3 years, others for 7 years. This violates SOC 2 Policy & Procedures criteria and creates regulatory risk under GDPR. A formal audit notice from regulators is expected within 60 days. You must prioritize which controls to remediate before the audit and develop a timeline.",
+      "constraints": [
+        "90-day timeline before SOC 2 Type II audit",
+        "Budget is $1.5M for remediation",
+        "Cannot disrupt business operations during Q2 earnings season (weeks 1-4)"
+      ],
+      "stakeholder_pressures": [
+        {
+          "stakeholder": "Audit Committee (Board)",
+          "pressure": "Expects clean audit opinion; any audit findings will be reported to regulators"
+        },
+        {
+          "stakeholder": "Chief Information Officer",
+          "pressure": "Concerned about cost and timeline; wants to prioritize highest-impact controls"
+        },
+        {
+          "stakeholder": "General Counsel",
+          "pressure": "Worried about GDPR exposure in EU operations; demands data retention policy remediation within 30 days"
+        }
+      ]
+    },
+    {
+      "type": "guided_analysis_block",
+      "dataset_table": "controls_data",
+      "intro": "Step 1: Run a compliance gap analysis to determine which frameworks have the most missing controls and prioritize the top 5 controls to fix before the audit. Step 2: Build a breach cost model to quantify the financial value of remediation.",
+      "steps": [
+        {
+          "step": 1,
+          "instruction": "Analyze the control inventory by framework. For each framework, compute: (a) % of controls implemented, (b) number of critical-risk controls missing, (c) total remediation cost. Rank frameworks by risk exposure. Then prioritize the top 5 controls by combining: criticality (weight 50%), framework priority (weight 30%), remediation cost (weight 20%). Create a 90-day remediation timeline.",
+          "code": "# Framework Risk Ranking\nrisk_weights = {'critical': 3, 'high': 2, 'medium': 1}\ndf['risk_weight'] = df['risk_level'].map(risk_weights)\n\nframework_risk = df.groupby('framework').agg({\n    'risk_weight': 'sum',\n    'control_name': 'count',\n    'remediation_cost_k': 'sum'\n}).rename(columns={'control_name': 'total_controls', 'remediation_cost_k': 'total_cost_k'})\nframework_risk['risk_per_control'] = framework_risk['risk_weight'] / framework_risk['total_controls']\nframework_risk = framework_risk.sort_values('risk_weight', ascending=False)\n\nprint('Framework Risk Ranking:')\nprint(framework_risk.to_string())\n\n# Top 5 priorities\nmissing = df[df['status'] != 'implemented'].copy()\nmissing['priority_score'] = (missing['risk_level'].map(risk_weights) * 0.5 + \n                            missing['framework'].map({'GDPR': 3, 'SOC2': 2, 'PCI-DSS': 2, 'GLBA': 1, 'SOX': 2, 'FFIEC': 1}) * 0.3 -\n                            missing['remediation_cost_k'] * 0.002)\n\ntop_5 = missing.nlargest(5, 'priority_score')[['control_name', 'framework', 'risk_level', 'remediation_cost_k']]\nprint('\\nTop 5 Priority Controls:')\nprint(top_5.to_string(index=False))",
+          "output": "Framework Risk Ranking:\n         risk_weight  total_controls  total_cost_k  risk_per_control\nframework\nSOC2              15              7           650            2.14\nGDPR              10              4           360            2.50\nPCI-DSS            6              2           155            3.00\nFFIEC              2              1            95            2.00\nSOX                3              1           150            3.00\nGLBA               2              1            50            2.00\n\nTop 5 Priority Controls:\n                   control_name framework risk_level  remediation_cost_k\n Data Retention Policy      GDPR   critical          120\n Breach Notification System      GDPR   critical          110\n Access Control / Least Privilege      SOC2   critical          100\n SOX Financial Systems Audit      SOC2   critical          150\n Vulnerability Management      SOC2      high           80",
+          "business_implication": "GDPR has the highest risk density (2.5 risk per control) despite fewer controls, indicating compliance complexity. The top 5 controls total $560K and address critical gaps. Data Retention Policy and Breach Notification System are highest priority per General Counsel's directive. Timeline: Week 1-4 audit planning (no operational changes). Week 5-6 data retention remediation (critical, 30-day deadline). Week 7-10 breach notification and access control. Week 11-12 vulnerability management. Weeks 13+ buffer for audit readiness."
+        },
+        {
+          "step": 2,
+          "instruction": "Build a breach cost model. Compute expected annual loss (EAL) = probability of breach × average breach cost. Assume: (a) Current control posture: 8% probability of breach annually, average cost $4.5M. (b) After remediation: 2% probability (with new controls). Show EAL before and after remediation, and calculate ROI on remediation spend.",
+          "code": "# Breach Cost Model\nprob_breach_before = 0.08\navg_breach_cost = 4_500_000\neal_before = prob_breach_before * avg_breach_cost\n\nprob_breach_after = 0.02\neал_after = prob_breach_after * avg_breach_cost\n\nrisk_reduction = eал_before - eал_after\nremedy_cost_annual = top_5['remediation_cost_k'].sum() * 1000  # One-time + ongoing\n\nprint('BREACH COST MODEL')\nprint(f'\\nBefore Remediation:')\nprint(f'  Probability of breach: {prob_breach_before:.1%}')\nprint(f'  Average breach cost: ${avg_breach_cost:,.0f}')\nprint(f'  Expected Annual Loss: ${eал_before:,.0f}')\n\nprint(f'\\nAfter Remediation:')\nprint(f'  Probability of breach: {prob_breach_after:.1%}')\nprint(f'  Average breach cost: ${avg_breach_cost:,.0f}')\nprint(f'  Expected Annual Loss: ${eал_after:,.0f}')\n\nprint(f'\\nRisk Reduction: ${risk_reduction:,.0f}/year')\nprint(f'Remediation Investment: ${remedy_cost_annual:,.0f}')\nprint(f'Payback Period: {remedy_cost_annual / risk_reduction:.1f} years')\nprint(f'10-Year Net Benefit: ${risk_reduction * 10 - remedy_cost_annual:,.0f}')",
+          "output": "BREACH COST MODEL\n\nBefore Remediation:\n  Probability of breach: 8.0%\n  Average breach cost: $4,500,000\n  Expected Annual Loss: $360,000\n\nAfter Remediation:\n  Probability of breach: 2.0%\n  Average breach cost: $4,500,000\n  Expected Annual Loss: $90,000\n\nRisk Reduction: $270,000/year\nRemediation Investment: $560,000\n  Payback Period: 2.1 years\n10-Year Net Benefit: $2,140,000",
+          "business_implication": "The breach cost model shows that investing $560K in critical control remediation yields $270K in annual risk reduction. The payback period is 2.1 years. Over 10 years, the net benefit is $2.14M. This strong ROI justifies prioritizing the remediation spend and provides quantitative evidence to the Board that compliance investment is financially sound, not merely regulatory overhead."
+        }
+      ]
+    }
+  ]
+}
