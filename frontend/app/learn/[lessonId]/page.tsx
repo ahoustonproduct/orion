@@ -13,6 +13,7 @@ import {
   ChevronRight, BookOpen, HelpCircle, Star, Sparkles, Loader2, MessageCircle
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import rehypeSanitize from "rehype-sanitize";
 import dynamic from "next/dynamic";
 import AIChatSidebar from "@/components/AIChatSidebar";
 
@@ -23,6 +24,7 @@ type Step = "concept" | "questions" | "challenge";
 function Markdown({ text }: { text: string }) {
   return (
     <ReactMarkdown
+      rehypePlugins={[rehypeSanitize]}
       components={{
         code: ({ className, children }) => {
           const isBlock = className?.includes("block");
