@@ -11,7 +11,24 @@ from routes.mastery import router as mastery_router
 from routes.review import router as review_router
 from routes.notebooks import router as notebooks_router
 
+import logging
+from fastapi.responses import JSONResponse
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="Orion Code API", version="1.0.0")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logger.error(f"Unhandled exception on {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Internal server error. Please try again later."},
+    )
 
 app.add_middleware(
     CORSMiddleware,

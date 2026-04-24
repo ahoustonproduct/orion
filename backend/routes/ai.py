@@ -20,24 +20,34 @@ router = APIRouter(prefix="/orion", tags=["orion"])
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1")
 OLLAMA_RAW_URL = OLLAMA_BASE_URL.replace("/v1", "/api/tags")
 
+_active_model = None
+
 def get_active_model():
     """Fallback logic to ensure a working model is used."""
+    global _active_model
+    if _active_model is not None:
+        return _active_model
+        
     requested_model = os.environ.get("OLLAMA_MODEL", "orion-tutor")
     try:
         resp = requests.get(OLLAMA_RAW_URL, timeout=2)
         if resp.status_code == 200:
             models = [m["name"] for m in resp.json().get("models", [])]
             if requested_model in models:
-                return requested_model
+                _active_model = requested_model
+                return _active_model
             # Fallback priority
             for fallback in ["gemma-4-E4B-it", "gemma:7b", "llama3"]:
                 if any(m.startswith(fallback) for m in models):
-                    return fallback
-    except Exception:
-        pass
-    return requested_model
-
-MODEL = get_active_model()
+                    _active_model = fallback
+                    return _active_model
+    except requests.RequestException as e:
+        print(f"Warning: Could not connect to Ollama at {OLLAMA_RAW_URL}: {e}")
+    except Exception as e:
+        print(f"Warning: Unexpected error while getting active model: {e}")
+        
+    _active_model = requested_model
+    return _active_model
 client = OpenAI(base_url=OLLAMA_BASE_URL, api_key="ollama")
 
 
@@ -83,18 +93,32 @@ def get_profile(user_key: str, db: Session) -> dict:
     }
 
 
-def stream_response(prompt: str, max_tokens: int = 1500):
+def stream_response(prompt: Optional[str] = None, max_tokens: int = 1500, messages: Optional[list] = None, system_prompt: Optional[str] = None):
     """Stream Ollama's response token by token."""
+    model = get_active_model()
+    
+    msgs = []
+    if system_prompt:
+        msgs.append({"role": "system", "content": system_prompt})
+    if messages:
+        msgs.extend(messages)
+    elif prompt:
+        msgs.append({"role": "user", "content": prompt})
+
     def generate():
-        stream = client.chat.completions.create(
-            model=MODEL,
-            max_tokens=max_tokens,
-            messages=[{"role": "user", "content": prompt}],
-            stream=True,
-        )
-        for chunk in stream:
-            if chunk.choices and chunk.choices[0].delta.content:
-                yield chunk.choices[0].delta.content
+        try:
+            stream = client.chat.completions.create(
+                model=model,
+                max_tokens=max_tokens,
+                messages=msgs,
+                stream=True,
+            )
+            for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+        except Exception as e:
+            print(f"Error streaming response from Ollama: {e}")
+            yield f"\n[Error: Unable to generate response. Please ensure Ollama is running and try again later.]"
 
     return StreamingResponse(generate(), media_type="text/plain")
 
@@ -301,18 +325,9 @@ User: {req.user_message}
 
 Orion:"""
 
-    def generate():
-        stream = client.chat.completions.create(
-            model=MODEL,
-            max_tokens=800,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": req.user_message}
-            ],
-            stream=True,
-        )
-        for chunk in stream:
-            if chunk.choices and chunk.choices[0].delta.content:
-                yield chunk.choices[0].delta.content
-
-    return StreamingResponse(generate(), media_type="text/plain")
+    return stream_response(
+        prompt=None,
+        max_tokens=800,
+        messages=[{"role": "user", "content": req.user_message}],
+        system_prompt=system_prompt
+    )

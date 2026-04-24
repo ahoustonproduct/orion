@@ -66,11 +66,7 @@ def get_progress(user_key: str, db: Session = Depends(get_db)):
         lesson_ids = {l["id"] for l in module["lessons"]}
         completed_in_module = lesson_ids & completed_lessons
         # Mastery: % with 3 stars
-        starred = db.query(UserProgress).filter(
-            UserProgress.user_key == user_key,
-            UserProgress.lesson_id.in_(lesson_ids),
-            UserProgress.stars == 3
-        ).count()
+        starred = sum(1 for p in progress if p.lesson_id in lesson_ids and p.stars == 3)
         module_status[module["id"]] = {
             "completed_count": len(completed_in_module),
             "total": len(lesson_ids),

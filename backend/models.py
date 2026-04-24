@@ -1,8 +1,7 @@
 import os
 from sqlalchemy import create_engine, Column, String, Integer, Boolean, DateTime, JSON, Date
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from datetime import datetime, date
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from datetime import datetime, date, timezone
 
 # Anchor the SQLite DB to the backend directory so that progress persists
 # regardless of the working directory the server is launched from.
@@ -12,7 +11,8 @@ DATABASE_URL = f"sqlite:///{_DB_PATH}"
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 
 class UserProgress(Base):
@@ -26,7 +26,7 @@ class UserProgress(Base):
     hints_used = Column(Integer, default=0)
     completed = Column(Boolean, default=False)
     flagged = Column(Boolean, default=False)
-    last_accessed = Column(DateTime, default=datetime.utcnow)
+    last_accessed = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class LearningProfile(Base):
@@ -51,8 +51,8 @@ class Note(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_key = Column(String, index=True)
     content = Column(String, default="")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class BookmarkedPosition(Base):
@@ -64,7 +64,7 @@ class BookmarkedPosition(Base):
     step_index = Column(Integer, default=0)    # which step of the lesson (0=concept, 1=questions, 2=challenge)
     sub_step = Column(Integer, default=0)      # e.g. which question within questions
     saved_code = Column(String, default="")    # preserve in-progress code
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class ConfidenceRating(Base):
@@ -74,7 +74,7 @@ class ConfidenceRating(Base):
     user_key = Column(String, index=True)
     lesson_id = Column(String)
     rating = Column(Integer)   # 1-5 (1=lost, 3=okay, 5=totally got it)
-    rated_at = Column(DateTime, default=datetime.utcnow)
+    rated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class Notebook(Base):
@@ -94,8 +94,8 @@ class Notebook(Base):
     status = Column(String, default="pending")          # pending | generating | ready | failed
     error = Column(String, default="")
     module_data = Column(JSON, default=dict)            # module dict with nested lessons
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 def get_db():
