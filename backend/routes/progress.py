@@ -107,35 +107,48 @@ def get_progress(user_key: str, db: Session = Depends(get_db)):
 
 @router.post("/{user_key}/lesson")
 def update_lesson_progress(user_key: str, update: ProgressUpdate, db: Session = Depends(get_db)):
-    """Save or update lesson progress."""
-    existing = db.query(UserProgress).filter(
-        UserProgress.user_key == user_key,
-        UserProgress.lesson_id == update.lesson_id
-    ).first()
+    """Save or update lesson progress.
 
-    if existing:
-        existing.stars = max(existing.stars, update.stars)
-        existing.attempts = update.attempts
-        existing.hints_used = update.hints_used
-        existing.completed = update.completed
-        existing.last_accessed = datetime.utcnow()
-    else:
-        existing = UserProgress(
-            user_key=user_key,
-            lesson_id=update.lesson_id,
-            stars=update.stars,
-            attempts=update.attempts,
-            hints_used=update.hints_used,
-            completed=update.completed,
-        )
-        db.add(existing)
+    All field mutations (progress row + profile streak + weak topics + mastered)
+    are staged against the session and written in a SINGLE commit at the end.
+    Previously this handler issued 4 independent commits, which meant a mid-flight
+    exception could leave the DB in a half-updated state (row saved, streak lost,
+    etc.) and two interleaved requests could clobber each other's writes.
+    The helpers below are now mutate-only — they must not call db.commit().
+    """
+    try:
+        existing = db.query(UserProgress).filter(
+            UserProgress.user_key == user_key,
+            UserProgress.lesson_id == update.lesson_id
+        ).first()
 
-    db.commit()
+        if existing:
+            existing.stars = max(existing.stars, update.stars)
+            existing.attempts = update.attempts
+            existing.hints_used = update.hints_used
+            existing.completed = update.completed
+            existing.last_accessed = datetime.utcnow()
+        else:
+            existing = UserProgress(
+                user_key=user_key,
+                lesson_id=update.lesson_id,
+                stars=update.stars,
+                attempts=update.attempts,
+                hints_used=update.hints_used,
+                completed=update.completed,
+            )
+            db.add(existing)
 
-    profile = get_or_create_profile(user_key, db)
-    _update_streak(profile, update.time_spent_minutes or 0, db)
-    _update_weak_topics(profile, update.lesson_id, update.stars, db)
-    _update_mastered(profile, update.lesson_id, update.stars, db)
+        profile = get_or_create_profile(user_key, db)
+        _update_streak(profile, update.time_spent_minutes or 0)
+        _update_weak_topics(profile, update.lesson_id, update.stars)
+        _update_mastered(profile, update.lesson_id, update.stars)
+
+        db.commit()
+        db.refresh(existing)
+    except Exception:
+        db.rollback()
+        raise
 
     return {"success": True, "stars": existing.stars}
 
@@ -302,7 +315,9 @@ def get_week_data(user_key: str, db: Session = Depends(get_db)):
     }
 
 
-def _update_streak(profile: LearningProfile, minutes: int, db: Session):
+def _update_streak(profile: LearningProfile, minutes: int) -> None:
+    """Mutate streak / study_log on the profile in-place. Does NOT commit —
+    the caller writes all mutations in a single transaction."""
     today = date.today()
     study_log = dict(profile.study_log or {})
     today_str = today.isoformat()
@@ -320,22 +335,20 @@ def _update_streak(profile: LearningProfile, minutes: int, db: Session):
             profile.streak_count = 1
         profile.last_active = today
 
-    db.commit()
 
-
-def _update_weak_topics(profile: LearningProfile, lesson_id: str, stars: int, db: Session):
+def _update_weak_topics(profile: LearningProfile, lesson_id: str, stars: int) -> None:
+    """Mutate weak_topics on the profile in-place. Does NOT commit."""
     weak = list(profile.weak_topics or [])
     if stars < 3 and lesson_id not in weak:
         weak.append(lesson_id)
     elif stars == 3 and lesson_id in weak:
         weak.remove(lesson_id)
     profile.weak_topics = weak
-    db.commit()
 
 
-def _update_mastered(profile: LearningProfile, lesson_id: str, stars: int, db: Session):
+def _update_mastered(profile: LearningProfile, lesson_id: str, stars: int) -> None:
+    """Mutate mastered_concepts on the profile in-place. Does NOT commit."""
     mastered = list(profile.mastered_concepts or [])
     if stars == 3 and lesson_id not in mastered:
         mastered.append(lesson_id)
     profile.mastered_concepts = mastered
-    db.commit()
