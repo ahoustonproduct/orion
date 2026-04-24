@@ -7,10 +7,23 @@ frontend/tsconfig.tsbuildinfo
 backend/venv/
 backend/__pycache__/
 backend/**/__pycache__/
-backend/*.db
+
+# Databases — never commit sqlite files anywhere in the tree
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Training artifacts
+tutor-training/orion-fused-safetensors/
 
 # General
 .DS_Store
 .env
 .env.local
-tutor-training/orion-fused-safetensors/
+.env.*.local
+
+# Editors / OS
+*.swp
+*.swo
+Thumbs.db

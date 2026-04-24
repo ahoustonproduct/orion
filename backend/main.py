@@ -30,12 +30,23 @@ async def global_exception_handler(request, exc):
         content={"message": "Internal server error. Please try again later."},
     )
 
+# CORS: restrict origins to an explicit allowlist.
+# Set ALLOWED_ORIGINS env var (comma-separated) to add origins in staging/prod.
+# Wildcards are intentionally NOT supported — wildcard + credentials is a silent no-op
+# in browsers and a footgun the moment we add cookie auth.
+_default_origins = "http://localhost:3000,http://127.0.0.1:3000"
+_allowed_origins = [
+    o.strip()
+    for o in os.getenv("ALLOWED_ORIGINS", _default_origins).split(",")
+    if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 app.include_router(curriculum_router)

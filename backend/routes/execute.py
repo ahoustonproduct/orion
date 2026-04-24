@@ -9,8 +9,14 @@ import sys
 
 router = APIRouter(prefix="/execute", tags=["execute"])
 
-# Data science libraries that are allowed in the sandbox
-ALLOWED_DATA_SCIENCE_IMPORTS = {"pandas", "numpy", "scipy", "sklearn", "matplotlib", "seaborn", "statistics", "math", "json", "random", "datetime", "re"}
+# Data science libraries that users may import in the sandbox.
+# These are PRE-INSTALLED via backend/requirements.txt. There is deliberately
+# no install-on-demand path — that would (a) add 10–30 s of per-request latency,
+# (b) create an attack surface through pip, and (c) silently drift the sandbox.
+ALLOWED_DATA_SCIENCE_IMPORTS = {
+    "pandas", "numpy", "scipy", "sklearn", "matplotlib", "seaborn",
+    "statistics", "math", "json", "random", "datetime", "re",
+}
 
 # Security patterns that are never allowed
 BLOCKED_PATTERNS: list[str] = [
@@ -36,12 +42,6 @@ BLOCKED_PATTERNS: list[str] = [
     r"\b__builtins__\b",
     r"\b__class__\b",
     r"\b__subclasses__\b",
-    r"\bimport\s+pandas\s+as\b",
-    r"\bimport\s+numpy\s+as\b",
-    r"\bimport\s+scipy\s+as\b",
-    r"\bimport\s+sklearn\s+as\b",
-    r"\bimport\s+matplotlib\s+as\b",
-    r"\bimport\s+seaborn\s+as\b",
 ]
 
 _COMPILED_PATTERNS = [re.compile(p) for p in BLOCKED_PATTERNS]
@@ -54,23 +54,25 @@ def _is_unsafe(code: str) -> tuple[bool, str]:
     return False, ""
 
 
-def _check_data_science_imports(code: str) -> list[str]:
-    """Check for data science library imports and verify they're available."""
-    import_pattern = re.compile(r'^\s*import\s+([a-zA-Z_][a-zA-Z0-9_]*)', re.MULTILINE)
-    found_imports = import_pattern.findall(code)
-    needed = []
-    for imp in found_imports:
-        if imp in ALLOWED_DATA_SCIENCE_IMPORTS:
-            try:
-                __import__(imp)
-            except ImportError:
-                needed.append(imp)
-    return needed
+# Only .py filenames with no path components are acceptable in /execute/multi.
+_SAFE_FILENAME_RE = re.compile(r"^[A-Za-z0-9_\-.]+\.(py|txt)$")
+
+
+def _safe_filename(name: str) -> str | None:
+    """Return a safe basename, or None if the name is unacceptable."""
+    if not name:
+        return None
+    base = os.path.basename(name)
+    if base != name:
+        # Caller supplied a path component — reject.
+        return None
+    if not _SAFE_FILENAME_RE.match(base):
+        return None
+    return base
 
 
 class ExecutePythonRequest(BaseModel):
     code: str
-    files: list[dict[str, str]] | None = None  # For multi-file execution
 
 
 class ExecuteMultiFileRequest(BaseModel):
@@ -91,21 +93,14 @@ def execute_python(req: ExecutePythonRequest) -> dict:
             "error": f"Blocked: unsafe pattern detected — {matched}",
             "duration_ms": 0,
         }
-    
-    # Check for needed data science libraries
-    needed_libs = _check_data_science_imports(code)
-    
-    # Build command with pip install if needed
-    cmd = [sys.executable, "-c", code]
-    if needed_libs:
-        # Prepend pip install to the command
-        install_cmd = f"pip install --quiet {' '.join(needed_libs)} && {sys.executable} -c {repr(code)}"
-        cmd = [sys.executable, "-c", install_cmd]
-    
+
+    # Run user code directly. Allowed libs are pre-installed via requirements.txt;
+    # if a user imports something not installed, they'll get a clean ImportError
+    # in stderr, which is the correct pedagogical signal.
     start = time.monotonic()
     try:
         result = subprocess.run(
-            cmd,
+            [sys.executable, "-I", "-c", code],  # -I: isolate from user site-packages/env
             capture_output=True,
             text=True,
             timeout=15,
@@ -187,74 +182,72 @@ def execute_sql(req: ExecuteSQLRequest) -> dict:
 
 @router.post("/multi")
 def execute_multi(req: ExecuteMultiFileRequest) -> dict:
-    """Execute multiple Python files concurrently."""
+    """Execute a multi-file Python program. Runs the first .py file found."""
     files = req.files
     if not files:
         return {"error": "No files provided", "outputs": {}}
-    
-    # Create a temporary directory for the files
+
     import tempfile
     import shutil
-    
-    temp_dir = tempfile.mkdtemp()
-    outputs = {}
-    errors = {}
-    
-    try:
-        # Write all files to the temp directory
-        for file in files:
-            file_path = os.path.join(temp_dir, file["name"])
-            with open(file_path, "w") as f:
-                f.write(file["content"])
-        
-        # Find the main file (first .py file or the first file)
-        main_file = next((f for f in files if f["name"].endswith(".py")), files[0])
-        
-        # Check all files for unsafe patterns
-        for file in files:
-            unsafe, matched = _is_unsafe(file["content"])
-            if unsafe:
-                return {
-                    "error": f"Unsafe pattern in {file['name']}: {matched}",
-                    "outputs": {},
-                }
-        
-        # Check for data science imports across all files
-        all_code = "\n".join(f["content"] for f in files)
-        needed_libs = _check_data_science_imports(all_code)
-        
-        # Build command
-        main_path = os.path.join(temp_dir, main_file["name"])
-        cmd = [sys.executable, main_path]
 
-        if needed_libs:
-            install_cmd = f"pip install --quiet {' '.join(needed_libs)} && {sys.executable} {main_path}"
-            cmd = [sys.executable, "-c", install_cmd]
-        
+    # Validate every filename BEFORE touching the filesystem. Reject path-traversal,
+    # absolute paths, and non-.py/.txt files.
+    sanitized: list[tuple[str, str]] = []
+    for file in files:
+        raw_name = file.get("name", "")
+        safe = _safe_filename(raw_name)
+        if safe is None:
+            return {
+                "error": f"Invalid filename: {raw_name!r}. "
+                         "Names must be simple basenames ending in .py or .txt.",
+                "outputs": {},
+            }
+        sanitized.append((safe, file.get("content", "")))
+
+    # Scan every file for unsafe patterns BEFORE writing anything.
+    for name, content in sanitized:
+        unsafe, matched = _is_unsafe(content)
+        if unsafe:
+            return {
+                "error": f"Unsafe pattern in {name}: {matched}",
+                "outputs": {},
+            }
+
+    temp_dir = tempfile.mkdtemp(prefix="orion_exec_")
+    try:
+        for name, content in sanitized:
+            file_path = os.path.join(temp_dir, name)
+            # Belt-and-suspenders: make sure the resolved path is still inside temp_dir.
+            if os.path.commonpath([os.path.realpath(file_path), os.path.realpath(temp_dir)]) != os.path.realpath(temp_dir):
+                return {"error": f"Refusing to write outside sandbox: {name}", "outputs": {}}
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(content)
+
+        main_name = next((n for n, _ in sanitized if n.endswith(".py")), sanitized[0][0])
+        main_path = os.path.join(temp_dir, main_name)
+
         start = time.monotonic()
         result = subprocess.run(
-            cmd,
+            [sys.executable, "-I", main_path],
             capture_output=True,
             text=True,
             timeout=20,
             cwd=temp_dir,
         )
         duration_ms = int((time.monotonic() - start) * 1000)
-        
+
         outputs = {
             "main": result.stdout[:5000],
-            "all_files": [f["name"] for f in files],
+            "all_files": [n for n, _ in sanitized],
         }
-        
-        if result.returncode != 0:
-            errors = {"main": result.stderr[:2000]}
-        
+        errors = {"main": result.stderr[:2000]} if result.returncode != 0 else None
+
         return {
             "outputs": outputs,
-            "errors": errors if errors else None,
+            "errors": errors,
             "duration_ms": duration_ms,
         }
-        
+
     except subprocess.TimeoutExpired:
         return {
             "error": "Execution timed out (20 s limit)",
