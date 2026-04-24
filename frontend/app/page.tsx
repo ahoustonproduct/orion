@@ -7,38 +7,33 @@ import {
   type Module, type ProgressData, type ReviewQueue, type MasteryData,
 } from "@/lib/api";
 import { getUserKey } from "@/lib/user";
-import { Flame, BookOpen, Star, Zap, ChevronRight, Lock, ArrowRight, RefreshCw, AlertCircle, Activity, Box, Cpu } from "lucide-react";
+import { Flame, BookOpen, Star, Zap, ChevronRight, Lock, ArrowRight, RefreshCw, AlertCircle, Box, Cpu } from "lucide-react";
 
 export default function Dashboard() {
   const [modules, setModules] = useState<Module[]>([]);
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [reviewQueue, setReviewQueue] = useState<ReviewQueue | null>(null);
   const [mastery, setMastery] = useState<MasteryData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [whatNext, setWhatNext] = useState("");
   const [whatNextLoading, setWhatNextLoading] = useState(false);
 
   useEffect(() => {
     const userKey = getUserKey();
-    Promise.all([
-      fetchModules(),
-      fetchProgress(userKey),
-      fetchReviewQueue(userKey).catch(() => null),
-      fetchMastery(userKey).catch(() => null),
-    ])
-      .then(([mods, prog, rq, mast]) => {
-        setModules(mods);
+    // Fire each request independently so the page paints as data arrives
+    // instead of waiting for the slowest call to finish.
+    fetchModules().then(setModules).catch(console.error);
+    fetchProgress(userKey)
+      .then((prog) => {
         setProgress(prog);
-        setReviewQueue(rq);
-        setMastery(mast);
-
+        // Only kick off the (slow) AI "what next" stream after we have
+        // progress to analyze, and never block initial render on it.
         setWhatNextLoading(true);
         streamWhatNext(userKey, prog, (chunk) => setWhatNext((p) => p + chunk))
-          .then(() => setWhatNextLoading(false))
-          .catch(() => setWhatNextLoading(false));
+          .finally(() => setWhatNextLoading(false));
       })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      .catch(console.error);
+    fetchReviewQueue(userKey).then(setReviewQueue).catch(() => null);
+    fetchMastery(userKey).then(setMastery).catch(() => null);
   }, []);
 
   const totalLessons = modules.reduce((s, m) => s + m.lesson_count, 0);
@@ -46,55 +41,21 @@ export default function Dashboard() {
   const totalStars = progress ? progress.lessons.reduce((s, l) => s + l.stars, 0) : 0;
   const overallPct = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
-  // Days until WashU Fall 2026 start
-  const daysUntilStart = Math.max(0, Math.round(
-    (new Date("2026-08-24").getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  ));
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="relative w-24 h-24 flex items-center justify-center">
-          <div className="absolute inset-0 border-t-2 border-r-2 border-[var(--color-accent)] rounded-full animate-spin"></div>
-          <div className="absolute inset-2 border-b-2 border-l-2 border-[var(--color-accent-light)] rounded-full animate-[spin_1.5s_reverse_infinite]"></div>
-          <div className="w-12 h-12 rounded-full bg-[var(--color-surface-2)] flex items-center justify-center animate-pulse">
-            <span className="text-[var(--color-accent)] font-bold text-xl">O</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-4xl mx-auto px-6 py-10 space-y-8 pb-20">
       {/* Header Profile Section */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-        <div className="flex items-center gap-5">
-          <div className="relative">
-            <div className="absolute -inset-1 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-light)] rounded-2xl blur opacity-20" />
-            <div className="relative w-16 h-16 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-border)] flex items-center justify-center overflow-hidden">
-               <span className="text-[var(--color-accent)] font-bold text-3xl">O</span>
-            </div>
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)] mb-1">
-              Welcome Back
-            </h1>
-            <p className="text-[var(--color-text-secondary)] text-sm font-medium">Orion / WashU FinTech Analytics Prep</p>
+      <div className="flex items-center gap-5 animate-slide-up" style={{ animationDelay: "0.1s" }}>
+        <div className="relative">
+          <div className="absolute -inset-1 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-light)] rounded-2xl blur opacity-20" />
+          <div className="relative w-16 h-16 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-border)] flex items-center justify-center overflow-hidden">
+             <span className="text-[var(--color-accent)] font-bold text-3xl">O</span>
           </div>
         </div>
-        
-        {/* Countdown Badge */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] px-5 py-3 rounded-2xl flex items-center gap-4">
-           <div className="flex flex-col">
-              <span className="text-2xl font-black text-[var(--color-accent)]">
-                {daysUntilStart}
-              </span>
-              <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest mt-0.5">Days to Start</span>
-           </div>
-           <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 flex items-center justify-center text-[var(--color-accent)]">
-              <Activity size={18} />
-           </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)] mb-1">
+            Welcome Back
+          </h1>
+          <p className="text-[var(--color-text-secondary)] text-sm font-medium">Orion / WashU FinTech Analytics Prep</p>
         </div>
       </div>
 
@@ -144,9 +105,7 @@ export default function Dashboard() {
               <div className="text-[var(--color-text-secondary)] leading-relaxed text-lg font-medium">
                 <p className="border-l-2 border-[var(--color-accent)]/50 pl-4 py-1">{whatNext}</p>
               </div>
-            ) : (
-              <p className="text-[var(--color-text-muted)] italic">Analyzing your recent performance to determine the optimal next steps...</p>
-            )}
+            ) : null}
           </div>
           
           <div className="mt-6 pt-5 border-t border-[var(--color-border)] flex justify-between items-center">

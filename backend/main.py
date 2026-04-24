@@ -9,6 +9,7 @@ from routes.quiz import router as quiz_router
 from routes.execute import router as execute_router
 from routes.mastery import router as mastery_router
 from routes.review import router as review_router
+from routes.notebooks import router as notebooks_router
 
 app = FastAPI(title="Orion Code API", version="1.0.0")
 
@@ -27,6 +28,7 @@ app.include_router(quiz_router)
 app.include_router(execute_router)
 app.include_router(mastery_router)
 app.include_router(review_router)
+app.include_router(notebooks_router)
 
 
 @app.on_event("startup")

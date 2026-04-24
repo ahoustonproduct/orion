@@ -439,3 +439,64 @@ export const addToReviewQueue = (userKey: string, questionId: string, lessonId: 
 
 export const streamEvaluateDecision = (lessonId: string, decisionValue: unknown, scenario: string, onChunk: (t: string) => void) =>
   streamPost("/orion/evaluate-decision", { lesson_id: lessonId, decision_value: decisionValue, scenario }, onChunk);
+
+// ── Notebooks (NotebookLM-style user-generated modules) ────────────────────────
+
+export interface NotebookSummary {
+  id: string;
+  title: string;
+  status: "pending" | "generating" | "ready" | "failed";
+  error: string;
+  source_type: string;
+  source_url: string;
+  lesson_count: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface NotebookModule {
+  id: string;
+  title: string;
+  description: string;
+  course: string;
+  order: number;
+  locked: boolean;
+  lessons: Lesson[];
+}
+
+export interface NotebookDetail {
+  id: string;
+  title: string;
+  status: "pending" | "generating" | "ready" | "failed";
+  error: string;
+  source_type: string;
+  source_url: string;
+  module_data: NotebookModule;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export const createNotebook = (userKey: string, sourceUrl: string, title?: string) =>
+  post<{ id: string; status: string }>(`/notebooks/generate`, {
+    user_key: userKey,
+    source_url: sourceUrl,
+    title: title || "",
+  });
+
+export const fetchNotebooks = (userKey: string) =>
+  get<NotebookSummary[]>(`/notebooks/${userKey}`);
+
+export const fetchNotebook = (userKey: string, notebookId: string) =>
+  get<NotebookDetail>(`/notebooks/${userKey}/${notebookId}`);
+
+export const fetchNotebookLesson = (userKey: string, notebookId: string, lessonId: string) =>
+  get<Lesson>(`/notebooks/${userKey}/${notebookId}/lesson/${lessonId}`);
+
+export const deleteNotebook = async (userKey: string, notebookId: string) => {
+  const res = await fetch(`${API_BASE}/notebooks/${userKey}/${notebookId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`DELETE failed: ${res.status}`);
+  return res.json();
+};
+
+export const retryNotebook = (userKey: string, notebookId: string) =>
+  post<{ id: string; status: string }>(`/notebooks/${userKey}/${notebookId}/retry`, {});

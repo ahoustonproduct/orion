@@ -52,8 +52,8 @@ export default function QuizPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-2">
-          <Flame size={32} className="text-yellow-500 mx-auto animate-pulse" />
-          <p className="text-sm text-gray-400">Loading your quiz...</p>
+          <Flame size={32} className="text-[var(--color-star)] mx-auto animate-pulse" />
+          <p className="text-sm text-[var(--color-text-muted)]">Loading your quiz...</p>
         </div>
       </div>
     );
@@ -62,9 +62,9 @@ export default function QuizPage() {
   if (!quiz?.questions?.length) {
     return (
       <div className="max-w-md mx-auto px-4 py-12 text-center space-y-4">
-        <Flame size={40} className="text-yellow-500/40 mx-auto" />
-        <h2 className="text-lg font-semibold text-white">No quiz available yet</h2>
-        <p className="text-sm text-gray-300">{quiz?.message ?? "Complete some lessons first. Flagged and low-starred lessons will appear here."}</p>
+        <Flame size={40} className="text-[var(--color-star)]/60 mx-auto" />
+        <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">No quiz available yet</h2>
+        <p className="text-sm text-[var(--color-text-secondary)]">{quiz?.message ?? "Complete some lessons first. Flagged and low-starred lessons will appear here."}</p>
       </div>
     );
   }
@@ -73,17 +73,17 @@ export default function QuizPage() {
     const pct = Math.round((score / quiz.questions.length) * 100);
     return (
       <div className="max-w-md mx-auto px-4 py-12 text-center space-y-6">
-        <div className="glass-card border-white/5 border border-white/10 border-transparent rounded-2xl p-8 space-y-4">
-          <CheckCircle size={48} className="text-green-400 mx-auto" />
-          <h2 className="text-xl font-bold text-white">Quiz Complete!</h2>
-          <div className="text-5xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-8 space-y-4">
+          <CheckCircle size={48} className="text-[var(--color-success)] mx-auto" />
+          <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Quiz Complete!</h2>
+          <div className="text-5xl font-bold text-[var(--color-success)]">
             {pct}%
           </div>
-          <p className="text-gray-300 text-sm">{score} / {quiz.questions.length} correct</p>
-          {pct >= 80 && <p className="text-green-400 text-sm">Great job!</p>}
-          {pct < 80 && <p className="text-gray-300 text-sm">Keep practicing — you'll get there!</p>}
+          <p className="text-[var(--color-text-secondary)] text-sm">{score} / {quiz.questions.length} correct</p>
+          {pct >= 80 && <p className="text-[var(--color-success)] text-sm">Great job!</p>}
+          {pct < 80 && <p className="text-[var(--color-text-secondary)] text-sm">Keep practicing — you&apos;ll get there!</p>}
         </div>
-        <button onClick={load} className="flex items-center gap-2 mx-auto px-6 py-3 bg-[var(--color-accent)] shadow-lg shadow-[var(--color-accent)]/20 hover:bg-[var(--color-accent-hover)] text-white rounded-xl text-sm font-medium transition-all">
+        <button onClick={load} className="flex items-center gap-2 mx-auto px-6 py-3 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white rounded-xl text-sm font-medium transition-all">
           <RefreshCw size={14} /> Try Again
         </button>
       </div>
@@ -95,14 +95,14 @@ export default function QuizPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Flame size={18} className="text-yellow-500" />
-          <h1 className="text-lg font-bold text-white">Daily Quiz</h1>
+          <Flame size={18} className="text-[var(--color-star)]" />
+          <h1 className="text-lg font-bold text-[var(--color-text-primary)]">Daily Quiz</h1>
         </div>
-        <span className="text-xs text-gray-400">{idx + 1} / {quiz.questions.length}</span>
+        <span className="text-xs text-[var(--color-text-muted)]">{idx + 1} / {quiz.questions.length}</span>
       </div>
 
       {/* Progress bar */}
-      <div className="h-1.5 bg-black/20 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-[var(--color-surface-2)] rounded-full overflow-hidden border border-[var(--color-border)]">
         <div
           className="h-full bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-hover)] rounded-full transition-all"
           style={{ width: `${((idx + 1) / quiz.questions.length) * 100}%` }}
@@ -110,15 +110,15 @@ export default function QuizPage() {
       </div>
 
       {/* Lesson label */}
-      {(current as any)?.lesson_title && (
-        <p className="text-xs text-[var(--color-accent-light)]">From: {(current as any).lesson_title}</p>
+      {(current as Question & { lesson_title?: string })?.lesson_title && (
+        <p className="text-xs text-[var(--color-accent-light)]">From: {(current as Question & { lesson_title?: string }).lesson_title}</p>
       )}
 
       {/* Question */}
-      <div className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-4">
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4">
         {current && (
           <div className="space-y-4">
-            <p className="text-sm font-medium text-white">{current.question}</p>
+            <p className="text-sm font-medium text-[var(--color-text-primary)]">{current.question}</p>
             {current.type === "multiple_choice" && current.options && (
               <div className="space-y-2">
                 {current.options.map((opt: string, i: number) => {
@@ -131,18 +131,18 @@ export default function QuizPage() {
                       disabled={answered}
                       className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all ${
                         answered && isCorrect
-                          ? "border-green-400 bg-green-500/10 text-green-400"
+                          ? "border-[var(--color-success)] bg-[var(--color-success)]/10 text-[var(--color-success)]"
                           : answered && isSelected && !isCorrect
-                          ? "border-red-400 bg-red-500/10 text-red-400"
+                          ? "border-[var(--color-error)] bg-[var(--color-error)]/10 text-[var(--color-error)]"
                           : isSelected
-                          ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-white"
-                          : "border-white/10 hover:border-[var(--color-accent)] hover:shadow-[var(--color-accent)]/20 shadow-md"
+                          ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-text-primary)]"
+                          : "bg-[var(--color-surface-2)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:border-[var(--color-accent)]"
                       }`}
                     >
                       <span className="font-medium mr-2">{String.fromCharCode(65 + i)}.</span>
                       {opt}
-                      {answered && isCorrect && <CheckCircle size={14} className="inline ml-2 text-green-500" />}
-                      {answered && isSelected && !isCorrect && <XCircle size={14} className="inline ml-2 text-red-500" />}
+                      {answered && isCorrect && <CheckCircle size={14} className="inline ml-2 text-[var(--color-success)]" />}
+                      {answered && isSelected && !isCorrect && <XCircle size={14} className="inline ml-2 text-[var(--color-error)]" />}
                     </button>
                   );
                 })}
@@ -160,12 +160,12 @@ export default function QuizPage() {
                       disabled={answered}
                       className={`flex-1 py-3 rounded-lg border text-sm font-medium transition-all ${
                         answered && isCorrect
-                          ? "border-green-400 bg-green-500/10 text-green-400"
+                          ? "border-[var(--color-success)] bg-[var(--color-success)]/10 text-[var(--color-success)]"
                           : answered && isSelected && !isCorrect
-                          ? "border-red-400 bg-red-500/10 text-red-400"
+                          ? "border-[var(--color-error)] bg-[var(--color-error)]/10 text-[var(--color-error)]"
                           : isSelected
-                          ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-white"
-                          : "border-white/10 hover:border-[var(--color-accent)] hover:shadow-[var(--color-accent)]/20 shadow-md"
+                          ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-text-primary)]"
+                          : "bg-[var(--color-surface-2)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:border-[var(--color-accent)]"
                       }`}
                     >
                       {String(val)}
@@ -174,10 +174,10 @@ export default function QuizPage() {
                 })}
               </div>
             )}
-            {current.type === "fill_blank" && (current as any).template && (
+            {current.type === "fill_blank" && (current as Question & { template?: string }).template && (
               <div className="space-y-3">
-                <code className="block bg-black/40 text-green-300 p-3 rounded-lg text-sm font-mono">
-                  {(current as any).template}
+                <code className="block bg-[var(--color-accent)] text-[var(--color-background)] p-3 rounded-lg text-sm font-mono">
+                  {(current as Question & { template?: string }).template}
                 </code>
                 {!answered && (
                   <button
@@ -185,21 +185,21 @@ export default function QuizPage() {
                       const input = prompt("Your answer:");
                       if (input !== null) checkAnswer(input.trim());
                     }}
-                    className="px-4 py-2 bg-[var(--color-accent)] shadow-lg shadow-[var(--color-accent)]/20 text-white rounded-lg text-sm font-medium"
+                    className="px-4 py-2 bg-[var(--color-accent)] text-white rounded-lg text-sm font-medium"
                   >
                     Submit Answer
                   </button>
                 )}
                 {answered && (
-                  <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
-                    <p className="text-xs text-green-400 font-mono">Answer: <code>{String(current.answer)}</code></p>
+                  <div className="bg-[var(--color-success)]/10 border border-[var(--color-success)]/30 rounded-lg p-3">
+                    <p className="text-xs text-[var(--color-success)] font-mono">Answer: <code>{String(current.answer)}</code></p>
                   </div>
                 )}
               </div>
             )}
             {answered && (
-              <div className="bg-black/20 rounded-lg p-3 text-xs text-gray-300">
-                <span className="font-medium">Explanation:</span> {current.explanation}
+              <div className="bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg p-3 text-xs text-[var(--color-text-secondary)]">
+                <span className="font-medium text-[var(--color-text-primary)]">Explanation:</span> {current.explanation}
               </div>
             )}
           </div>
@@ -209,7 +209,7 @@ export default function QuizPage() {
       {answered && (
         <button
           onClick={next}
-          className="w-full py-3 bg-[var(--color-accent)] shadow-lg shadow-[var(--color-accent)]/20 hover:bg-[var(--color-accent-hover)] text-white rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2"
+          className="w-full py-3 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2"
         >
           {idx < quiz.questions.length - 1 ? "Next Question" : "See Results"}
           <ArrowRight size={14} />

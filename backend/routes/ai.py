@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from openai import OpenAI
-from models import get_db, LearningProfile
+from models import get_db, LearningProfile, Notebook
 from prompts import (
     explain_concept_prompt, code_feedback_prompt,
     give_hint_prompt, lesson_recap_prompt,
@@ -41,11 +41,26 @@ MODEL = get_active_model()
 client = OpenAI(base_url=OLLAMA_BASE_URL, api_key="ollama")
 
 
-def get_lesson_by_id(lesson_id: str):
+def get_lesson_by_id(lesson_id: str, db: Optional[Session] = None):
+    """Resolve a lesson by id.
+
+    Checks built-in curriculum modules first, then falls back to user-generated
+    notebooks (ids shaped like `notebook_<uuid>-lN`). `db` is only required for
+    the notebook fallback; if omitted, notebook lessons won't resolve.
+    """
     for module in ALL_MODULES:
         for lesson in module["lessons"]:
             if lesson["id"] == lesson_id:
                 return lesson
+
+    if db is not None and lesson_id.startswith("notebook_"):
+        notebook_id = lesson_id.split("-", 1)[0]
+        nb = db.query(Notebook).filter(Notebook.id == notebook_id).first()
+        if nb and nb.module_data:
+            for lesson in (nb.module_data.get("lessons") or []):
+                if lesson.get("id") == lesson_id:
+                    # Attach module_title so prompts can reference it
+                    return {**lesson, "module_title": nb.module_data.get("title", nb.title or "")}
     return None
 
 
@@ -144,7 +159,7 @@ class WhatNextRequest(BaseModel):
 @router.post("/explain")
 def explain_concept(req: ExplainRequest, db: Session = Depends(get_db)):
     """Stream Orion's thorough lesson explanation."""
-    lesson = get_lesson_by_id(req.lesson_id)
+    lesson = get_lesson_by_id(req.lesson_id, db)
     if not lesson:
         return {"error": "Lesson not found"}
     profile = get_profile(req.user_key, db)
@@ -155,7 +170,7 @@ def explain_concept(req: ExplainRequest, db: Session = Depends(get_db)):
 @router.post("/feedback")
 def code_feedback(req: FeedbackRequest, db: Session = Depends(get_db)):
     """Stream Orion's code review and feedback."""
-    lesson = get_lesson_by_id(req.lesson_id)
+    lesson = get_lesson_by_id(req.lesson_id, db)
     if not lesson:
         return {"error": "Lesson not found"}
     profile = get_profile(req.user_key, db)
@@ -167,9 +182,9 @@ def code_feedback(req: FeedbackRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/hint")
-def give_hint(req: HintRequest):
+def give_hint(req: HintRequest, db: Session = Depends(get_db)):
     """Stream a progressive hint from Orion."""
-    lesson = get_lesson_by_id(req.lesson_id)
+    lesson = get_lesson_by_id(req.lesson_id, db)
     if not lesson:
         return {"error": "Lesson not found"}
     prompt = give_hint_prompt(lesson, req.student_code, req.hint_number)
@@ -179,7 +194,7 @@ def give_hint(req: HintRequest):
 @router.post("/recap")
 def lesson_recap(req: RecapRequest, db: Session = Depends(get_db)):
     """Stream Orion's personalized lesson recap."""
-    lesson = get_lesson_by_id(req.lesson_id)
+    lesson = get_lesson_by_id(req.lesson_id, db)
     if not lesson:
         return {"error": "Lesson not found"}
     profile = get_profile(req.user_key, db)
@@ -190,7 +205,7 @@ def lesson_recap(req: RecapRequest, db: Session = Depends(get_db)):
 @router.post("/generate-challenge")
 def generate_challenge(req: ChallengeRequest, db: Session = Depends(get_db)):
     """Stream a new AI-generated practice challenge."""
-    lesson = get_lesson_by_id(req.lesson_id)
+    lesson = get_lesson_by_id(req.lesson_id, db)
     if not lesson:
         return {"error": "Lesson not found"}
     profile = get_profile(req.user_key, db)
@@ -199,9 +214,9 @@ def generate_challenge(req: ChallengeRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/explain-your-answer")
-def explain_your_answer(req: ExplainAnswerRequest):
+def explain_your_answer(req: ExplainAnswerRequest, db: Session = Depends(get_db)):
     """Orion evaluates the student's reasoning behind their quiz answer."""
-    lesson = get_lesson_by_id(req.lesson_id)
+    lesson = get_lesson_by_id(req.lesson_id, db)
     if not lesson:
         return {"error": "Lesson not found"}
     prompt = explain_your_answer_prompt(
@@ -242,7 +257,7 @@ def what_next(req: WhatNextRequest, db: Session = Depends(get_db)):
     prompt = what_next_prompt(req.progress_data, ALL_MODULES, profile)
     if prompt is None:
         def done():
-            yield "You've completed all available lessons — Orion is proud of you!"
+            yield ""
         return StreamingResponse(done(), media_type="text/plain")
     return stream_response(prompt, max_tokens=200)
 

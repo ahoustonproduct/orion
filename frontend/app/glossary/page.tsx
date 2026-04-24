@@ -5,11 +5,11 @@ import { fetchGlossary, type GlossaryEntry } from "@/lib/api";
 import { Search } from "lucide-react";
 
 const MODULE_COLORS: Record<string, string> = {
-  Python: "bg-green-500/10 text-green-400 border-green-500/20",
-  "Data Analytics": "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-  SQL: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  ML: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-  AI: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+  Python: "bg-green-700/10 text-green-700 border-green-700/30",
+  "Data Analytics": "bg-cyan-700/10 text-cyan-700 border-cyan-700/30",
+  SQL: "bg-purple-700/10 text-purple-700 border-purple-700/30",
+  ML: "bg-orange-700/10 text-orange-700 border-orange-700/30",
+  AI: "bg-yellow-700/10 text-yellow-700 border-yellow-700/30",
 };
 
 export default function GlossaryPage() {
@@ -34,19 +34,19 @@ export default function GlossaryPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
       <div>
-        <h1 className="text-xl font-bold text-white">Glossary</h1>
-        <p className="text-sm text-gray-400">{entries.length} terms across all modules.</p>
+        <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Glossary</h1>
+        <p className="text-sm text-[var(--color-text-muted)]">{entries.length} terms across all modules.</p>
       </div>
 
       {/* Search */}
       <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
         <input
           type="text"
           placeholder="Search terms..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-sm text-white placeholder-gray-500 outline-none focus:border-[var(--color-accent)] transition-all"
+          className="w-full pl-9 pr-4 py-2.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] outline-none focus:border-[var(--color-accent)] transition-all"
         />
       </div>
 
@@ -59,7 +59,7 @@ export default function GlossaryPage() {
             className={`px-3 py-1 rounded-full text-xs border transition-all ${
               moduleFilter === m
                 ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)]"
-                : "bg-black/20 border-white/10 text-gray-400 hover:border-[var(--color-accent)]"
+                : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)]"
             }`}
           >
             {m}
@@ -70,17 +70,17 @@ export default function GlossaryPage() {
       {/* Results */}
       <div className="space-y-2">
         {filtered.length === 0 && (
-          <p className="text-sm text-gray-500 text-center py-8">No terms found.</p>
+          <p className="text-sm text-[var(--color-text-muted)] text-center py-8">No terms found.</p>
         )}
         {filtered.map((entry) => (
-          <div key={entry.term} className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-4">
+          <div key={entry.term} className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4">
             <div className="flex items-start justify-between gap-2 mb-1">
-              <p className="font-semibold text-sm text-white">{entry.term}</p>
-              <span className={`text-xs px-2 py-0.5 rounded-full border shrink-0 ${MODULE_COLORS[entry.module] ?? "bg-black/20 text-gray-400 border-white/10"}`}>
+              <p className="font-semibold text-sm text-[var(--color-text-primary)]">{entry.term}</p>
+              <span className={`text-xs px-2 py-0.5 rounded-full border shrink-0 ${MODULE_COLORS[entry.module] ?? "bg-[var(--color-surface-2)] text-[var(--color-text-secondary)] border-[var(--color-border)]"}`}>
                 {entry.module}
               </span>
             </div>
-            <p className="text-xs text-gray-300 leading-relaxed">{entry.definition}</p>
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">{entry.definition}</p>
           </div>
         ))}
       </div>

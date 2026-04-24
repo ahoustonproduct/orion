@@ -20,7 +20,7 @@ export default function ProgressPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-sm text-gray-400">Loading progress data...</p>
+        <p className="text-sm text-[var(--color-text-muted)]">Loading progress data...</p>
       </div>
     );
   }
@@ -34,38 +34,38 @@ export default function ProgressPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
       <div className="flex items-center gap-2">
-        <BarChart2 size={18} className="text-[var(--color-accent-light)]" />
-        <h1 className="text-xl font-bold text-white">Progress & Diagnostics</h1>
+        <BarChart2 size={18} className="text-[var(--color-accent)]" />
+        <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Progress & Diagnostics</h1>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Lessons Done", value: completedLessons, icon: <Target size={15} />, color: "text-green-400" },
-          { label: "Study Minutes", value: Math.round(totalMinutes), icon: <Clock size={15} />, color: "text-[var(--color-accent-light)]" },
-          { label: "Avg Stars", value: avgStars, icon: <Star size={15} />, color: "text-yellow-400" },
+          { label: "Lessons Done", value: completedLessons, icon: <Target size={15} />, color: "text-[var(--color-success)]" },
+          { label: "Study Minutes", value: Math.round(totalMinutes), icon: <Clock size={15} />, color: "text-[var(--color-accent)]" },
+          { label: "Avg Stars", value: avgStars, icon: <Star size={15} />, color: "text-[var(--color-star)]" },
         ].map(({ label, value, icon, color }) => (
-          <div key={label} className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-3 text-center">
+          <div key={label} className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3 text-center">
             <div className={`flex items-center justify-center gap-1 ${color} mb-1`}>
               {icon}
-              <span className="text-lg font-bold text-white">{value}</span>
+              <span className="text-lg font-bold text-[var(--color-text-primary)]">{value}</span>
             </div>
-            <p className="text-xs text-gray-400">{label}</p>
+            <p className="text-xs text-[var(--color-text-muted)]">{label}</p>
           </div>
         ))}
       </div>
 
       {/* Weak Topics */}
       {progress && progress.weak_topics.length > 0 && (
-        <div className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-4 space-y-3">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <AlertCircle size={14} className="text-red-400" />
-            <h2 className="text-sm font-semibold text-white">Weak Topics</h2>
-            <span className="text-xs text-gray-400">— lessons with &lt; 3 stars</span>
+            <AlertCircle size={14} className="text-[var(--color-error)]" />
+            <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">Weak Topics</h2>
+            <span className="text-xs text-[var(--color-text-muted)]">— lessons with &lt; 3 stars</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {progress.weak_topics.map((topic) => (
-              <span key={topic} className="text-xs bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded-full">
+              <span key={topic} className="text-xs bg-[var(--color-error)]/10 text-[var(--color-error)] border border-[var(--color-error)]/30 px-2 py-1 rounded-full">
                 {topic.replace(/_/g, " ")}
               </span>
             ))}
@@ -75,18 +75,18 @@ export default function ProgressPage() {
 
       {/* Module Progress */}
       {progress && Object.keys(progress.module_status).length > 0 && (
-        <div className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-white">Module Progress</h2>
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">Module Progress</h2>
           <div className="space-y-3">
             {Object.entries(progress.module_status).map(([modId, status]) => {
               const pct = status.total > 0 ? Math.round((status.completed_count / status.total) * 100) : 0;
               return (
                 <div key={modId} className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="text-white font-medium">{modId.toUpperCase()}</span>
-                    <span className="text-gray-400">{status.completed_count}/{status.total} · {pct}%</span>
+                    <span className="text-[var(--color-text-primary)] font-medium">{modId.toUpperCase()}</span>
+                    <span className="text-[var(--color-text-muted)]">{status.completed_count}/{status.total} · {pct}%</span>
                   </div>
-                  <div className="h-1.5 bg-black/20 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-[var(--color-surface-2)] rounded-full overflow-hidden border border-[var(--color-border)]">
                     <div
                       className="h-full bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-hover)] rounded-full"
                       style={{ width: `${pct}%` }}
@@ -101,14 +101,14 @@ export default function ProgressPage() {
 
       {/* Mastered Concepts */}
       {progress && progress.mastered_concepts.length > 0 && (
-        <div className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-4 space-y-3">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <Star size={14} className="text-yellow-400" />
-            <h2 className="text-sm font-semibold text-white">Mastered Concepts</h2>
+            <Star size={14} className="text-[var(--color-star)]" />
+            <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">Mastered Concepts</h2>
           </div>
           <div className="flex flex-wrap gap-2">
             {progress.mastered_concepts.map((topic) => (
-              <span key={topic} className="text-xs bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-1 rounded-full">
+              <span key={topic} className="text-xs bg-[var(--color-success)]/10 text-[var(--color-success)] border border-[var(--color-success)]/30 px-2 py-1 rounded-full">
                 {topic.replace(/_/g, " ")}
               </span>
             ))}
@@ -118,13 +118,13 @@ export default function ProgressPage() {
 
       {/* Streak */}
       {progress && progress.streak > 0 && (
-        <div className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-4 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--color-star)] to-[var(--color-error)] flex items-center justify-center">
             <span className="text-xl font-bold text-white">{progress.streak}</span>
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">Study Streak</p>
-            <p className="text-xs text-gray-400">{progress.streak === 1 ? "1 day" : `${progress.streak} days in a row`}</p>
+            <p className="text-sm font-semibold text-[var(--color-text-primary)]">Study Streak</p>
+            <p className="text-xs text-[var(--color-text-muted)]">{progress.streak === 1 ? "1 day" : `${progress.streak} days in a row`}</p>
           </div>
         </div>
       )}

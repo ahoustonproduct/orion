@@ -1,6 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import PlainTextResponse
+from sqlalchemy.orm import Session
 from curriculum_data import ALL_MODULES
+from models import get_db, Notebook
 
 router = APIRouter(prefix="/curriculum", tags=["curriculum"])
 
@@ -43,12 +45,27 @@ def get_module(module_id: str):
 
 
 @router.get("/lessons/{lesson_id}")
-def get_lesson(lesson_id: str):
-    """Return full lesson content by ID."""
+def get_lesson(lesson_id: str, db: Session = Depends(get_db)):
+    """Return full lesson content by ID.
+
+    Searches built-in modules first, then user-generated notebooks (which
+    carry lesson IDs of the form `notebook_<uuid>-lN`).
+    """
     for module in ALL_MODULES:
         for lesson in module["lessons"]:
             if lesson["id"] == lesson_id:
                 return {**lesson, "module_title": module["title"]}
+
+    # Fallback: scan notebooks for a matching lesson id.
+    # Notebook lesson ids are prefixed with the notebook's row id.
+    if lesson_id.startswith("notebook_"):
+        notebook_id = lesson_id.split("-", 1)[0]
+        nb = db.query(Notebook).filter(Notebook.id == notebook_id).first()
+        if nb and nb.module_data:
+            for lesson in (nb.module_data.get("lessons") or []):
+                if lesson.get("id") == lesson_id:
+                    return {**lesson, "module_title": nb.module_data.get("title", nb.title)}
+
     return {"error": "Lesson not found"}
 
 
