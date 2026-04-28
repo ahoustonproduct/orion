@@ -2,14 +2,15 @@ import os
 import tempfile
 import unittest
 from datetime import date
-from unittest.mock import patch
 
 _tmpdir = tempfile.TemporaryDirectory()
 os.environ["ORION_DB_PATH"] = os.path.join(_tmpdir.name, "orion_test.db")
+os.environ["ORION_AI_ENABLED"] = "false"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
 from main import app  # noqa: E402
+from models import engine  # noqa: E402
 
 
 class BackendContractsTest(unittest.TestCase):
@@ -21,6 +22,7 @@ class BackendContractsTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.client_context.__exit__(None, None, None)
+        engine.dispose()
         _tmpdir.cleanup()
 
     def test_first_lesson_update_starts_streak_and_validates_confidence(self):
@@ -65,15 +67,39 @@ class BackendContractsTest(unittest.TestCase):
         self.assertEqual(blocked.status_code, 200)
         self.assertIn("no such table", blocked.json()["error"])
 
-    def test_ai_quiz_generation_falls_back_when_model_response_fails(self):
-        with patch(
-            "routes.quiz.client.chat.completions.create",
-            side_effect=RuntimeError("model unavailable"),
-        ):
-            response = self.client.post(
-                "/quiz/generate",
-                json={"user_key": "contract_quiz_user", "lesson_ids": ["m1-l1"]},
-            )
+    def test_curriculum_normalizes_mixed_lesson_shapes(self):
+        module = self.client.get("/curriculum/modules/module3")
+        self.assertEqual(module.status_code, 200)
+        self.assertEqual(module.json()["lessons"][8]["order"], 9)
+        self.assertEqual(module.json()["lessons"][8]["duration_min"], 20)
+
+        lesson = self.client.get("/curriculum/lessons/m3-l9")
+        self.assertEqual(lesson.status_code, 200)
+        body = lesson.json()
+        self.assertIsInstance(body["concept"], str)
+        self.assertGreater(len(body["questions"]), 0)
+        self.assertIn("key_syntax", body["reference"])
+
+    def test_decision_evaluate_contract(self):
+        response = self.client.post(
+            "/decision/evaluate",
+            json={
+                "lesson_id": "m01_l01",
+                "block_id": "decision_block",
+                "decision_type": "policy_choice",
+                "user_value": "approve",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertIn("score", body)
+        self.assertIn("user_outcome", body)
+
+    def test_quiz_generation_uses_built_in_questions_without_ai(self):
+        response = self.client.post(
+            "/quiz/generate",
+            json={"user_key": "contract_quiz_user", "lesson_ids": ["m1-l1"]},
+        )
 
         self.assertEqual(response.status_code, 200)
         body = response.json()

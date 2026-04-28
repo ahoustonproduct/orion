@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchWeekData, streamWeekReview, type WeekData } from "@/lib/api";
+import { fetchWeekData, type WeekData } from "@/lib/api";
 import { getUserKey } from "@/lib/user";
-import OrionPanel from "@/components/OrionPanel";
 import { ArrowLeft, Calendar, Clock, BookOpen, Star } from "lucide-react";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -13,8 +12,6 @@ export default function WeekReviewPage() {
   const router = useRouter();
   const userKey = getUserKey();
   const [weekData, setWeekData] = useState<WeekData | null>(null);
-  const [orionText, setOrionText] = useState("");
-  const [orionLoading, setOrionLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,10 +19,6 @@ export default function WeekReviewPage() {
       .then((data) => {
         setWeekData(data);
         setLoading(false);
-        setOrionLoading(true);
-        streamWeekReview(userKey, data, (chunk) => setOrionText((p) => p + chunk))
-          .then(() => setOrionLoading(false))
-          .catch(() => setOrionLoading(false));
       })
       .catch(() => setLoading(false));
   }, [userKey]);
@@ -52,7 +45,8 @@ export default function WeekReviewPage() {
 
   const avgStars = weekData && Object.keys(weekData.stars_earned).length > 0
     ? (Object.values(weekData.stars_earned).reduce((a, b) => a + b, 0) / Object.keys(weekData.stars_earned).length).toFixed(1)
-    : "—";
+    : "0.0";
+  const summaryItems = buildWeekSummary(weekData);
 
   return (
     <div className="max-w-xl mx-auto px-4 py-6 space-y-5">
@@ -109,7 +103,7 @@ export default function WeekReviewPage() {
             );
           })}
         </div>
-        <p className="text-[10px] text-gray-500">Goal: 30 min/day — colored bars = goal met</p>
+        <p className="text-[10px] text-gray-500">Goal: 30 min/day. Colored bars show goal met.</p>
       </div>
 
       {weekData && weekData.lessons_completed.length > 0 && (
@@ -137,10 +131,53 @@ export default function WeekReviewPage() {
         </div>
       )}
 
-      <div>
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Orion&apos;s Review</p>
-        <OrionPanel content={orionText} loading={orionLoading} title="This Week" />
+      <div className="glass-card border-white/5 border border-white/10 border-transparent rounded-xl p-4 space-y-3">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Weekly Summary</p>
+        <div className="space-y-2">
+          {summaryItems.map((item) => (
+            <p key={item} className="text-sm text-gray-300 leading-relaxed">
+              {item}
+            </p>
+          ))}
+        </div>
       </div>
     </div>
   );
+}
+
+function buildWeekSummary(weekData: WeekData | null): string[] {
+  if (!weekData) {
+    return ["Week data is not available yet."];
+  }
+
+  const completed = weekData.lessons_completed.length;
+  const avgMinutes = weekData.days_studied > 0
+    ? Math.round(weekData.total_minutes / weekData.days_studied)
+    : 0;
+  const bestDay = Object.entries(weekData.study_log)
+    .sort((a, b) => b[1] - a[1])[0];
+
+  if (weekData.total_minutes === 0 && completed === 0) {
+    return [
+      "No study time is logged for this week yet.",
+      "Start with one lesson, then use the daily quiz to create review data.",
+    ];
+  }
+
+  const items = [
+    `You studied on ${weekData.days_studied} of 7 days for ${weekData.total_minutes} total minutes.`,
+    completed > 0
+      ? `You completed ${completed} lesson${completed === 1 ? "" : "s"} this week.`
+      : "No lessons were completed this week yet.",
+  ];
+
+  if (avgMinutes > 0) {
+    items.push(`Average active study day: ${avgMinutes} minutes.`);
+  }
+
+  if (bestDay && bestDay[1] > 0) {
+    items.push(`Strongest day: ${bestDay[0]} with ${bestDay[1]} minutes logged.`);
+  }
+
+  return items;
 }

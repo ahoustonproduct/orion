@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 import subprocess
 import sqlite3
@@ -50,6 +50,24 @@ BLOCKED_PATTERNS: list[str] = [
 _COMPILED_PATTERNS = [re.compile(p) for p in BLOCKED_PATTERNS]
 
 
+def _remote_execution_allowed(request: Request) -> bool:
+    if os.getenv("ORION_ALLOW_REMOTE_EXECUTION") == "1":
+        return True
+    host = request.client.host if request.client else ""
+    return host in {"127.0.0.1", "::1", "localhost", "testclient"}
+
+
+def _remote_execution_error() -> dict:
+    return {
+        "output": "",
+        "error": (
+            "Code execution is limited to local requests. "
+            "Set ORION_ALLOW_REMOTE_EXECUTION=1 only on a trusted network."
+        ),
+        "duration_ms": 0,
+    }
+
+
 def _is_unsafe(code: str) -> tuple[bool, str]:
     for pattern_re, pattern_src in zip(_COMPILED_PATTERNS, BLOCKED_PATTERNS):
         if pattern_re.search(code):
@@ -87,7 +105,10 @@ class ExecuteSQLRequest(BaseModel):
 
 
 @router.post("/python")
-def execute_python(req: ExecutePythonRequest) -> dict:
+def execute_python(req: ExecutePythonRequest, request: Request) -> dict:
+    if not _remote_execution_allowed(request):
+        return _remote_execution_error()
+
     code = req.code
     unsafe, matched = _is_unsafe(code)
     if unsafe:
@@ -130,7 +151,16 @@ def execute_python(req: ExecutePythonRequest) -> dict:
 
 
 @router.post("/sql")
-def execute_sql(req: ExecuteSQLRequest) -> dict:
+def execute_sql(req: ExecuteSQLRequest, request: Request) -> dict:
+    if not _remote_execution_allowed(request):
+        return {
+            "columns": [],
+            "rows": [],
+            "row_count": 0,
+            "duration_ms": 0,
+            "error": _remote_execution_error()["error"],
+        }
+
     query = req.query.strip()
     if not re.match(r"^\s*SELECT\b", query, re.IGNORECASE):
         return {
@@ -195,8 +225,11 @@ def execute_sql(req: ExecuteSQLRequest) -> dict:
 
 
 @router.post("/multi")
-def execute_multi(req: ExecuteMultiFileRequest) -> dict:
+def execute_multi(req: ExecuteMultiFileRequest, request: Request) -> dict:
     """Execute a multi-file Python program. Runs the first .py file found."""
+    if not _remote_execution_allowed(request):
+        return {"error": _remote_execution_error()["error"], "outputs": {}, "duration_ms": 0}
+
     files = req.files
     if not files:
         return {"error": "No files provided", "outputs": {}}

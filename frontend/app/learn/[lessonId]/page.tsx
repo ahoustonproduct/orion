@@ -4,18 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
-  fetchLesson, saveProgress, saveConfidence, streamFeedback, fetchModules,
-  type Lesson, type Question, type Module
+  fetchLesson, saveProgress, saveConfidence, fetchModules,
+  type Lesson, type Question
 } from "@/lib/api";
 import { getUserKey } from "@/lib/user";
 import {
   ArrowLeft, CheckCircle, XCircle, Lightbulb, Trophy, Code,
-  ChevronRight, BookOpen, HelpCircle, Star, Sparkles, Loader2, MessageCircle
+  ChevronRight, BookOpen, HelpCircle, Star
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeSanitize from "rehype-sanitize";
 import dynamic from "next/dynamic";
-import AIChatSidebar from "@/components/AIChatSidebar";
+import ConfidenceRating from "@/components/ConfidenceRating";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -66,13 +66,8 @@ export default function LessonPage() {
   const [stars, setStars] = useState(0);
   const [confidence, setConfidence] = useState(0);
   
-  // AI Feedback & Next Lesson state
-  const [aiFeedback, setAiFeedback] = useState("");
-  const [isThinking, setIsThinking] = useState(false);
+  const [challengeFeedback, setChallengeFeedback] = useState("");
   const [nextLessonId, setNextLessonId] = useState<string | null>(null);
-
-  // AI Chat Sidebar state
-  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Fill-in-blank input state
   const [fillInput, setFillInput] = useState("");
@@ -207,8 +202,6 @@ export default function LessonPage() {
     { key: "challenge", label: "Challenge", icon: Code },
   ];
   const stepIndex = steps.findIndex((s) => s.key === step);
-  const StepIcon = steps[stepIndex].icon;
-
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
       {/* Header */}
@@ -220,13 +213,6 @@ export default function LessonPage() {
           <p className="text-xs text-[var(--color-text-muted)]">{lesson.module_title}</p>
           <h1 className="text-lg font-bold text-[var(--color-text-primary)] truncate">{lesson.title}</h1>
         </div>
-        <button
-          onClick={() => setIsChatOpen(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/30 text-[var(--color-accent-light)] text-sm font-medium hover:bg-[var(--color-accent)]/20 transition-colors"
-        >
-          <MessageCircle size={16} />
-          <span className="hidden sm:inline">AI Help</span>
-        </button>
       </div>
 
       {/* Step tabs */}
@@ -455,16 +441,15 @@ export default function LessonPage() {
             </div>
           )}
           
-          {(aiFeedback || isThinking) && (
+          {challengeFeedback && (
             <div className="mt-4 p-5 bg-[var(--color-surface)] border border-[var(--color-accent)]/30 rounded-xl relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-[var(--color-accent)]"></div>
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={16} className="text-[var(--color-accent)]" />
-                <span className="text-sm font-bold text-[var(--color-text-primary)]">Orion AI Tutor</span>
-                {isThinking && <Loader2 size={14} className="animate-spin text-[var(--color-text-muted)] ml-2" />}
+                <Lightbulb size={16} className="text-[var(--color-accent)]" />
+                <span className="text-sm font-bold text-[var(--color-text-primary)]">Challenge Feedback</span>
               </div>
               <div className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
-                {aiFeedback ? <Markdown text={aiFeedback} /> : "Analyzing your code..."}
+                <Markdown text={challengeFeedback} />
               </div>
             </div>
           )}
@@ -478,54 +463,58 @@ export default function LessonPage() {
               </div>
             </div>
           )}
+          <ConfidenceRating lessonTitle={lesson.title} onRate={setConfidence} />
             <div className="flex gap-3">
             <button
               onClick={async () => {
-                setAttempts((a) => a + 1);
-                setAiFeedback("");
+                const nextAttempt = attempts + 1;
+                setAttempts(nextAttempt);
+                setChallengeFeedback("");
                 try {
                   const { executePython } = await import("@/lib/api");
                   const result = await executePython(challengeCode);
                   setChallengeResult({ output: result.output, error: result.error || undefined });
                   
                   if (!result.error) {
-                    // Proactive Refactoring: AI evaluates code quality even on success
-                    const newStars = attempts === 0 ? 3 : attempts < 2 ? 2 : 1;
-                    setStars(newStars);
-                    
-                    // Only give refactoring feedback for good attempts (1-2 attempts)
-                    if (attempts < 2) {
-                      setIsThinking(true);
-                      streamFeedback(
-                        userKey,
-                        lesson!,
-                        challengeCode,
-                        result.output || "",
-                        "CORRECT",
-                        attempts + 1,
-                        (chunk) => setAiFeedback((prev) => prev + chunk)
-                      ).catch((e) => {
-                        console.error("Refactor feedback stream error:", e);
-                      }).finally(() => setIsThinking(false));
+                    const output = result.output || "";
+                    const failedOutputChecks = (lesson.challenge?.tests || []).filter((test) =>
+                      test.type === "output_contains" &&
+                      test.value !== undefined &&
+                      !output.includes(String(test.value))
+                    );
+                    const failedCodeChecks = (lesson.challenge?.tests || []).filter((test) =>
+                      test.type === "code_contains" &&
+                      test.value !== undefined &&
+                      !challengeCode.includes(String(test.value))
+                    );
+
+                    if (failedOutputChecks.length || failedCodeChecks.length) {
+                      setStars(0);
+                      const missingValues = [...failedOutputChecks, ...failedCodeChecks]
+                        .map((test) => String(test.value))
+                        .filter(Boolean)
+                        .join(", ");
+                      setChallengeFeedback(
+                        `Your code ran, but it did not satisfy every challenge check. Missing expected item${missingValues.includes(",") ? "s" : ""}: ${missingValues}.`
+                      );
+                    } else {
+                      const newStars = nextAttempt === 1 ? 3 : nextAttempt === 2 ? 2 : 1;
+                      setStars(newStars);
+                      setChallengeFeedback(
+                        nextAttempt === 1
+                          ? "Your code ran successfully and met the challenge checks on the first attempt."
+                          : "Your code ran successfully and met the challenge checks. Review the solution after completion if you want to compare approaches."
+                      );
                     }
                   } else {
-                    // Start reasoning and streaming feedback automatically
-                    setIsThinking(true);
-                    streamFeedback(
-                      userKey,
-                      lesson!,
-                      challengeCode,
-                      result.output || "",
-                      result.error || "",
-                      attempts + 1,
-                      (chunk) => setAiFeedback((prev) => prev + chunk)
-                    ).catch((e) => {
-                      console.error("Feedback stream error:", e);
-                      setAiFeedback("Orion encountered an error generating feedback. Please try again.");
-                    }).finally(() => setIsThinking(false));
+                    setStars(0);
+                    setChallengeFeedback(
+                      "The code stopped with an error. Read the error output first, then check variable names, imports, indentation, and whether the expected print statement is present."
+                    );
                   }
                 } catch (err: unknown) {
                   setChallengeResult({ error: String(err) });
+                  setChallengeFeedback("The code runner could not complete the request. Confirm the backend is running on the Windows PC and try again.");
                 }
               }}
               className="flex-1 py-3 bg-[var(--color-accent)] shadow-lg shadow-[var(--color-accent)]/20 hover:bg-[var(--color-accent-hover)] text-white rounded-xl text-sm font-semibold transition-all"
@@ -536,7 +525,7 @@ export default function LessonPage() {
               <button
                 onClick={() => {
                   setChallengeCode(lesson.challenge!.solution || "");
-                  setAiFeedback("Here's the solution! Study it carefully, then try modifying it to understand how it works.");
+                  setChallengeFeedback("Here is the solution. Study it carefully, then try modifying it to understand how it works.");
                 }}
                 className="px-4 py-3 bg-yellow-600/20 border border-yellow-600/50 text-yellow-400 rounded-xl text-sm font-medium hover:bg-yellow-600/30 transition-all"
               >
@@ -553,14 +542,6 @@ export default function LessonPage() {
         </div>
       )}
 
-      {/* AI Chat Sidebar */}
-      <AIChatSidebar
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        lessonId={lessonId}
-        lessonTitle={lesson.title}
-        currentCode={challengeCode}
-      />
     </div>
   );
 }

@@ -4,13 +4,12 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, Sparkles, Loader2, AlertCircle, RefreshCw,
+  ArrowLeft, BookOpen, Loader2, AlertCircle,
   Clock, ChevronRight, Youtube
 } from "lucide-react";
 import { getUserKey } from "@/lib/user";
 import {
   fetchNotebook,
-  retryNotebook,
   fetchProgress,
   type NotebookDetail,
   type ProgressData,
@@ -43,25 +42,6 @@ export default function NotebookDetailPage() {
   useEffect(() => {
     load();
   }, [load]);
-
-  // Poll while generating
-  useEffect(() => {
-    if (!notebook) return;
-    if (notebook.status === "pending" || notebook.status === "generating") {
-      const iv = setInterval(load, 3000);
-      return () => clearInterval(iv);
-    }
-  }, [notebook, load]);
-
-  const handleRetry = async () => {
-    try {
-      await retryNotebook(getUserKey(), notebookId);
-      setNotebook((nb) => (nb ? { ...nb, status: "pending", error: "" } : nb));
-      load();
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   if (loading) {
     return (
@@ -106,7 +86,7 @@ export default function NotebookDetailPage() {
       {/* Header */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 space-y-2">
         <div className="flex items-start gap-2">
-          <Sparkles size={16} className="text-[var(--color-accent)] mt-0.5 shrink-0" />
+          <BookOpen size={16} className="text-[var(--color-accent)] mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold text-[var(--color-text-primary)]">{notebook.title}</h1>
             {notebook.module_data?.description && (
@@ -132,14 +112,12 @@ export default function NotebookDetailPage() {
       {/* Generating state */}
       {isGenerating && (
         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 text-center space-y-3">
-          <Loader2 size={28} className="mx-auto text-[var(--color-accent)] animate-spin" />
+          <Clock size={28} className="mx-auto text-[var(--color-accent)]" />
           <p className="text-sm font-medium text-[var(--color-text-primary)]">
-            Orion is building your module…
+            Notebook generation is paused
           </p>
           <p className="text-xs text-[var(--color-text-secondary)]">
-            Pulling the transcript and generating lessons with your local{" "}
-            <code className="text-[var(--color-accent)]">orion-tutor</code> model. This usually takes
-            30–90 seconds.
+            This notebook was queued before automatic generation was disabled. Existing ready notebooks still open normally.
           </p>
         </div>
       )}
@@ -156,12 +134,6 @@ export default function NotebookDetailPage() {
               {notebook.error}
             </pre>
           )}
-          <button
-            onClick={handleRetry}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white rounded-lg text-[11px] font-medium transition-all"
-          >
-            <RefreshCw size={11} /> Retry
-          </button>
         </div>
       )}
 
@@ -217,10 +189,10 @@ export default function NotebookDetailPage() {
             No lessons were generated.
           </p>
           <button
-            onClick={handleRetry}
+            disabled
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white rounded-lg text-[11px] font-medium"
           >
-            <RefreshCw size={11} /> Retry generation
+            Generation disabled
           </button>
         </div>
       )}

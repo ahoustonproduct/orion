@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Make sure we fail fast
-set -e
+set -euo pipefail
 
 echo "=========================================="
 echo " Starting MLX LoRA Fine-Tuning Pipeline   "
@@ -13,8 +13,8 @@ pip install -q mlx-lm
 echo "[2/4] Generating training dataset (train.jsonl, valid.jsonl)..."
 node generate_dataset.js
 
-# We use the official Gemma 4 E4B architecture.
-BASE_MODEL="unsloth/gemma-4-E4B-it"
+# Keep this aligned with adapters/adapter_config.json.
+BASE_MODEL="mlx-community/gemma-2-9b-it-4bit"
 
 echo "[3/4] Fine-tuning the base model using MLX LoRA..."
 # This executes training. Because it's an 8B/9B model on an M-series mac,
@@ -39,6 +39,7 @@ echo "Fusing complete. Model saved to ./orion-fused."
 
 echo "Loading into Ollama..."
 # Ollama natively supports safetensors importation with a Modelfile
-ollama create orion-tutor -f Modelfile
+OLLAMA_MODEL="${OLLAMA_MODEL:-orion-lite}"
+ollama create "$OLLAMA_MODEL" -f Modelfile
 
-echo "Done! The 'orion-tutor' model is installed to Ollama and ready for inference!"
+echo "Done! The '${OLLAMA_MODEL}' model is installed to Ollama and ready for inference!"

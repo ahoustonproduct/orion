@@ -1,4 +1,3 @@
-import os
 import logging
 import requests
 from fastapi import APIRouter, Depends
@@ -6,7 +5,6 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
-from openai import OpenAI
 from models import get_db, LearningProfile, Notebook
 from prompts import (
     explain_concept_prompt, code_feedback_prompt,
@@ -15,34 +13,47 @@ from prompts import (
     study_plan_prompt, week_review_prompt, what_next_prompt
 )
 from curriculum_data import ALL_MODULES
+from ollama_config import (
+    OLLAMA_BASE_URL,
+    OLLAMA_MODEL,
+    create_ollama_client,
+    get_ollama_api_url,
+)
 
 router = APIRouter(prefix="/orion", tags=["orion"])
 logger = logging.getLogger(__name__)
 
-OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-OLLAMA_RAW_URL = OLLAMA_BASE_URL.replace("/v1", "/api/tags")
+OLLAMA_RAW_URL = get_ollama_api_url("/api/tags")
 
 _active_model = None
 
+
+def _model_is_available(requested_model: str, models: list[str]) -> bool:
+    if requested_model in models:
+        return True
+    return ":" not in requested_model and f"{requested_model}:latest" in models
+
+
 def get_active_model():
-    """Fallback logic to ensure a working model is used."""
+    """Return the configured Ollama model, logging when Ollama does not report it."""
     global _active_model
     if _active_model is not None:
         return _active_model
         
-    requested_model = os.environ.get("OLLAMA_MODEL", "orion-tutor")
+    requested_model = OLLAMA_MODEL
     try:
         resp = requests.get(OLLAMA_RAW_URL, timeout=2)
         if resp.status_code == 200:
             models = [m["name"] for m in resp.json().get("models", [])]
-            if requested_model in models:
+            if _model_is_available(requested_model, models):
                 _active_model = requested_model
                 return _active_model
-            # Fallback priority
-            for fallback in ["gemma-4-E4B-it", "gemma:7b", "llama3"]:
-                if any(m.startswith(fallback) for m in models):
-                    _active_model = fallback
-                    return _active_model
+            logger.warning(
+                "Configured Ollama model %s was not found at %s. Available models: %s",
+                requested_model,
+                OLLAMA_RAW_URL,
+                ", ".join(models) or "none",
+            )
     except requests.RequestException as e:
         logger.warning("Could not connect to Ollama at %s: %s", OLLAMA_RAW_URL, e)
     except Exception as e:
@@ -50,7 +61,9 @@ def get_active_model():
         
     _active_model = requested_model
     return _active_model
-client = OpenAI(base_url=OLLAMA_BASE_URL, api_key="ollama")
+
+
+client = create_ollama_client()
 
 
 def get_lesson_by_id(lesson_id: str, db: Optional[Session] = None):

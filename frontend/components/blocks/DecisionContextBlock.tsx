@@ -43,7 +43,7 @@ export default function DecisionContextBlock({ block }: Props) {
           {block.stakeholder_pressures.map((sp, i) => (
             <div key={i} className="flex gap-3">
               <span className="text-xs font-semibold text-[#1c1410] shrink-0 w-28">{sp.stakeholder}:</span>
-              <span className="text-xs text-[#5c4f45] italic">"{sp.pressure}"</span>
+              <span className="text-xs text-[#5c4f45] italic">&quot;{sp.pressure}&quot;</span>
             </div>
           ))}
         </div>

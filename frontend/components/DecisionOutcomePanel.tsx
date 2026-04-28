@@ -11,6 +11,10 @@ export default function DecisionOutcomePanel({ outcome, userValue, decisionType 
   const score = Math.round(outcome.score * 100);
   const isNearOptimal = score >= 80;
   const delta = outcome.user_outcome - outcome.optimal_outcome;
+  const displayValue =
+    typeof userValue === "object" && userValue !== null
+      ? JSON.stringify(userValue)
+      : String(userValue ?? "");
 
   const fmt = (n: number) => {
     if (Math.abs(n) >= 1000) return `$${Math.round(n).toLocaleString()}`;
@@ -36,6 +40,9 @@ export default function DecisionOutcomePanel({ outcome, userValue, decisionType 
       <div className="rounded-xl border border-[#e5ddd4] overflow-hidden">
         <div className="bg-[#ffffff] px-4 py-2 border-b border-[#e5ddd4]">
           <p className="text-xs font-semibold text-[#5c4f45] uppercase tracking-wider">Outcome Comparison</p>
+          <p className="text-[11px] text-[#9a8c80] mt-1">
+            {decisionType.replace(/_/g, " ")}: {displayValue}
+          </p>
         </div>
         <div className="divide-y divide-[#e5ddd4]">
           {[
@@ -60,7 +67,7 @@ export default function DecisionOutcomePanel({ outcome, userValue, decisionType 
             ? "You matched the optimal decision closely."
             : delta < 0
             ? `Your decision costs ${fmt(Math.abs(delta))}/month vs. the optimal policy.`
-            : `Your decision exceeded optimal by ${fmt(delta)}/month — may indicate excess risk.`}
+            : `Your decision exceeded optimal by ${fmt(delta)}/month, which may indicate excess risk.`}
         </p>
       </div>
 

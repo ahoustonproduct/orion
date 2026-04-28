@@ -1,16 +1,17 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from models import create_tables
 from init_sandbox import init_sandbox
 from routes.curriculum import router as curriculum_router
 from routes.progress import router as progress_router
-from routes.ai import router as ai_router
 from routes.quiz import router as quiz_router
 from routes.execute import router as execute_router
 from routes.mastery import router as mastery_router
 from routes.review import router as review_router
 from routes.notebooks import router as notebooks_router
+from routes.decision import router as decision_router
+from features import AI_ENABLED
 
 import logging
 from fastapi.responses import JSONResponse
@@ -33,7 +34,7 @@ async def global_exception_handler(request, exc):
 
 # CORS: restrict origins to an explicit allowlist.
 # Set ALLOWED_ORIGINS env var (comma-separated) to add origins in staging/prod.
-# Wildcards are intentionally NOT supported — wildcard + credentials is a silent no-op
+# Wildcards are intentionally NOT supported because wildcard plus credentials is a silent no-op
 # in browsers and a footgun the moment we add cookie auth.
 _default_origins = "http://localhost:3000,http://127.0.0.1:3000"
 _allowed_origins = [
@@ -52,12 +53,32 @@ app.add_middleware(
 
 app.include_router(curriculum_router)
 app.include_router(progress_router)
-app.include_router(ai_router)
 app.include_router(quiz_router)
 app.include_router(execute_router)
 app.include_router(mastery_router)
 app.include_router(review_router)
 app.include_router(notebooks_router)
+app.include_router(decision_router)
+
+ai_routes_loaded = False
+if AI_ENABLED:
+    try:
+        from routes.ai import router as ai_router
+
+        app.include_router(ai_router)
+        ai_routes_loaded = True
+    except Exception as exc:
+        logger.warning("AI routes were not loaded: %s", exc, exc_info=True)
+
+
+if not ai_routes_loaded:
+    @app.api_route("/orion", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+    @app.api_route("/orion/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+    def ai_disabled(path: str = ""):
+        raise HTTPException(
+            status_code=503,
+            detail="AI routes are disabled. Core Orion features do not require a local model.",
+        )
 
 
 @app.on_event("startup")
@@ -73,4 +94,8 @@ def root():
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "ai_enabled": AI_ENABLED,
+        "ai_routes_loaded": ai_routes_loaded,
+    }

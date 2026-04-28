@@ -4,7 +4,7 @@ import NavBar from "@/components/NavBar";
 
 export const metadata: Metadata = {
   title: "Orion Code",
-  description: "Learn analytics and FinTech with AI — prep for WashU MS in Business Analytics",
+  description: "Learn analytics and FinTech for WashU MS in Business Analytics prep",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

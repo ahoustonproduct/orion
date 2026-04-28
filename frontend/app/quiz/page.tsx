@@ -27,7 +27,20 @@ export default function QuizPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let active = true;
+    fetchQuiz(getUserKey())
+      .then((data) => {
+        if (active) setQuiz(data);
+      })
+      .catch(console.error)
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const current: Question | undefined = quiz?.questions[idx];
 

@@ -17,7 +17,6 @@ export default function CodeOrdering({ question, lines, answer, explanation, onC
   );
   const [revealed, setRevealed] = useState(false);
   const [correct, setCorrect] = useState(false);
-  const [dragging, setDragging] = useState<number | null>(null);
 
   const handleCheck = () => {
     const currentOrder = order.map((item) => item.id);

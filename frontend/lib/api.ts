@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+const API_BASE = "/api";
 
 export async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`);
@@ -14,48 +14,6 @@ export async function post<T>(path: string, body: unknown): Promise<T> {
   });
   if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
   return res.json();
-}
-
-export async function streamPost(
-  path: string,
-  body: unknown,
-  onChunk: (text: string) => void,
-  timeoutMs: number = 60000,
-  signal?: AbortSignal
-): Promise<void> {
-  const controller = new AbortController();
-  let timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const res = await fetch(`${API_BASE}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal,
-    });
-
-    if (!res.ok) throw new Error(`Stream ${path} failed: ${res.status}`);
-    if (!res.body) throw new Error(`Stream ${path} failed: No response body`);
-    
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    
-    while (true) {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-      
-      const { done, value } = await reader.read();
-      if (done) break;
-      onChunk(decoder.decode(value, { stream: true }));
-    }
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error(`Stream ${path} timed out after ${timeoutMs}ms`);
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-  }
 }
 
 // ── Curriculum ──────────────────────────────────────────────────────────────
@@ -102,79 +60,6 @@ export const fetchWeekData = (userKey: string) =>
 // ── Quiz ──────────────────────────────────────────────────────────────────────
 export const fetchQuiz = (userKey: string) =>
   get<QuizData>(`/quiz/${userKey}`);
-
-// ── Orion AI (streaming) ──────────────────────────────────────────────────────
-export const streamExplain = (userKey: string, lesson: Lesson, onChunk: (t: string) => void) =>
-  streamPost("/orion/explain", { lesson_id: lesson.id, concept: lesson.concept, context: "" }, onChunk);
-
-export const streamFeedback = (
-  userKey: string, lesson: Lesson, studentCode: string,
-  actualOutput: string, expectedOutput: string, attempts: number,
-  onChunk: (t: string) => void
-) => streamPost("/orion/feedback", {
-  user_key: userKey,
-  lesson_id: lesson.id,
-  student_code: studentCode,
-  actual_output: actualOutput || "",
-  expected_output: expectedOutput,
-  attempts: attempts,
-}, onChunk);
-
-export const streamHint = (
-  lesson: Lesson, studentCode: string, hintNumber: number, onChunk: (t: string) => void
-) => streamPost("/orion/hint", { lesson_id: lesson.id, hint_number: hintNumber, context: studentCode }, onChunk);
-
-export const streamRecap = (
-  userKey: string, lesson: Lesson, stars: number,
-  attempts: number, studentCode: string, onChunk: (t: string) => void
-) => streamPost("/orion/recap", {
-  user_key: userKey,
-  lesson_id: lesson.id,
-  stars: stars,
-  attempts: attempts,
-  student_code: studentCode,
-}, onChunk);
-
-export const streamChallenge = (
-  userKey: string, lesson: Lesson, variationIndex: number, onChunk: (t: string) => void
-) => streamPost("/orion/generate-challenge", {
-  user_key: userKey,
-  lesson_id: lesson.id,
-  variation_index: variationIndex,
-}, onChunk);
-
-export const streamExplainAnswer = (
-  lesson: Lesson, question: Question, chosenOption: string,
-  studentReasoning: string, onChunk: (t: string) => void
-) => streamPost("/orion/explain-your-answer", {
-  lesson_id: lesson.id,
-  question: question.question,
-  user_answer: chosenOption,
-  correct_answer: String(question.answer),
-}, onChunk);
-
-export const streamStudyPlan = (
-  userKey: string, progressData: ProgressData,
-  daysUntilStart: number, onChunk: (t: string) => void
-) => streamPost("/orion/study-plan", {
-  user_key: userKey,
-  weak_topics: progressData.weak_topics ?? [],
-  goals: `Prepare for WashU MS Business Analytics & AI (${daysUntilStart} days until start)`,
-}, onChunk);
-
-export const streamWeekReview = (
-  userKey: string, weekData: WeekData, onChunk: (t: string) => void
-) => streamPost("/orion/week-review", { user_key: userKey, week_data: weekData as unknown as Record<string, unknown> }, onChunk);
-
-export const streamWhatNext = (
-  userKey: string, progressData: ProgressData, onChunk: (t: string) => void
-) => {
-  const progress: Record<string, { completed: boolean; stars: number }> = {};
-  for (const l of progressData.lessons ?? []) {
-    progress[l.lesson_id] = { completed: l.completed, stars: l.stars };
-  }
-  return streamPost("/orion/what-next", { user_key: userKey, progress_data: progress }, onChunk);
-};
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface Module {
@@ -459,9 +344,6 @@ export const recordReview = (userKey: string, questionId: string, correct: boole
 export const addToReviewQueue = (userKey: string, questionId: string, lessonId: string, questionJson: string) =>
   post<{ ok: boolean }>(`/review/${userKey}/add`, { question_id: questionId, lesson_id: lessonId, question_json: questionJson });
 
-export const streamEvaluateDecision = (lessonId: string, decisionValue: unknown, scenario: string, onChunk: (t: string) => void) =>
-  streamPost("/orion/evaluate-decision", { lesson_id: lessonId, decision_value: decisionValue, scenario }, onChunk);
-
 // ── Notebooks (NotebookLM-style user-generated modules) ────────────────────────
 
 export interface NotebookSummary {
@@ -498,13 +380,6 @@ export interface NotebookDetail {
   updated_at: string | null;
 }
 
-export const createNotebook = (userKey: string, sourceUrl: string, title?: string) =>
-  post<{ id: string; status: string }>(`/notebooks/generate`, {
-    user_key: userKey,
-    source_url: sourceUrl,
-    title: title || "",
-  });
-
 export const fetchNotebooks = (userKey: string) =>
   get<NotebookSummary[]>(`/notebooks/${userKey}`);
 
@@ -519,6 +394,3 @@ export const deleteNotebook = async (userKey: string, notebookId: string) => {
   if (!res.ok) throw new Error(`DELETE failed: ${res.status}`);
   return res.json();
 };
-
-export const retryNotebook = (userKey: string, notebookId: string) =>
-  post<{ id: string; status: string }>(`/notebooks/${userKey}/${notebookId}/retry`, {});

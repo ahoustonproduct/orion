@@ -12,18 +12,19 @@ export default function CurriculumPage() {
 
   useEffect(() => {
     const userKey = getUserKey();
-    Promise.all([fetchModules(), fetchProgress(userKey)])
-      .then(([mods, prog]) => { setModules(mods); setProgress(prog); })
-      .catch(console.error);
+    fetchModules().then(setModules).catch(console.error);
+    fetchProgress(userKey).then(setProgress).catch(console.error);
   }, []);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
       <h1 className="text-xl font-bold text-[#1c1410]">Curriculum</h1>
-      <p className="text-sm text-[#5c4f45]">4 modules — Python, Data Analytics, SQL, Machine Learning.</p>
+      <p className="text-sm text-[#5c4f45]">
+        {modules.length || 5} built-in modules covering Python, Data Analytics, SQL, Machine Learning, and Systems.
+      </p>
 
       <div className="space-y-3">
-        {modules.map((module, idx) => {
+        {modules.map((module) => {
           const status = progress?.module_status[module.id];
           const unlocked = true; // All lessons unlocked from the start
           const completedInMod = status?.completed_count ?? 0;

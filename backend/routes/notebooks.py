@@ -1,14 +1,12 @@
 """
-Notebook routes — NotebookLM-style feature.
+Notebook routes for saved study modules.
 
-A user pastes a YouTube URL; Orion pulls the transcript, asks the local
-`orion-tutor` Ollama model to produce a module + lessons in the same JSON
-shape as the built-in curriculum, and stores it so it can be rendered with
-the existing /curriculum and /learn UI.
+Listing, reading, and deleting notebooks are core app features. Automatic
+transcript-to-module generation is optional and disabled unless
+ORION_AI_ENABLED is true.
 """
 import json
 import logging
-import os
 import re
 import uuid
 import threading
@@ -18,19 +16,29 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from openai import OpenAI
 
+from features import AI_ENABLED
 from models import get_db, Notebook, SessionLocal
+from ollama_config import OLLAMA_MODEL
 
 
 router = APIRouter(prefix="/notebooks", tags=["notebooks"])
 logger = logging.getLogger(__name__)
 
 
-# ── Ollama client (mirrors routes/ai.py so we stay on `orion-tutor`) ──
-OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-MODEL = os.environ.get("OLLAMA_MODEL", "orion-tutor")
-_client = OpenAI(base_url=OLLAMA_BASE_URL, api_key="ollama")
+# Optional Ollama model used only when AI notebook generation is enabled.
+MODEL = OLLAMA_MODEL
+
+
+def _require_ai_enabled():
+    if not AI_ENABLED:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Notebook generation is disabled. Core Orion features do not "
+                "require Ollama or a local AI model."
+            ),
+        )
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -190,10 +198,10 @@ def _try_parse_json(text: str) -> Optional[dict]:
 
 
 def build_generation_prompt(title_hint: str, transcript: str) -> str:
-    """Craft the prompt that asks orion-tutor to turn a transcript into
+    """Craft the prompt that asks the configured Ollama model to turn a transcript into
     a module + lessons JSON matching the existing curriculum schema.
     """
-    # Keep the prompt size sane — transcripts can be huge
+    # Keep the prompt size sane because transcripts can be huge.
     max_chars = 12000
     snippet = transcript[:max_chars]
     if len(transcript) > max_chars:
@@ -207,7 +215,7 @@ beginner-friendly lessons that match the student's existing curriculum format.
 
 <task>
 Given the transcript of a YouTube video below, generate a **complete module JSON**
-with 3–5 lessons covering the key concepts. Output MUST be valid JSON — nothing
+with 3-5 lessons covering the key concepts. Output MUST be valid JSON. Nothing
 else. No prose, no markdown fencing, just the JSON object.
 </task>
 
@@ -276,8 +284,12 @@ Now output the module JSON:"""
 
 
 def call_ollama_generate(prompt: str) -> str:
-    """Blocking (non-streaming) call — we need the full JSON text."""
-    resp = _client.chat.completions.create(
+    """Blocking, non-streaming call because we need the full JSON text."""
+    _require_ai_enabled()
+    from ollama_config import create_ollama_client
+
+    client = create_ollama_client()
+    resp = client.chat.completions.create(
         model=MODEL,
         max_tokens=4000,
         messages=[{"role": "user", "content": prompt}],
@@ -422,6 +434,7 @@ class GenerateRequest(BaseModel):
 @router.post("/generate")
 def generate_notebook(req: GenerateRequest, db: Session = Depends(get_db)):
     """Kick off an async notebook generation. Returns immediately with a row id."""
+    _require_ai_enabled()
     if not req.source_url.strip():
         raise HTTPException(status_code=400, detail="source_url is required")
 
@@ -535,6 +548,7 @@ def delete_notebook(user_key: str, notebook_id: str, db: Session = Depends(get_d
 @router.post("/{user_key}/{notebook_id}/retry")
 def retry_notebook(user_key: str, notebook_id: str, db: Session = Depends(get_db)):
     """Re-run generation on a failed notebook."""
+    _require_ai_enabled()
     nb = (
         db.query(Notebook)
         .filter(Notebook.id == notebook_id, Notebook.user_key == user_key)

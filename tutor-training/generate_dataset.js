@@ -30,29 +30,75 @@ const examples = [
   [`How do I plot a trend line in Matplotlib?`, `You start with 'plt.plot(x, y)'. To make it a trend line, you might need a linear regression. Have you imported 'numpy' to calculate the best fit line yet?`]
 ];
 
-const data = [];
-
-// Generate 300 variations
-for (let i = 0; i < 300; i++) {
-  const ex = examples[i % examples.length];
-  data.push({
-    "messages": [
-      {"role": "user", "content": systemPrompt + "\n\nStudent: " + ex[0]},
-      {"role": "assistant", "content": ex[1]}
-    ]
-  });
-
-  // Add some conversational variety
-  data.push({
-    "messages": [
-      {"role": "user", "content": systemPrompt + "\n\nStudent: Hi Orion!"},
-      {"role": "assistant", "content": "Hello! I'm ready to help you prepare for your MSBA. What are we diving into today? Python, SQL, or some Data Analysis?"}
-    ]
-  });
+function seededRandom(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state = (1664525 * state + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
 }
 
-// Randomize array
-data.sort(() => Math.random() - 0.5);
+const framings = [
+  "",
+  "I'm working on an assignment. ",
+  "For a business analytics project, ",
+  "In my MSBA prep, ",
+  "While reviewing for class, ",
+  "For a finance analytics example, ",
+  "I need a guided hint. ",
+  "Can you coach me through this? ",
+  "I'm practicing for a quiz. ",
+  "Please explain this with a business example. ",
+];
+
+const greetings = [
+  [
+    "Hi Orion!",
+    "Hello! I'm ready to help you prepare for your MSBA. What are we diving into today? Python, SQL, or data analysis?"
+  ],
+  [
+    "Can you help me study today?",
+    "Absolutely. Tell me what topic you want to practice, and I will guide you with questions before showing code."
+  ],
+  [
+    "I feel stuck on analytics.",
+    "Let's narrow it down. Are you stuck on Python syntax, SQL logic, statistics, or interpreting the business result?"
+  ],
+];
+
+const data = [];
+const seen = new Set();
+
+function addExample(question, answer) {
+  const record = {
+    "messages": [
+      {"role": "user", "content": systemPrompt + "\n\nStudent: " + question},
+      {"role": "assistant", "content": answer}
+    ]
+  };
+  const key = JSON.stringify(record);
+  if (!seen.has(key)) {
+    seen.add(key);
+    data.push(record);
+  }
+}
+
+for (const [question, answer] of examples) {
+  for (const framing of framings) {
+    addExample(framing + question, answer);
+  }
+}
+
+for (const [question, answer] of greetings) {
+  addExample(question, answer);
+}
+
+// Deterministic shuffle for reproducible train and validation splits.
+const rng = seededRandom(42);
+for (let i = data.length - 1; i > 0; i--) {
+  const j = Math.floor(rng() * (i + 1));
+  [data[i], data[j]] = [data[j], data[i]];
+}
 
 // Split into train/validation
 const splitIndex = Math.floor(data.length * 0.85);

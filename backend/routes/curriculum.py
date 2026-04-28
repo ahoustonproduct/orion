@@ -7,6 +7,85 @@ from models import get_db, Notebook
 router = APIRouter(prefix="/curriculum", tags=["curriculum"])
 
 
+def _concept_to_markdown(concept) -> str:
+    if isinstance(concept, str):
+        return concept
+    if not isinstance(concept, dict):
+        return str(concept or "")
+
+    labels = {
+        "theory": "Theory",
+        "business_angle": "Business angle",
+        "worked_example_intro": "Worked example",
+        "key_insight": "Key insight",
+    }
+    parts = []
+    for key in ("theory", "business_angle", "worked_example_intro", "key_insight"):
+        value = concept.get(key)
+        if value:
+            parts.append(f"**{labels[key]}**\n\n{value}")
+    for key, value in concept.items():
+        if key not in labels and value:
+            parts.append(f"**{key.replace('_', ' ').title()}**\n\n{value}")
+    return "\n\n".join(parts)
+
+
+def _normalize_worked_example(value) -> dict:
+    if isinstance(value, dict):
+        return {
+            "description": value.get("description", ""),
+            "code": value.get("code", ""),
+            "explanation": value.get("explanation", ""),
+        }
+    if isinstance(value, str):
+        return {"description": "Worked example", "code": value, "explanation": ""}
+    return {"description": "", "code": "", "explanation": ""}
+
+
+def _normalize_challenge(value) -> dict:
+    if isinstance(value, dict):
+        return {
+            "instructions": value.get("instructions", ""),
+            "starter_code": value.get("starter_code", "# Write your code below\n"),
+            "tests": value.get("tests", []),
+            "solution": value.get("solution", ""),
+        }
+    return {
+        "instructions": "",
+        "starter_code": "# Write your code below\n",
+        "tests": [],
+        "solution": "",
+    }
+
+
+def normalize_lesson(module: dict, lesson: dict, index: int) -> dict:
+    quiz = lesson.get("quiz") if isinstance(lesson.get("quiz"), dict) else {}
+    return {
+        **lesson,
+        "order": lesson.get("order", index),
+        "duration_min": lesson.get("duration_min", 20),
+        "module_title": module["title"],
+        "real_world_context": lesson.get("real_world_context") or lesson.get("business_context", ""),
+        "concept": _concept_to_markdown(lesson.get("concept", "")),
+        "worked_example": _normalize_worked_example(lesson.get("worked_example")),
+        "reference": lesson.get("reference") or quiz.get("reference") or {"key_syntax": [], "notes": ""},
+        "questions": lesson.get("questions") or quiz.get("questions") or [],
+        "challenge": _normalize_challenge(lesson.get("challenge")),
+    }
+
+
+def lesson_summary(module: dict, lesson: dict, index: int) -> dict:
+    normalized = normalize_lesson(module, lesson, index)
+    return {
+        "id": normalized["id"],
+        "title": normalized["title"],
+        "order": normalized["order"],
+        "duration_min": normalized["duration_min"],
+        "difficulty": normalized.get("difficulty"),
+        "is_capstone": normalized.get("is_capstone", False),
+    }
+
+
 @router.get("/modules")
 def get_modules():
     """Return all modules with basic info (no full lesson content)."""
@@ -33,13 +112,8 @@ def get_module(module_id: str):
     return {
         **module,
         "lessons": [
-            {
-                "id": l["id"],
-                "title": l["title"],
-                "order": l["order"],
-                "duration_min": l["duration_min"],
-            }
-            for l in module["lessons"]
+            lesson_summary(module, lesson, index)
+            for index, lesson in enumerate(module["lessons"], 1)
         ],
     }
 
@@ -52,9 +126,9 @@ def get_lesson(lesson_id: str, db: Session = Depends(get_db)):
     carry lesson IDs of the form `notebook_<uuid>-lN`).
     """
     for module in ALL_MODULES:
-        for lesson in module["lessons"]:
+        for index, lesson in enumerate(module["lessons"], 1):
             if lesson["id"] == lesson_id:
-                return {**lesson, "module_title": module["title"]}
+                return normalize_lesson(module, lesson, index)
 
     # Fallback: scan notebooks for a matching lesson id.
     # Notebook lesson ids are prefixed with the notebook's row id.
@@ -62,9 +136,12 @@ def get_lesson(lesson_id: str, db: Session = Depends(get_db)):
         notebook_id = lesson_id.split("-", 1)[0]
         nb = db.query(Notebook).filter(Notebook.id == notebook_id).first()
         if nb and nb.module_data:
-            for lesson in (nb.module_data.get("lessons") or []):
+            module = {
+                "title": nb.module_data.get("title", nb.title),
+            }
+            for index, lesson in enumerate(nb.module_data.get("lessons") or [], 1):
                 if lesson.get("id") == lesson_id:
-                    return {**lesson, "module_title": nb.module_data.get("title", nb.title)}
+                    return normalize_lesson(module, lesson, index)
 
     return {"error": "Lesson not found"}
 
@@ -125,7 +202,8 @@ def export_module_study_packet(module_id: str):
     lines.append("## Lessons")
     lines.append("")
 
-    for lesson in module["lessons"]:
+    for index, raw_lesson in enumerate(module["lessons"], 1):
+        lesson = normalize_lesson(module, raw_lesson, index)
         lines.append(f"### Lesson {lesson['order']}: {lesson['title']}")
         lines.append(f"*Estimated time: {lesson['duration_min']} minutes*")
         lines.append("")

@@ -1,19 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { getUserKey, setUserKey } from "@/lib/user";
 import { Settings, Copy, Check, Smartphone } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 export default function SettingsPage() {
-  const [userKey, setUserKeyState] = useState("");
+  const [userKey, setUserKeyState] = useState(() =>
+    typeof window === "undefined" ? "" : getUserKey()
+  );
   const [customKey, setCustomKey] = useState("");
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
-
-  useEffect(() => {
-    setUserKeyState(getUserKey());
-  }, []);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(userKey);
@@ -117,9 +115,9 @@ export default function SettingsPage() {
         <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">About Orion Code</h2>
         <div className="space-y-1 text-xs text-[var(--color-text-secondary)]">
           <p>Version: 1.0.0</p>
-          <p>AI Tutor: orion-tutor (Ollama — local)</p>
+          <p>Core app: no local AI model required</p>
           <p>Built for: MS Business Analytics & AI</p>
-          <p>Curriculum covers: 4 modules — Python, Data Analytics, SQL, Machine Learning</p>
+          <p>Curriculum covers: 5 built-in modules across Python, Data Analytics, SQL, Machine Learning, and Systems</p>
         </div>
       </div>
     </div>

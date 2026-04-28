@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { fetchNote, saveNote, fetchProgress, fetchLesson, fetchModules } from "@/lib/api";
+import { fetchNote, saveNote, fetchProgress, fetchLesson, type Question } from "@/lib/api";
 import { getUserKey } from "@/lib/user";
-import { Save, FileText, Check, Lightbulb, BookOpen, AlertTriangle, RefreshCw, Wand2, Loader2 } from "lucide-react";
+import { Save, FileText, Check, Lightbulb, BookOpen, AlertTriangle, Wand2, Loader2 } from "lucide-react";
 
 
 interface StruggleTopic {
@@ -106,7 +106,7 @@ ${topic.error ? `- Last error: ${topic.error.slice(0, 100)}...` : ""}
 ${lesson.concept?.slice(0, 500) || "Review the lesson concept section."}
 
 ### Practice Focus
-${lesson.questions?.slice(0, 3).map((q: any) => `- ${q.question}`).join("\n") || "- Complete the challenge"}
+${lesson.questions?.slice(0, 3).map((q: Question) => `- ${q.question}`).join("\n") || "- Complete the challenge"}
 
 ### Solution Hint
 ${lesson.challenge?.solution?.slice(0, 300) || "Check the lesson for the solution."}
@@ -115,7 +115,7 @@ ${lesson.challenge?.solution?.slice(0, 300) || "Check the lesson for the solutio
 *Generated from your struggles - review this before your midterm!*
 `;
       setTopicContent(guide);
-    } catch (e) {
+    } catch {
       setTopicContent("Could not generate study guide. Try reviewing the lesson directly.");
     } finally {
       setGeneratingContent(false);

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import dynamic from "next/dynamic";
+import type { OnMount } from "@monaco-editor/react";
 import { X, Plus, File, FileCode, FileText } from "lucide-react";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
@@ -24,7 +25,7 @@ export default function MultiFileEditor({
   onFilesChange,
 }: MultiFileEditorProps) {
   const [activeFileId, setActiveFileId] = useState(files[0]?.id || "");
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
 
   const activeFile = files.find((f) => f.id === activeFileId) || files[0];
 
