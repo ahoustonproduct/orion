@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Loader2, Send, X, Sparkles, Trash2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import rehypeSanitize from "rehype-sanitize";
 
 interface Message {
   id: string;
@@ -31,6 +33,7 @@ export default function AIChatSidebar({
   const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -39,6 +42,20 @@ export default function AIChatSidebar({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Handle Escape key to close
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+      abortControllerRef.current?.abort();
+    };
+  }, [isOpen, onClose]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -54,10 +71,14 @@ export default function AIChatSidebar({
     setInput("");
     setIsLoading(true);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const response = await fetch("/api/orion/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           user_message: input.trim(),
           lesson_id: lessonId,
@@ -99,7 +120,11 @@ export default function AIChatSidebar({
           );
         }
       }
-    } catch {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('Fetch aborted');
+        return;
+      }
       setMessages((prev) => [
         ...prev,
         {
@@ -112,6 +137,7 @@ export default function AIChatSidebar({
     } finally {
       setIsLoading(false);
       setIsStreaming(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -187,8 +213,10 @@ export default function AIChatSidebar({
                   : "bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-primary)]"
               }`}
             >
-              <div className="whitespace-pre-wrap leading-relaxed">
-                {msg.content}
+              <div className="prose prose-sm prose-invert max-w-none leading-relaxed">
+                <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
+                  {msg.content}
+                </ReactMarkdown>
               </div>
               {msg.role === "assistant" && isStreaming && msg.id === messages[messages.length - 1].id && (
                 <span className="inline-block ml-1 animate-pulse text-[var(--color-accent)]">▊</span>

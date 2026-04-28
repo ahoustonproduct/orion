@@ -1,6 +1,7 @@
 import os
 import random
 import json
+import logging
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -13,6 +14,7 @@ router = APIRouter(prefix="/quiz", tags=["quiz"])
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1")
 MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5-coder:7b")
 client = OpenAI(base_url=OLLAMA_BASE_URL, api_key="ollama")
+logger = logging.getLogger(__name__)
 
 QUESTION_TYPES = ["multiple_choice", "true_false", "fill_blank"]
 
@@ -66,6 +68,15 @@ class GenerateQuizRequest(BaseModel):
     lesson_ids: list[str]
 
 
+def _fallback_question(lesson: dict, lesson_id: str) -> dict | None:
+    """Return a built-in question when AI generation fails."""
+    lesson_questions = lesson.get("questions") or []
+    if not lesson_questions:
+        return None
+    q = random.choice(lesson_questions)
+    return {**q, "lesson_id": lesson_id, "lesson_title": lesson["title"]}
+
+
 def get_profile(user_key: str, db: Session) -> dict:
     profile = db.query(LearningProfile).filter(LearningProfile.user_key == user_key).first()
     if not profile:
@@ -96,21 +107,31 @@ def generate_ai_quiz(req: GenerateQuizRequest, db: Session = Depends(get_db)):
             continue
         q_type = random.choice(QUESTION_TYPES)
         prompt = quiz_question_prompt(lesson, q_type, profile)
-        response = client.chat.completions.create(
-            model=MODEL,
-            max_tokens=512,
-            messages=[{"role": "user", "content": prompt}]
-        )
         try:
-            text = response.choices[0].message.content
+            response = client.chat.completions.create(
+                model=MODEL,
+                max_tokens=512,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            text = response.choices[0].message.content or ""
             # Extract JSON from response
             start = text.find("{")
             end = text.rfind("}") + 1
+            if start < 0 or end <= start:
+                raise ValueError("AI quiz response did not contain a JSON object")
             q = json.loads(text[start:end])
             q["lesson_id"] = lesson_id
             q["lesson_title"] = lesson["title"]
             questions.append(q)
-        except Exception:
-            pass  # Skip malformed responses
+        except Exception as exc:
+            logger.warning(
+                "Falling back to built-in quiz question for lesson %s: %s",
+                lesson_id,
+                exc,
+                exc_info=True,
+            )
+            fallback = _fallback_question(lesson, lesson_id)
+            if fallback:
+                questions.append(fallback)
 
     return {"questions": questions}

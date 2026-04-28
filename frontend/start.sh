@@ -33,7 +33,7 @@ cd "$PROJECT_DIR"
 echo ""
 echo "🌐 Starting frontend on http://0.0.0.0:3000 ..."
 echo ""
-export BACKEND_URL="http://localhost:8001"
+export BACKEND_URL="${BACKEND_URL:-http://localhost:8001}"
 npm run dev -- -H 0.0.0.0 &
 FRONTEND_PID=$!
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -51,7 +51,7 @@ export default function LessonPage() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState<Step>("concept");
-  const [startTime] = useState(Date.now());
+  const startTimeRef = useRef(Date.now());
   const [completed, setCompleted] = useState(false);
 
   // Question state
@@ -107,7 +107,7 @@ export default function LessonPage() {
   }, [lessonId]);
 
   const handleComplete = async () => {
-    const timeSpent = (Date.now() - startTime) / 60000;
+    const timeSpent = (Date.now() - startTimeRef.current) / 60000;
     try {
       await saveProgress(userKey, {
         lesson_id: lessonId,
@@ -463,8 +463,8 @@ export default function LessonPage() {
                 <span className="text-sm font-bold text-[var(--color-text-primary)]">Orion AI Tutor</span>
                 {isThinking && <Loader2 size={14} className="animate-spin text-[var(--color-text-muted)] ml-2" />}
               </div>
-              <div className="text-sm text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-wrap">
-                {aiFeedback || "Analyzing your code..."}
+              <div className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
+                {aiFeedback ? <Markdown text={aiFeedback} /> : "Analyzing your code..."}
               </div>
             </div>
           )}

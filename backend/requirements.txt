@@ -1,26 +1,26 @@
 # Web framework
-fastapi>=0.109,<1.0
-uvicorn[standard]>=0.27,<1.0
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
 
 # AI / HTTP clients
-openai>=1.14,<2.0
-requests>=2.31,<3.0
+openai==1.14.0
+requests==2.31.0
 
 # Persistence
-sqlalchemy>=2.0,<3.0
+sqlalchemy==2.0.0
 
 # Config
-python-dotenv>=1.0,<2.0
+python-dotenv==1.0.0
 
 # Content ingestion
-youtube-transcript-api>=0.6,<1.0
+youtube-transcript-api==0.6.0
 
 # Pre-installed sandbox libs for /execute/python.
 # These MUST be pre-installed so user-submitted code can `import` them without
 # any per-request pip logic. See backend/routes/execute.py.
-numpy>=1.26,<3.0
-pandas>=2.1,<3.0
-scipy>=1.11,<2.0
-scikit-learn>=1.3,<2.0
-matplotlib>=3.8,<4.0
-seaborn>=0.13,<1.0
+numpy==1.26.0
+pandas==2.1.0
+scipy==1.11.0
+scikit-learn==1.3.0
+matplotlib==3.8.0
+seaborn==0.13.0

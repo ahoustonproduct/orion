@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from models import get_db, UserProgress, LearningProfile
 from curriculum_data import ALL_MODULES
 import json
@@ -79,7 +79,7 @@ def record_review(user_key: str, req: RecordReviewRequest, db: Session = Depends
         db.commit()
 
     review_log = dict(profile.study_log or {})
-    today = datetime.now().date().isoformat()
+    today = datetime.now(timezone.utc).date().isoformat()
     key = f"review_{today}"
     review_log[key] = review_log.get(key, 0) + 1
     profile.study_log = review_log

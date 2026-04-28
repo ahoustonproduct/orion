@@ -20,7 +20,8 @@ export async function streamPost(
   path: string,
   body: unknown,
   onChunk: (text: string) => void,
-  timeoutMs: number = 60000
+  timeoutMs: number = 60000,
+  signal?: AbortSignal
 ): Promise<void> {
   const controller = new AbortController();
   let timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -30,7 +31,7 @@ export async function streamPost(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-      signal: controller.signal,
+      signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal,
     });
 
     if (!res.ok) throw new Error(`Stream ${path} failed: ${res.status}`);

@@ -1,6 +1,0 @@
-fastapi
-uvicorn[standard]
-anthropic
-pandas
-python-multipart
-python-dotenv

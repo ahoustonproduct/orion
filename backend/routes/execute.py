@@ -6,6 +6,9 @@ import time
 import os
 import re
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/execute", tags=["execute"])
 
@@ -118,6 +121,7 @@ def execute_python(req: ExecutePythonRequest) -> dict:
             "duration_ms": 15000,
         }
     except Exception as exc:
+        logger.error(f"Python execution error: {exc}", exc_info=True)
         return {
             "output": "",
             "error": str(exc),
@@ -155,7 +159,7 @@ def execute_sql(req: ExecuteSQLRequest) -> dict:
         }
     start = time.monotonic()
     try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "orion_code.db")
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sandbox.db")
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.execute(query)
@@ -170,7 +174,17 @@ def execute_sql(req: ExecuteSQLRequest) -> dict:
             "duration_ms": duration_ms,
             "error": None,
         }
+    except sqlite3.Error as exc:
+        logger.info("SQL query failed in sandbox: %s", exc)
+        return {
+            "columns": [],
+            "rows": [],
+            "row_count": 0,
+            "duration_ms": 0,
+            "error": str(exc),
+        }
     except Exception as exc:
+        logger.error(f"SQL execution error: {exc}", exc_info=True)
         return {
             "columns": [],
             "rows": [],
@@ -215,6 +229,10 @@ def execute_multi(req: ExecuteMultiFileRequest) -> dict:
 
     temp_dir = tempfile.mkdtemp(prefix="orion_exec_")
     try:
+        sandbox_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sandbox.db")
+        if os.path.exists(sandbox_path):
+            shutil.copy2(sandbox_path, os.path.join(temp_dir, "sandbox.db"))
+
         for name, content in sanitized:
             file_path = os.path.join(temp_dir, name)
             # Belt-and-suspenders: make sure the resolved path is still inside temp_dir.
@@ -255,6 +273,7 @@ def execute_multi(req: ExecuteMultiFileRequest) -> dict:
             "duration_ms": 20000,
         }
     except Exception as exc:
+        logger.error(f"Multi-file execution error: {exc}", exc_info=True)
         return {
             "error": str(exc),
             "outputs": {},

@@ -7,11 +7,12 @@ shape as the built-in curriculum, and stores it so it can be rendered with
 the existing /curriculum and /learn UI.
 """
 import json
+import logging
 import os
 import re
 import uuid
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -23,6 +24,7 @@ from models import get_db, Notebook, SessionLocal
 
 
 router = APIRouter(prefix="/notebooks", tags=["notebooks"])
+logger = logging.getLogger(__name__)
 
 
 # ── Ollama client (mirrors routes/ai.py so we stay on `orion-tutor`) ──
@@ -109,13 +111,13 @@ def fetch_transcript(video_id: str) -> str:
                     chosen = None
                     try:
                         chosen = listing.find_manually_created_transcript(langs)
-                    except Exception:
-                        pass
+                    except Exception as e_manual:
+                        errors.append(f"v1.find_manually_created: {e_manual}")
                     if chosen is None:
                         try:
                             chosen = listing.find_transcript(langs)
-                        except Exception:
-                            pass
+                        except Exception as e_find:
+                            errors.append(f"v1.find_transcript: {e_find}")
                     if chosen is None:
                         for t in listing:
                             chosen = t
@@ -332,7 +334,7 @@ def _generate_notebook_background(notebook_id: str, source_url: str, title_hint:
         if not nb:
             return
         nb.status = "generating"
-        nb.updated_at = datetime.utcnow()
+        nb.updated_at = datetime.now(timezone.utc)
         db.commit()
 
         # 1. Transcript
@@ -351,7 +353,7 @@ def _generate_notebook_background(notebook_id: str, source_url: str, title_hint:
             # Save the raw output for debugging
             nb.status = "failed"
             nb.error = f"Could not parse model output as JSON. First 500 chars:\n{raw[:500]}"
-            nb.updated_at = datetime.utcnow()
+            nb.updated_at = datetime.now(timezone.utc)
             db.commit()
             return
 
@@ -382,19 +384,25 @@ def _generate_notebook_background(notebook_id: str, source_url: str, title_hint:
         nb.module_data = parsed
         nb.status = "ready"
         nb.error = ""
-        nb.updated_at = datetime.utcnow()
+        nb.updated_at = datetime.now(timezone.utc)
         db.commit()
 
     except Exception as e:
+        logger.warning("Notebook generation failed for %s: %s", notebook_id, e, exc_info=True)
         try:
             nb = db.query(Notebook).filter(Notebook.id == notebook_id).first()
             if nb:
                 nb.status = "failed"
                 nb.error = str(e)[:2000]
-                nb.updated_at = datetime.utcnow()
+                nb.updated_at = datetime.now(timezone.utc)
                 db.commit()
-        except Exception:
-            pass
+        except Exception as update_error:
+            logger.error(
+                "Could not mark notebook %s as failed: %s",
+                notebook_id,
+                update_error,
+                exc_info=True,
+            )
     finally:
         db.close()
 
@@ -536,7 +544,7 @@ def retry_notebook(user_key: str, notebook_id: str, db: Session = Depends(get_db
         raise HTTPException(status_code=404, detail="Notebook not found")
     nb.status = "pending"
     nb.error = ""
-    nb.updated_at = datetime.utcnow()
+    nb.updated_at = datetime.now(timezone.utc)
     db.commit()
 
     t = threading.Thread(

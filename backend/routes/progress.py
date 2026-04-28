@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
-from datetime import date, datetime, timedelta
+from pydantic import BaseModel, Field
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 from models import get_db, UserProgress, LearningProfile, Note, BookmarkedPosition, ConfidenceRating
 from curriculum_data import ALL_MODULES
@@ -10,47 +10,50 @@ router = APIRouter(prefix="/progress", tags=["progress"])
 
 
 class ProgressUpdate(BaseModel):
-    lesson_id: str
-    stars: int
-    attempts: int
-    hints_used: int
+    lesson_id: str = Field(..., min_length=1, max_length=120)
+    stars: int = Field(..., ge=0, le=3)
+    attempts: int = Field(..., ge=0, le=1000)
+    hints_used: int = Field(..., ge=0, le=1000)
     completed: bool
-    time_spent_minutes: Optional[float] = 0.0
+    time_spent_minutes: Optional[float] = Field(0.0, ge=0, le=1440)
 
 
 class FlagUpdate(BaseModel):
-    lesson_id: str
+    lesson_id: str = Field(..., min_length=1, max_length=120)
     flagged: bool
 
 
 class NoteUpdate(BaseModel):
-    content: str
+    content: str = Field("", max_length=100000)
 
 
 class BookmarkUpdate(BaseModel):
-    lesson_id: str
-    step_index: int
-    sub_step: int = 0
-    saved_code: str = ""
+    lesson_id: str = Field(..., min_length=1, max_length=120)
+    step_index: int = Field(..., ge=0, le=1000)
+    sub_step: int = Field(0, ge=0, le=1000)
+    saved_code: str = Field("", max_length=200000)
 
 
 class ConfidenceUpdate(BaseModel):
-    lesson_id: str
-    rating: int  # 1-5
+    lesson_id: str = Field(..., min_length=1, max_length=120)
+    rating: int = Field(..., ge=1, le=5)
 
 
 class AnalogyUpdate(BaseModel):
-    lesson_id: str
-    analogy: str
+    lesson_id: str = Field(..., min_length=1, max_length=120)
+    analogy: str = Field(..., min_length=1, max_length=5000)
 
 
-def get_or_create_profile(user_key: str, db: Session) -> LearningProfile:
+def get_or_create_profile(user_key: str, db: Session, *, commit: bool = True) -> LearningProfile:
     profile = db.query(LearningProfile).filter(LearningProfile.user_key == user_key).first()
     if not profile:
         profile = LearningProfile(user_key=user_key)
         db.add(profile)
-        db.commit()
-        db.refresh(profile)
+        if commit:
+            db.commit()
+            db.refresh(profile)
+        else:
+            db.flush()
     return profile
 
 
@@ -127,7 +130,7 @@ def update_lesson_progress(user_key: str, update: ProgressUpdate, db: Session = 
             existing.attempts = update.attempts
             existing.hints_used = update.hints_used
             existing.completed = update.completed
-            existing.last_accessed = datetime.utcnow()
+            existing.last_accessed = datetime.now(timezone.utc)
         else:
             existing = UserProgress(
                 user_key=user_key,
@@ -139,7 +142,7 @@ def update_lesson_progress(user_key: str, update: ProgressUpdate, db: Session = 
             )
             db.add(existing)
 
-        profile = get_or_create_profile(user_key, db)
+        profile = get_or_create_profile(user_key, db, commit=False)
         _update_streak(profile, update.time_spent_minutes or 0)
         _update_weak_topics(profile, update.lesson_id, update.stars)
         _update_mastered(profile, update.lesson_id, update.stars)
@@ -182,7 +185,7 @@ def save_note(user_key: str, update: NoteUpdate, db: Session = Depends(get_db)):
     note = db.query(Note).filter(Note.user_key == user_key).first()
     if note:
         note.content = update.content
-        note.updated_at = datetime.utcnow()
+        note.updated_at = datetime.now(timezone.utc)
     else:
         note = Note(user_key=user_key, content=update.content)
         db.add(note)
@@ -202,7 +205,7 @@ def save_bookmark(user_key: str, update: BookmarkUpdate, db: Session = Depends(g
         existing.step_index = update.step_index
         existing.sub_step = update.sub_step
         existing.saved_code = update.saved_code
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = datetime.now(timezone.utc)
     else:
         db.add(BookmarkedPosition(
             user_key=user_key,
@@ -237,28 +240,31 @@ def get_bookmark(user_key: str, lesson_id: str, db: Session = Depends(get_db)):
 @router.post("/{user_key}/confidence")
 def save_confidence(user_key: str, update: ConfidenceUpdate, db: Session = Depends(get_db)):
     """Save a self-reported confidence rating (1-5) after completing a lesson."""
-    existing = db.query(ConfidenceRating).filter(
-        ConfidenceRating.user_key == user_key,
-        ConfidenceRating.lesson_id == update.lesson_id
-    ).first()
+    try:
+        existing = db.query(ConfidenceRating).filter(
+            ConfidenceRating.user_key == user_key,
+            ConfidenceRating.lesson_id == update.lesson_id
+        ).first()
 
-    if existing:
-        existing.rating = update.rating
-        existing.rated_at = datetime.utcnow()
-    else:
-        db.add(ConfidenceRating(
-            user_key=user_key,
-            lesson_id=update.lesson_id,
-            rating=update.rating,
-        ))
-    db.commit()
+        if existing:
+            existing.rating = update.rating
+            existing.rated_at = datetime.now(timezone.utc)
+        else:
+            db.add(ConfidenceRating(
+                user_key=user_key,
+                lesson_id=update.lesson_id,
+                rating=update.rating,
+            ))
 
-    # Update profile's topic_confidence map
-    profile = get_or_create_profile(user_key, db)
-    tc = dict(profile.topic_confidence or {})
-    tc[update.lesson_id] = update.rating
-    profile.topic_confidence = tc
-    db.commit()
+        # Keep the rating row and profile map in one transaction.
+        profile = get_or_create_profile(user_key, db, commit=False)
+        tc = dict(profile.topic_confidence or {})
+        tc[update.lesson_id] = update.rating
+        profile.topic_confidence = tc
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
     return {"success": True}
 
@@ -291,7 +297,9 @@ def get_week_data(user_key: str, db: Session = Depends(get_db)):
     week_progress = db.query(UserProgress).filter(
         UserProgress.user_key == user_key,
         UserProgress.completed == True,
-        UserProgress.last_accessed >= datetime.combine(week_start, datetime.min.time())
+        UserProgress.last_accessed >= datetime.combine(
+            week_start, datetime.min.time()
+        ).replace(tzinfo=timezone.utc)
     ).all()
 
     # Stars earned this week per lesson
@@ -326,14 +334,16 @@ def _update_streak(profile: LearningProfile, minutes: int) -> None:
     profile.study_log = study_log
 
     if profile.last_active and profile.last_active == today:
-        pass
-    else:
-        yesterday = today - timedelta(days=1)
-        if profile.last_active == yesterday:
-            profile.streak_count += 1
-        else:
+        if (profile.streak_count or 0) <= 0:
             profile.streak_count = 1
-        profile.last_active = today
+        return
+
+    yesterday = today - timedelta(days=1)
+    if profile.last_active == yesterday:
+        profile.streak_count = (profile.streak_count or 0) + 1
+    else:
+        profile.streak_count = 1
+    profile.last_active = today
 
 
 def _update_weak_topics(profile: LearningProfile, lesson_id: str, stars: int) -> None:

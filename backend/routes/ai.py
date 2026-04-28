@@ -1,4 +1,5 @@
 import os
+import logging
 import requests
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -16,6 +17,7 @@ from prompts import (
 from curriculum_data import ALL_MODULES
 
 router = APIRouter(prefix="/orion", tags=["orion"])
+logger = logging.getLogger(__name__)
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1")
 OLLAMA_RAW_URL = OLLAMA_BASE_URL.replace("/v1", "/api/tags")
@@ -42,9 +44,9 @@ def get_active_model():
                     _active_model = fallback
                     return _active_model
     except requests.RequestException as e:
-        print(f"Warning: Could not connect to Ollama at {OLLAMA_RAW_URL}: {e}")
+        logger.warning("Could not connect to Ollama at %s: %s", OLLAMA_RAW_URL, e)
     except Exception as e:
-        print(f"Warning: Unexpected error while getting active model: {e}")
+        logger.warning("Unexpected error while getting active model: %s", e, exc_info=True)
         
     _active_model = requested_model
     return _active_model
@@ -117,7 +119,7 @@ def stream_response(prompt: Optional[str] = None, max_tokens: int = 1500, messag
                 if chunk.choices and chunk.choices[0].delta.content:
                     yield chunk.choices[0].delta.content
         except Exception as e:
-            print(f"Error streaming response from Ollama: {e}")
+            logger.error("Error streaming response from Ollama: %s", e, exc_info=True)
             yield f"\n[Error: Unable to generate response. Please ensure Ollama is running and try again later.]"
 
     return StreamingResponse(generate(), media_type="text/plain")

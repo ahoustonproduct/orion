@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { fetchNote, saveNote, fetchProgress, fetchLesson, fetchModules } from "@/lib/api";
 import { getUserKey } from "@/lib/user";
 import { Save, FileText, Check, Lightbulb, BookOpen, AlertTriangle, RefreshCw, Wand2, Loader2 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+
 
 interface StruggleTopic {
   lesson_id: string;

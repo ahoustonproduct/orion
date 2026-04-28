@@ -2,35 +2,13 @@
 
 import { useEffect, useRef } from "react";
 import { Bot, Loader2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import rehypeSanitize from "rehype-sanitize";
 
 interface OrionPanelProps {
   content: string;
   loading: boolean;
   title?: string;
-}
-
-// Simple markdown renderer for Orion's responses
-function renderMarkdown(text: string): string {
-  return text
-    // Code blocks
-    .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-    // Inline code
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    // Bold
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    // Headers
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    // Bullet points
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>(\n|$))+/g, '<ul>$&</ul>')
-    // Numbered lists
-    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-    // Line breaks to paragraphs (simple)
-    .replace(/\n\n/g, '</p><p>')
-    // Wrap in paragraph
-    .replace(/^([\s\S])/, '<p>$1')
-    .replace(/([\s\S])$/, '$1</p>');
 }
 
 export default function OrionPanel({ content, loading, title = "Orion" }: OrionPanelProps) {
@@ -62,10 +40,34 @@ export default function OrionPanel({ content, loading, title = "Orion" }: OrionP
           </div>
         )}
         {content && (
-          <div
-            className="orion-prose text-sm leading-relaxed animate-fade-in"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-          />
+          <div className="orion-prose text-sm leading-relaxed animate-fade-in">
+            <ReactMarkdown
+              rehypePlugins={[rehypeSanitize]}
+              components={{
+                code: ({ className, children }) => {
+                  const isBlock = className?.includes("block") || String(children).includes("\n");
+                  return isBlock ? (
+                    <pre className="bg-surface-2 border border-border rounded-lg p-3 my-2 overflow-x-auto">
+                      <code className={className}>{children}</code>
+                    </pre>
+                  ) : (
+                    <code className="bg-surface-2 border border-border rounded px-1.5 py-0.5 text-sm">
+                      {children}
+                    </code>
+                  );
+                },
+                p: ({ children }) => <p className="mb-3 leading-relaxed">{children}</p>,
+                ul: ({ children }) => <ul className="list-disc ml-6 mb-3 space-y-1">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal ml-6 mb-3 space-y-1">{children}</ol>,
+                strong: ({ children }) => <strong className="font-semibold text-text-primary">{children}</strong>,
+                h2: ({ children }) => <h2 className="text-lg font-bold text-text-primary mt-4 mb-2">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-md font-bold text-text-primary mt-4 mb-2">{children}</h3>,
+                li: ({ children }) => <li>{children}</li>,
+              }}
+            >
+              {content}
+            </ReactMarkdown>
+          </div>
         )}
         <div ref={bottomRef} />
       </div>

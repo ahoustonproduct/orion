@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from models import create_tables
+from init_sandbox import init_sandbox
 from routes.curriculum import router as curriculum_router
 from routes.progress import router as progress_router
 from routes.ai import router as ai_router
@@ -62,6 +63,7 @@ app.include_router(notebooks_router)
 @app.on_event("startup")
 def startup():
     create_tables()
+    init_sandbox()
 
 
 @app.get("/")
