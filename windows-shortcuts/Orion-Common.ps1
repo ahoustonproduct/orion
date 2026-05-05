@@ -325,7 +325,7 @@ function Assert-OrionPortAvailable {
   }
 
   $Lines += "Where: Start-Orion.ps1 - $ServiceName port check."
-  $Lines += "Fix: double-click 'Orion Remove Old Services' once, then double-click 'Orion Start'."
+  $Lines += "Fix: close the process using port $Port, then double-click 'Orion' again."
   throw ($Lines -join [Environment]::NewLine)
 }
 
@@ -335,7 +335,7 @@ function Show-OrionLegacyServiceHint {
   if ($Running.Count -gt 0) {
     Write-Host ""
     Write-Host "Old Orion Windows services are still running."
-    Write-Host "Use the 'Orion Remove Old Services' desktop shortcut once to free fixed ports."
+    Write-Host "Remove them from an elevated PowerShell before starting Orion on fixed ports."
   }
 }
 
