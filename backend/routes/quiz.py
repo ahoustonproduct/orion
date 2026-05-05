@@ -2,17 +2,17 @@ import random
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from lesson_sources import resolve_lesson
 from models import get_db, UserProgress
-from curriculum_data import ALL_MODULES
 
 router = APIRouter(prefix="/quiz", tags=["quiz"])
 
-def get_lesson_by_id(lesson_id: str) -> dict | None:
-    for module in ALL_MODULES:
-        for lesson in module["lessons"]:
-            if lesson["id"] == lesson_id:
-                return {**lesson, "module_title": module["title"]}
-    return None
+def get_lesson_by_id(lesson_id: str, db: Session | None = None, user_key: str | None = None) -> dict | None:
+    resolved = resolve_lesson(lesson_id, db=db, user_key=user_key)
+    if not resolved:
+        return None
+    module, lesson, _ = resolved
+    return {**lesson, "module_title": module["title"]}
 
 
 @router.get("/{user_key}")
@@ -43,7 +43,7 @@ def get_daily_quiz(user_key: str, db: Session = Depends(get_db)):
     # Get built-in questions from selected lessons
     quiz_questions = []
     for lesson_id in selected[:5]:
-        lesson = get_lesson_by_id(lesson_id)
+        lesson = get_lesson_by_id(lesson_id, db=db, user_key=user_key)
         if lesson and lesson.get("questions"):
             q = random.choice(lesson["questions"])
             quiz_questions.append({**q, "lesson_id": lesson_id, "lesson_title": lesson["title"]})
@@ -66,11 +66,11 @@ def _fallback_question(lesson: dict, lesson_id: str) -> dict | None:
 
 
 @router.post("/generate")
-def generate_quiz(req: GenerateQuizRequest):
+def generate_quiz(req: GenerateQuizRequest, db: Session = Depends(get_db)):
     """Return fresh built-in quiz questions for given lesson IDs."""
     questions = []
     for lesson_id in req.lesson_ids[:5]:
-        lesson = get_lesson_by_id(lesson_id)
+        lesson = get_lesson_by_id(lesson_id, db=db, user_key=req.user_key)
         if not lesson:
             continue
         fallback = _fallback_question(lesson, lesson_id)

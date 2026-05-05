@@ -1,7 +1,7 @@
 import os
-from sqlalchemy import create_engine, Column, String, Integer, Boolean, DateTime, JSON, Date
+from sqlalchemy import create_engine, Column, String, Integer, Boolean, DateTime, JSON
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
-from datetime import datetime, date, timezone
+from datetime import datetime, timezone
 
 # Anchor the SQLite DB to the backend directory so that progress persists
 # regardless of the working directory the server is launched from.
@@ -40,8 +40,6 @@ class LearningProfile(Base):
     topic_confidence = Column(JSON, default=dict)      # lesson_id -> confidence rating (1-5)
     mastered_concepts = Column(JSON, default=list)     # lesson_ids with 3 stars (for comparisons)
     study_plan = Column(JSON, default=dict)            # generated weekly study plan
-    streak_count = Column(Integer, default=0)
-    last_active = Column(Date, default=date.today)
     study_log = Column(JSON, default=dict)             # "YYYY-MM-DD" -> minutes
 
 
@@ -78,9 +76,9 @@ class ConfidenceRating(Base):
 
 
 class Notebook(Base):
-    """A user-generated module, built from a YouTube transcript by the tutor LLM.
+    """A saved study module imported or created outside the running app.
 
-    `module_data` stores the generated module JSON — same shape as the built-in
+    `module_data` stores module JSON in the same shape as the built-in
     curriculum modules in curriculum_data/, so it can be rendered with the
     existing /curriculum and /learn UI.
     """
@@ -89,9 +87,9 @@ class Notebook(Base):
     id = Column(String, primary_key=True, index=True)   # notebook_<uuid>
     user_key = Column(String, index=True)
     title = Column(String)
-    source_type = Column(String, default="youtube")     # youtube | text | ...
-    source_url = Column(String, default="")
-    status = Column(String, default="pending")          # pending | generating | ready | failed
+    source_type = Column(String, default="external")    # external | imported
+    source_url = Column(String, default="")             # optional source reference
+    status = Column(String, default="ready")            # ready | failed
     error = Column(String, default="")
     module_data = Column(JSON, default=dict)            # module dict with nested lessons
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

@@ -59,7 +59,7 @@ export default function NotebookPage() {
       .catch(() => setLoadingStruggles(false));
   }, []);
 
-  const generateInitialNote = () => `# My Study Notes
+  const generateInitialNote = () => `# Study Notes
 
 ## Quick Reference
 - Python basics: variables, lists, dictionaries
@@ -94,7 +94,7 @@ export default function NotebookPage() {
     setGeneratingContent(true);
     
     try {
-      const lesson = await fetchLesson(topic.lesson_id);
+      const lesson = await fetchLesson(topic.lesson_id, getUserKey());
       const guide = `## Study Guide: ${topic.title}
 
 ### Why this is challenging
@@ -137,7 +137,7 @@ ${lesson.challenge?.solution?.slice(0, 300) || "Check the lesson for the solutio
     
     for (const topic of struggleTopics.slice(0, 3)) {
       try {
-        const lesson = await fetchLesson(topic.lesson_id);
+        const lesson = await fetchLesson(topic.lesson_id, getUserKey());
         fullGuide += `### ${topic.title}\n`;
         fullGuide += `- Attempts: ${topic.attempts}, Stars: ${topic.stars}\n`;
         fullGuide += `- Key: ${lesson.concept?.slice(0, 200) || "Review lesson"}\n\n`;
@@ -162,7 +162,7 @@ ${lesson.challenge?.solution?.slice(0, 300) || "Check the lesson for the solutio
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileText size={18} className="text-[var(--color-accent-light)]" />
-            <h1 className="text-xl font-bold text-white">Smart Notebook</h1>
+            <h1 className="text-xl font-bold text-white">Study Notes</h1>
           </div>
           <div className="flex items-center gap-3">
             {lastSaved && (
@@ -182,13 +182,13 @@ ${lesson.challenge?.solution?.slice(0, 300) || "Check the lesson for the solutio
         </div>
 
         <p className="text-xs text-gray-400">
-          Auto-saves every 2 seconds. Your struggles are tracked below - click to generate study guides!
+          Auto-saves every 2 seconds. Your review areas are tracked below.
         </p>
 
         <textarea
           value={content}
           onChange={(e) => { setContent(e.target.value); setSaved(false); }}
-          placeholder={`# My Study Notes\n\nStart writing...`}
+          placeholder={`# Study Notes\n\nStart writing...`}
           className="flex-1 bg-[#0f0f1a] border border-white/10 rounded-xl p-4 text-sm text-white font-mono placeholder-gray-600 resize-none outline-none focus:border-[var(--color-accent)] transition-all leading-relaxed"
         />
       </div>
@@ -206,7 +206,7 @@ ${lesson.challenge?.solution?.slice(0, 300) || "Check the lesson for the solutio
           ) : (
             <Wand2 size={16} />
           )}
-          Generate from My Struggles
+          Generate Study Guide
         </button>
 
         {/* Struggle topics */}
@@ -270,7 +270,7 @@ ${lesson.challenge?.solution?.slice(0, 300) || "Check the lesson for the solutio
                   onClick={insertStruggleNote}
                   className="w-full py-2 bg-[var(--color-accent)]/20 border border-[var(--color-accent)]/50 text-[var(--color-accent-light)] rounded-lg text-xs font-medium hover:bg-[var(--color-accent)]/30 transition-all"
                 >
-                  Insert into Notebook
+                  Insert into Notes
                 </button>
               </>
             )}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { BookOpen, Plus, Clock, Trash2, AlertCircle, Loader2 } from "lucide-react";
+import { BookOpen, Clock, Trash2, AlertCircle, Loader2 } from "lucide-react";
 import { getUserKey } from "@/lib/user";
 import {
   fetchNotebooks,
@@ -12,8 +12,6 @@ import {
 
 function StatusBadge({ status }: { status: NotebookSummary["status"] }) {
   const map: Record<NotebookSummary["status"], { label: string; cls: string; icon?: React.ReactNode }> = {
-    pending:    { label: "Paused",      cls: "bg-[#f5f0ea] text-[#5c4f45]",          icon: <Clock size={11} /> },
-    generating: { label: "Paused",      cls: "bg-[#f5f0ea] text-[#5c4f45]",          icon: <Clock size={11} /> },
     ready:      { label: "Ready",       cls: "bg-green-500/15 text-green-700" },
     failed:     { label: "Failed",      cls: "bg-red-500/15 text-red-700",           icon: <AlertCircle size={11} /> },
   };
@@ -64,35 +62,23 @@ export default function NotebooksListPage() {
           <BookOpen size={18} className="text-[var(--color-accent)]" />
           <h1 className="text-xl font-bold text-[var(--color-text-primary)]">My Notebooks</h1>
         </div>
-        <Link
-          href="/notebooks/create"
-          className="flex items-center gap-1.5 px-3 py-2 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white rounded-lg text-xs font-medium transition-all"
-        >
-          <Plus size={13} /> New Notebook
-        </Link>
       </div>
 
       <p className="text-xs text-[var(--color-text-secondary)]">
-        Saved notebook modules remain available here. Automatic notebook generation is disabled in the core app.
+        Saved study modules imported outside the app remain available here.
       </p>
 
       {loading ? (
         <div className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
-          <Loader2 size={14} className="animate-spin" /> Loading notebooks…
+          <Loader2 size={14} className="animate-spin" /> Loading notebooks...
         </div>
       ) : notebooks.length === 0 ? (
         <div className="bg-[var(--color-surface)] border border-dashed border-[var(--color-border)] rounded-xl p-8 text-center space-y-3">
           <BookOpen size={28} className="mx-auto text-[var(--color-accent)] opacity-60" />
           <p className="text-sm font-medium text-[var(--color-text-primary)]">No notebooks yet</p>
           <p className="text-xs text-[var(--color-text-secondary)]">
-            Saved notebook modules will appear here.
+            Imported study modules will appear here.
           </p>
-          <Link
-            href="/notebooks/create"
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white rounded-lg text-xs font-medium transition-all"
-          >
-            <Plus size={13} /> Create your first notebook
-          </Link>
         </div>
       ) : (
         <div className="space-y-3">

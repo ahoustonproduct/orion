@@ -16,13 +16,16 @@ export async function post<T>(path: string, body: unknown): Promise<T> {
   return res.json();
 }
 
-// ── Curriculum ──────────────────────────────────────────────────────────────
+// Curriculum
 export const fetchModules = () => get<Module[]>("/curriculum/modules");
 export const fetchModule = (id: string) => get<Module>(`/curriculum/modules/${id}`);
-export const fetchLesson = (id: string) => get<Lesson>(`/curriculum/lessons/${id}`);
+export const fetchLesson = (id: string, userKey?: string) => {
+  const qs = userKey ? `?user_key=${encodeURIComponent(userKey)}` : "";
+  return get<Lesson>(`/curriculum/lessons/${id}${qs}`);
+};
 export const fetchGlossary = () => get<GlossaryEntry[]>("/curriculum/glossary");
 
-// ── Progress ─────────────────────────────────────────────────────────────────
+// Progress
 export const fetchProgress = (userKey: string) =>
   get<ProgressData>(`/progress/${userKey}`);
 
@@ -57,11 +60,11 @@ export const saveAnalogy = (userKey: string, lessonId: string, analogy: string) 
 export const fetchWeekData = (userKey: string) =>
   get<WeekData>(`/progress/${userKey}/week-review`);
 
-// ── Quiz ──────────────────────────────────────────────────────────────────────
+// Quiz
 export const fetchQuiz = (userKey: string) =>
   get<QuizData>(`/quiz/${userKey}`);
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// FinTech Lesson Block Types
 export interface Module {
   id: string;
   title: string;
@@ -124,7 +127,6 @@ export interface Challenge {
 export interface ProgressData {
   lessons: LessonProgress[];
   module_status: Record<string, ModuleStatus>;
-  streak: number;
   study_log: Record<string, number>;
   weak_topics: string[];
   mastered_concepts: string[];
@@ -176,7 +178,6 @@ export interface WeekData {
   study_log: Record<string, number>;
   lessons_completed: string[];
   stars_earned: Record<string, number>;
-  streak: number;
   days_studied: number;
   total_minutes: number;
 }
@@ -193,7 +194,7 @@ export interface QuizData {
   message?: string;
 }
 
-// ── FinTech Lesson Block Types ─────────────────────────────────────────────────
+// Types
 
 export interface FinTechLesson {
   id: string;
@@ -344,12 +345,12 @@ export const recordReview = (userKey: string, questionId: string, correct: boole
 export const addToReviewQueue = (userKey: string, questionId: string, lessonId: string, questionJson: string) =>
   post<{ ok: boolean }>(`/review/${userKey}/add`, { question_id: questionId, lesson_id: lessonId, question_json: questionJson });
 
-// ── Notebooks (NotebookLM-style user-generated modules) ────────────────────────
+// Notebooks (saved study modules imported outside the app)
 
 export interface NotebookSummary {
   id: string;
   title: string;
-  status: "pending" | "generating" | "ready" | "failed";
+  status: "ready" | "failed";
   error: string;
   source_type: string;
   source_url: string;
@@ -371,7 +372,7 @@ export interface NotebookModule {
 export interface NotebookDetail {
   id: string;
   title: string;
-  status: "pending" | "generating" | "ready" | "failed";
+  status: "ready" | "failed";
   error: string;
   source_type: string;
   source_url: string;

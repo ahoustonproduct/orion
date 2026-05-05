@@ -1813,7 +1813,7 @@ plt.show()""",
                 "Variation 5: Filter a DatetimeIndex to only show Q4 data (October-December).",
                 "Variation 6: Compare rolling 7-day vs 30-day averages on the same chart.",
                 "Variation 7: Calculate cumulative revenue over the year using .cumsum().",
-                "Variation 8: Find the longest consecutive streak of days with positive sales growth.",
+                "Variation 8: Find the longest consecutive run of days with positive sales growth.",
                 "Variation 9: Use resample to compute the maximum daily sale in each week.",
                 "Variation 10: Create a heatmap showing average sales by month and day-of-week."
             ]

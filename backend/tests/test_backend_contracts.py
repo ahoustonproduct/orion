@@ -1,10 +1,14 @@
 import os
-import tempfile
 import unittest
 from datetime import date
 
-_tmpdir = tempfile.TemporaryDirectory()
-os.environ["ORION_DB_PATH"] = os.path.join(_tmpdir.name, "orion_test.db")
+_test_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".tmp", "tests"))
+os.makedirs(_test_dir, exist_ok=True)
+_test_db = os.path.join(_test_dir, "orion_test.db")
+if os.path.exists(_test_db):
+    os.remove(_test_db)
+
+os.environ["ORION_DB_PATH"] = _test_db
 os.environ["ORION_AI_ENABLED"] = "false"
 
 from fastapi.testclient import TestClient  # noqa: E402
@@ -23,9 +27,10 @@ class BackendContractsTest(unittest.TestCase):
     def tearDownClass(cls):
         cls.client_context.__exit__(None, None, None)
         engine.dispose()
-        _tmpdir.cleanup()
+        if os.path.exists(_test_db):
+            os.remove(_test_db)
 
-    def test_first_lesson_update_starts_streak_and_validates_confidence(self):
+    def test_first_lesson_update_records_study_time_and_validates_confidence(self):
         user_key = "contract_progress_user"
         response = self.client.post(
             f"/progress/{user_key}/lesson",
@@ -42,7 +47,6 @@ class BackendContractsTest(unittest.TestCase):
         self.assertEqual(response.json(), {"success": True, "stars": 3})
 
         progress = self.client.get(f"/progress/{user_key}").json()
-        self.assertEqual(progress["streak"], 1)
         self.assertEqual(progress["study_log"][date.today().isoformat()], 5)
 
         invalid = self.client.post(

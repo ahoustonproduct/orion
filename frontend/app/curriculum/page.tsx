@@ -20,7 +20,7 @@ export default function CurriculumPage() {
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
       <h1 className="text-xl font-bold text-[#1c1410]">Curriculum</h1>
       <p className="text-sm text-[#5c4f45]">
-        {modules.length || 5} built-in modules covering Python, Data Analytics, SQL, Machine Learning, and Systems.
+        WashU Core Analytics prep for MSFTA: Python, pandas, statistics, SQL, visualization, and machine learning with finance-first practice.
       </p>
 
       <div className="space-y-3">

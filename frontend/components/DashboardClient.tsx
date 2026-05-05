@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  fetchModules, fetchProgress, fetchReviewQueue, fetchMastery,
-  type Module, type ProgressData, type ReviewQueue, type MasteryData,
+  fetchModules, fetchProgress, fetchReviewQueue, fetchMastery, fetchNotebooks,
+  type Module, type ProgressData, type ReviewQueue, type MasteryData, type NotebookSummary,
 } from "@/lib/api";
 import { getUserKey } from "@/lib/user";
-import { Flame, BookOpen, Star, Zap, ArrowRight, RefreshCw, AlertCircle, Box } from "lucide-react";
+import { BookOpen, Star, Zap, ArrowRight, RefreshCw, AlertCircle, Box, Clock } from "lucide-react";
 
 interface DashboardClientProps {
   initialModules: Module[];
@@ -24,6 +24,7 @@ export default function DashboardClient({
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [reviewQueue, setReviewQueue] = useState<ReviewQueue | null>(null);
   const [mastery, setMastery] = useState<MasteryData | null>(null);
+  const [notebooks, setNotebooks] = useState<NotebookSummary[]>([]);
 
   useEffect(() => {
     const userKey = getUserKey();
@@ -46,11 +47,17 @@ export default function DashboardClient({
       .catch(console.error);
     fetchReviewQueue(userKey).then(setReviewQueue).catch(() => null);
     fetchMastery(userKey).then(setMastery).catch(() => null);
+    fetchNotebooks(userKey).then(setNotebooks).catch(() => null);
   }, [initialModules.length, initialModulesError]);
 
-  const totalLessons = modules.reduce((s, m) => s + m.lesson_count, 0);
+  const readyNotebooks = notebooks.filter((notebook) => notebook.status === "ready");
+  const notebookLessonCount = readyNotebooks.reduce((s, n) => s + n.lesson_count, 0);
+  const totalLessons = modules.reduce((s, m) => s + m.lesson_count, 0) + notebookLessonCount;
   const completedLessons = progress ? progress.lessons.filter((l) => l.completed).length : 0;
   const totalStars = progress ? progress.lessons.reduce((s, l) => s + l.stars, 0) : 0;
+  const totalStudyMinutes = progress
+    ? Math.round(Object.values(progress.study_log ?? {}).reduce((s, minutes) => s + minutes, 0))
+    : 0;
   const overallPct = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
   const nextModule = progress
     ? modules.find((module) => {
@@ -58,12 +65,20 @@ export default function DashboardClient({
         return (status?.completed_count ?? 0) < module.lesson_count;
       })
     : modules[0];
+  const nextNotebook = progress && !nextModule
+    ? readyNotebooks.find((notebook) => {
+        const status = progress.module_status[notebook.id];
+        return (status?.completed_count ?? 0) < notebook.lesson_count;
+      })
+    : null;
   const nextStatusText = !progress
     ? "Progress is loading."
     : completedLessons === 0
     ? "Start with the first Python module and build momentum one lesson at a time."
     : nextModule
     ? `Continue ${nextModule.title}. You have completed ${completedLessons} of ${totalLessons} lessons.`
+    : nextNotebook
+    ? `Continue ${nextNotebook.title}. Saved modules now count toward your learning progress.`
     : "All visible curriculum modules are complete. Use review and quiz sessions to keep skills sharp.";
 
   return (
@@ -86,7 +101,7 @@ export default function DashboardClient({
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 animate-slide-up" style={{ animationDelay: "0.2s" }}>
         <div className="md:col-span-5 grid grid-cols-2 gap-4">
           {[
-            { icon: <Flame size={20} />, value: progress?.streak ?? 0, label: "Day Streak", colSpan: "" },
+            { icon: <Clock size={20} />, value: totalStudyMinutes, label: "Study Minutes", colSpan: "" },
             { icon: <BookOpen size={20} />, value: completedLessons, label: "Lessons Done", colSpan: "" },
             { icon: <Star size={20} />, value: totalStars, label: "Total Stars", colSpan: "col-span-2" },
           ].map(({ icon, value, label, colSpan }) => (
@@ -165,7 +180,7 @@ export default function DashboardClient({
                 <AlertCircle size={14} className="text-[var(--color-warning)]" />
                 <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-widest">Focus Areas</span>
               </div>
-              <Link href="/progress" className="text-xs font-semibold text-[var(--color-accent)] hover:opacity-80 uppercase tracking-wider">Metrics →</Link>
+              <Link href="/progress" className="text-xs font-semibold text-[var(--color-accent)] hover:opacity-80 uppercase tracking-wider">Metrics</Link>
             </div>
             <div className="space-y-3">
               {mastery.focus_areas.slice(0, 2).map(({ tag, mastery: score }) => (
@@ -206,7 +221,7 @@ export default function DashboardClient({
             </div>
           ))}
 
-          {!modulesLoading && modules.length === 0 && (
+          {!modulesLoading && modules.length === 0 && readyNotebooks.length === 0 && (
             <div className="md:col-span-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
               <p className="text-sm font-semibold text-[var(--color-text-primary)]">Modules unavailable</p>
               <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
@@ -270,6 +285,62 @@ export default function DashboardClient({
               </Link>
             );
           })}
+
+          {!modulesLoading && readyNotebooks.map((notebook) => {
+            const status = progress?.module_status[notebook.id];
+            const completedInMod = status?.completed_count ?? 0;
+            const masteryPct = status?.mastery_pct ?? 0;
+            const pct = notebook.lesson_count ? (completedInMod / notebook.lesson_count) * 100 : 0;
+            const isCompleted = pct === 100 && notebook.lesson_count > 0;
+
+            return (
+              <Link
+                href={`/notebooks/${notebook.id}`}
+                key={notebook.id}
+                className="group relative overflow-hidden rounded-2xl transition-all duration-300 bg-[var(--color-surface)] border border-[var(--color-border)] hover:-translate-y-1 hover:shadow-xl cursor-pointer p-[1px] block"
+              >
+                <div className="bg-[var(--color-surface)] w-full h-full rounded-2xl p-6 relative z-10">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-inner ${
+                      isCompleted
+                        ? "bg-[var(--color-success)]/20 text-[var(--color-success)] border border-[var(--color-success)]/30"
+                        : "bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/20"
+                    }`}
+                    >
+                      {isCompleted ? "✓" : "N"}
+                    </div>
+
+                    <div className="px-3 py-1 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs font-semibold text-[var(--color-text-secondary)] flex gap-1 items-center">
+                      <span>{completedInMod}</span>
+                      <span className="text-[var(--color-text-muted)]">/</span>
+                      <span className="text-[var(--color-text-muted)]">{notebook.lesson_count}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 mb-5">
+                    <h3 className="font-bold text-lg truncate text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">
+                      {notebook.title || "Untitled Notebook"}
+                    </h3>
+                    <p className="text-sm text-[var(--color-text-muted)] font-medium truncate">Saved Module</p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-1.5 bg-[var(--color-surface-2)] rounded-full overflow-hidden border border-[var(--color-border)]">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${isCompleted ? "bg-[var(--color-success)]" : "bg-[var(--color-accent)]"}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    {masteryPct > 0 && (
+                      <span className="text-xs font-mono font-medium text-[var(--color-text-muted)]">{masteryPct}% <span className="text-[10px] text-[var(--color-text-muted)]">MR</span></span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 via-transparent to-yellow-500/5 opacity-0 group-hover:opacity-100 transition-opacity z-0 pointer-events-none" />
+              </Link>
+            );
+          })}
         </div>
       </div>
 
@@ -279,7 +350,7 @@ export default function DashboardClient({
           className="bg-[var(--color-surface)] border border-[var(--color-border)] p-5 rounded-2xl flex items-center gap-4 group hover:bg-[var(--color-surface-2)]"
         >
           <div className="w-12 h-12 rounded-xl bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 flex items-center justify-center shrink-0">
-            <Flame size={20} className="text-[var(--color-accent)]" />
+            <RefreshCw size={20} className="text-[var(--color-accent)]" />
           </div>
           <div>
             <p className="font-bold text-[var(--color-text-primary)] text-sm group-hover:text-[var(--color-accent)] transition-colors">Daily Quiz</p>

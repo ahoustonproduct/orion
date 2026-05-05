@@ -5,10 +5,16 @@ frontend/tsconfig.tsbuildinfo
 
 # Backend
 backend/venv/
+backend/.venv/
+backend/.tmp/
 backend/__pycache__/
 backend/**/__pycache__/
 **/__pycache__/
 *.py[cod]
+
+# Local Codex/dependency install logs
+.codex-install-logs/
+.codex-run-logs/
 
 # Databases — never commit sqlite files anywhere in the tree
 *.db

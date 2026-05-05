@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchQuiz, type QuizData, type Question } from "@/lib/api";
 import { getUserKey } from "@/lib/user";
-import { Flame, CheckCircle, ArrowRight, RefreshCw, XCircle } from "lucide-react";
+import { Brain, CheckCircle, ArrowRight, RefreshCw, XCircle } from "lucide-react";
 
 export default function QuizPage() {
   const [quiz, setQuiz] = useState<QuizData | null>(null);
@@ -65,7 +65,7 @@ export default function QuizPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-2">
-          <Flame size={32} className="text-[var(--color-star)] mx-auto animate-pulse" />
+          <Brain size={32} className="text-[var(--color-accent)] mx-auto animate-pulse" />
           <p className="text-sm text-[var(--color-text-muted)]">Loading your quiz...</p>
         </div>
       </div>
@@ -75,7 +75,7 @@ export default function QuizPage() {
   if (!quiz?.questions?.length) {
     return (
       <div className="max-w-md mx-auto px-4 py-12 text-center space-y-4">
-        <Flame size={40} className="text-[var(--color-star)]/60 mx-auto" />
+        <Brain size={40} className="text-[var(--color-accent)]/60 mx-auto" />
         <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">No quiz available yet</h2>
         <p className="text-sm text-[var(--color-text-secondary)]">{quiz?.message ?? "Complete some lessons first. Flagged and low-starred lessons will appear here."}</p>
       </div>
@@ -94,7 +94,7 @@ export default function QuizPage() {
           </div>
           <p className="text-[var(--color-text-secondary)] text-sm">{score} / {quiz.questions.length} correct</p>
           {pct >= 80 && <p className="text-[var(--color-success)] text-sm">Great job!</p>}
-          {pct < 80 && <p className="text-[var(--color-text-secondary)] text-sm">Keep practicing — you&apos;ll get there!</p>}
+          {pct < 80 && <p className="text-[var(--color-text-secondary)] text-sm">Keep practicing - you&apos;ll get there!</p>}
         </div>
         <button onClick={load} className="flex items-center gap-2 mx-auto px-6 py-3 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white rounded-xl text-sm font-medium transition-all">
           <RefreshCw size={14} /> Try Again
@@ -108,7 +108,7 @@ export default function QuizPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Flame size={18} className="text-[var(--color-star)]" />
+          <Brain size={18} className="text-[var(--color-accent)]" />
           <h1 className="text-lg font-bold text-[var(--color-text-primary)]">Daily Quiz</h1>
         </div>
         <span className="text-xs text-[var(--color-text-muted)]">{idx + 1} / {quiz.questions.length}</span>

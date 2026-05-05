@@ -5,7 +5,8 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
-from models import get_db, LearningProfile, Notebook
+from lesson_sources import resolve_lesson
+from models import get_db, LearningProfile
 from prompts import (
     explain_concept_prompt, code_feedback_prompt,
     give_hint_prompt, lesson_recap_prompt,
@@ -69,23 +70,14 @@ client = create_ollama_client()
 def get_lesson_by_id(lesson_id: str, db: Optional[Session] = None):
     """Resolve a lesson by id.
 
-    Checks built-in curriculum modules first, then falls back to user-generated
+    Checks built-in curriculum modules first, then falls back to saved
     notebooks (ids shaped like `notebook_<uuid>-lN`). `db` is only required for
     the notebook fallback; if omitted, notebook lessons won't resolve.
     """
-    for module in ALL_MODULES:
-        for lesson in module["lessons"]:
-            if lesson["id"] == lesson_id:
-                return lesson
-
-    if db is not None and lesson_id.startswith("notebook_"):
-        notebook_id = lesson_id.split("-", 1)[0]
-        nb = db.query(Notebook).filter(Notebook.id == notebook_id).first()
-        if nb and nb.module_data:
-            for lesson in (nb.module_data.get("lessons") or []):
-                if lesson.get("id") == lesson_id:
-                    # Attach module_title so prompts can reference it
-                    return {**lesson, "module_title": nb.module_data.get("title", nb.title or "")}
+    resolved = resolve_lesson(lesson_id, db=db)
+    if resolved:
+        module, lesson, _ = resolved
+        return {**lesson, "module_title": module.get("title", "")}
     return None
 
 
@@ -284,7 +276,6 @@ def generate_week_review(req: WeekReviewRequest):
         study_log=wd.get("study_log", {}),
         lessons_completed_this_week=wd.get("lessons_completed", []),
         stars_earned=wd.get("stars_earned", {}),
-        streak=wd.get("streak", 0),
     )
     return stream_response(prompt, max_tokens=600)
 

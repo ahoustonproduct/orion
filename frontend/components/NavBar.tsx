@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Flame, Zap, FileText, Search, Settings, BarChart2, RefreshCw, Sparkles } from "lucide-react";
+import { BookOpen, Brain, Zap, FileText, Search, Settings, BarChart2, RefreshCw, Sparkles } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/", icon: Zap, label: "Home" },
   { href: "/curriculum", icon: BookOpen, label: "Learn" },
-  { href: "/quiz", icon: Flame, label: "Quiz" },
+  { href: "/quiz", icon: Brain, label: "Quiz" },
   { href: "/review-queue", icon: RefreshCw, label: "Review" },
   { href: "/progress", icon: BarChart2, label: "Progress" },
   { href: "/notebooks", icon: Sparkles, label: "Notebooks" },

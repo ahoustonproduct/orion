@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, timedelta
+from lesson_sources import lesson_map_for_user
 from models import get_db, UserProgress, LearningProfile
-from curriculum_data import ALL_MODULES
 import json
 
 router = APIRouter(prefix="/mastery", tags=["mastery"])
@@ -23,10 +23,7 @@ def get_mastery(user_key: str, db: Session = Depends(get_db)):
     progress = db.query(UserProgress).filter(UserProgress.user_key == user_key).all()
     profile = db.query(LearningProfile).filter(LearningProfile.user_key == user_key).first()
 
-    lesson_map = {}
-    for module in ALL_MODULES:
-        for lesson in module["lessons"]:
-            lesson_map[lesson["id"]] = lesson
+    lesson_map = lesson_map_for_user(db, user_key)
 
     tags: dict[str, dict[str, int]] = {}
     for p in progress:

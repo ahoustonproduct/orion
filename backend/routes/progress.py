@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
+from lesson_sources import get_ready_notebooks
 from models import get_db, UserProgress, LearningProfile, Note, BookmarkedPosition, ConfidenceRating
 from curriculum_data import ALL_MODULES
 
@@ -77,6 +78,18 @@ def get_progress(user_key: str, db: Session = Depends(get_db)):
             "unlocked": True,
         }
 
+    for notebook in get_ready_notebooks(db, user_key):
+        lessons = (notebook.module_data or {}).get("lessons") or []
+        lesson_ids = {l.get("id") for l in lessons if l.get("id")}
+        completed_in_module = lesson_ids & completed_lessons
+        starred = sum(1 for p in progress if p.lesson_id in lesson_ids and p.stars == 3)
+        module_status[notebook.id] = {
+            "completed_count": len(completed_in_module),
+            "total": len(lesson_ids),
+            "mastery_pct": round((starred / len(lesson_ids)) * 100) if lesson_ids else 0,
+            "unlocked": True,
+        }
+
     # Confidence ratings
     confidence = db.query(ConfidenceRating).filter(
         ConfidenceRating.user_key == user_key
@@ -96,7 +109,6 @@ def get_progress(user_key: str, db: Session = Depends(get_db)):
             for p in progress
         ],
         "module_status": module_status,
-        "streak": profile.streak_count,
         "study_log": profile.study_log or {},
         "weak_topics": profile.weak_topics or [],
         "mastered_concepts": profile.mastered_concepts or [],
@@ -110,15 +122,7 @@ def get_progress(user_key: str, db: Session = Depends(get_db)):
 
 @router.post("/{user_key}/lesson")
 def update_lesson_progress(user_key: str, update: ProgressUpdate, db: Session = Depends(get_db)):
-    """Save or update lesson progress.
-
-    All field mutations (progress row + profile streak + weak topics + mastered)
-    are staged against the session and written in a SINGLE commit at the end.
-    Previously this handler issued 4 independent commits, which meant a mid-flight
-    exception could leave the DB in a half-updated state (row saved, streak lost,
-    etc.) and two interleaved requests could clobber each other's writes.
-    The helpers below are now mutate-only — they must not call db.commit().
-    """
+    """Save lesson progress and profile updates in one transaction."""
     try:
         existing = db.query(UserProgress).filter(
             UserProgress.user_key == user_key,
@@ -143,7 +147,7 @@ def update_lesson_progress(user_key: str, update: ProgressUpdate, db: Session = 
             db.add(existing)
 
         profile = get_or_create_profile(user_key, db, commit=False)
-        _update_streak(profile, update.time_spent_minutes or 0)
+        _update_study_log(profile, update.time_spent_minutes or 0)
         _update_weak_topics(profile, update.lesson_id, update.stars)
         _update_mastered(profile, update.lesson_id, update.stars)
 
@@ -317,34 +321,19 @@ def get_week_data(user_key: str, db: Session = Depends(get_db)):
         "study_log": week_log,
         "lessons_completed": completed_titles,
         "stars_earned": stars_this_week,
-        "streak": profile.streak_count,
         "days_studied": len([v for v in week_log.values() if v > 0]),
         "total_minutes": sum(week_log.values()),
     }
 
 
-def _update_streak(profile: LearningProfile, minutes: int) -> None:
-    """Mutate streak / study_log on the profile in-place. Does NOT commit —
-    the caller writes all mutations in a single transaction."""
+def _update_study_log(profile: LearningProfile, minutes: int) -> None:
+    """Mutate study_log on the profile in-place. Does NOT commit."""
     today = date.today()
     study_log = dict(profile.study_log or {})
     today_str = today.isoformat()
 
     study_log[today_str] = study_log.get(today_str, 0) + minutes
     profile.study_log = study_log
-
-    if profile.last_active and profile.last_active == today:
-        if (profile.streak_count or 0) <= 0:
-            profile.streak_count = 1
-        return
-
-    yesterday = today - timedelta(days=1)
-    if profile.last_active == yesterday:
-        profile.streak_count = (profile.streak_count or 0) + 1
-    else:
-        profile.streak_count = 1
-    profile.last_active = today
-
 
 def _update_weak_topics(profile: LearningProfile, lesson_id: str, stars: int) -> None:
     """Mutate weak_topics on the profile in-place. Does NOT commit."""

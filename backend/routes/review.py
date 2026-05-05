@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
+from lesson_sources import lesson_map_for_user
 from models import get_db, UserProgress, LearningProfile
-from curriculum_data import ALL_MODULES
 import json
 import random
 
@@ -30,10 +30,7 @@ def get_review_queue(user_key: str, db: Session = Depends(get_db)):
     progress = db.query(UserProgress).filter(UserProgress.user_key == user_key).all()
     profile = db.query(LearningProfile).filter(LearningProfile.user_key == user_key).first()
 
-    lesson_map = {}
-    for module in ALL_MODULES:
-        for lesson in module["lessons"]:
-            lesson_map[lesson["id"]] = lesson
+    lesson_map = lesson_map_for_user(db, user_key)
 
     wrong_questions: list[dict] = []
     question_id_counter = 0
@@ -47,8 +44,8 @@ def get_review_queue(user_key: str, db: Session = Depends(get_db)):
                 question_id_counter += 1
                 wrong_questions.append({
                     "id": question_id_counter,
-                    "question_id": f"{lesson['id']}_q_{q.get('question', '')[:20].replace(' ', '_')}",
-                    "lesson_id": lesson["id"],
+                    "question_id": f"{p.lesson_id}_q_{q.get('question', '')[:20].replace(' ', '_')}",
+                    "lesson_id": p.lesson_id,
                     "wrong_count": 1 if p.stars < 3 else 0,
                     "question": {
                         "type": q.get("type", "multiple_choice"),

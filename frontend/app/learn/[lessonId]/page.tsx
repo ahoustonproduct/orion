@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
-  fetchLesson, saveProgress, saveConfidence, fetchModules,
+  fetchLesson, saveProgress, saveConfidence, fetchModules, fetchNotebook,
   type Lesson, type Question
 } from "@/lib/api";
 import { getUserKey } from "@/lib/user";
@@ -73,7 +73,7 @@ export default function LessonPage() {
   const [fillInput, setFillInput] = useState("");
 
   useEffect(() => {
-    fetchLesson(lessonId)
+    fetchLesson(lessonId, userKey)
       .then((l) => {
         setLesson(l);
         setChallengeCode(l.challenge?.starter_code || "");
@@ -81,7 +81,19 @@ export default function LessonPage() {
       })
       .catch(() => setLoading(false));
 
-    // Pre-calculate next lesson ID so it's ready upon completion
+    // Pre-calculate next lesson ID so it's ready upon completion.
+    if (lessonId.startsWith("notebook_")) {
+      const notebookId = lessonId.split("-", 1)[0];
+      fetchNotebook(userKey, notebookId)
+        .then((notebook) => {
+          const lessons = notebook.module_data?.lessons || [];
+          const currentIndex = lessons.findIndex((l) => l.id === lessonId);
+          setNextLessonId(currentIndex >= 0 ? lessons[currentIndex + 1]?.id ?? null : null);
+        })
+        .catch(() => setNextLessonId(null));
+      return;
+    }
+
     fetchModules()
       .then((modules) => {
         let foundCurrent = false;
@@ -99,7 +111,7 @@ export default function LessonPage() {
         setNextLessonId(nextId);
       })
       .catch(console.error);
-  }, [lessonId]);
+  }, [lessonId, userKey]);
 
   const handleComplete = async () => {
     const timeSpent = (Date.now() - startTimeRef.current) / 60000;
@@ -151,6 +163,10 @@ export default function LessonPage() {
     );
   }
 
+  const notebookId = lessonId.startsWith("notebook_") ? lessonId.split("-", 1)[0] : null;
+  const backHref = notebookId ? `/notebooks/${notebookId}` : "/curriculum";
+  const backLabel = notebookId ? "Saved Module" : "Curriculum";
+
   if (completed) {
     return (
       <div className="max-w-lg mx-auto px-4 py-12 text-center space-y-6">
@@ -171,10 +187,10 @@ export default function LessonPage() {
         </div>
         <div className="flex gap-3">
           <Link
-            href="/curriculum"
+            href={backHref}
             className="flex-1 py-3 bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-accent)] text-[var(--color-text-primary)] rounded-xl text-sm font-medium transition-all text-center"
           >
-            ← Curriculum
+            {backLabel}
           </Link>
           {nextLessonId ? (
             <Link
@@ -206,7 +222,7 @@ export default function LessonPage() {
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/curriculum" className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">
+        <Link href={backHref} className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">
           <ArrowLeft size={18} />
         </Link>
         <div className="flex-1 min-w-0">
