@@ -52,7 +52,7 @@ Current design decision:
 ## Repository Shape
 
 - `backend/`: FastAPI, SQLAlchemy, curriculum routes, progress, quiz, review,
-  notebooks, execution, and AI routes.
+  notebooks, execution, and decision routes.
 - `backend/curriculum_data/`: built-in curriculum modules.
 - `backend/tests/`: backend contract tests.
 - `frontend/`: Next.js App Router app.
@@ -68,12 +68,20 @@ Known local URLs:
 
 - Frontend: `http://127.0.0.1:3000`
 - Backend health: `http://127.0.0.1:8000/health`
+- MacBook access: use the Windows PC LAN URL printed by `Orion Start`, usually
+  `http://<windows-lan-ip>:3000`.
 
 Useful commands:
 
 ```powershell
-# Start the full Windows app flow.
+# Start the full Windows app flow from the repo.
 .\start-windows.ps1
+
+# Install double-click desktop shortcuts.
+.\windows-shortcuts\Install-Orion-Desktop-Shortcuts.ps1
+
+# Stop Orion when launched through the desktop shortcut flow.
+.\windows-shortcuts\Stop-Orion.ps1
 
 # Frontend lint.
 Set-Location frontend
@@ -97,6 +105,7 @@ chooses that direction.
 - Prefer the repo's existing patterns over new abstractions.
 - Keep edits narrowly scoped to the task.
 - Do not reintroduce in-app YouTube transcript fetching or notebook generation.
+- Do not reintroduce local AI model, Ollama, LoRA training, or `/orion` tutor routes.
 - Do not add multi-user account management, social features, or institutional
   permissions.
 - Do not add streak UI, flame-as-motivation language, streak counters, daily streak
@@ -112,6 +121,9 @@ chooses that direction.
 - When removing a product feature, remove its model fields, API fields, prompts,
   frontend types, tests, UI states, copy, and docs references. Do not merely hide the
   UI or disable the entry point.
+- Normal local use should feel like a desktop app: fixed ports, explicit launch,
+  double-click Start/Stop shortcuts, clear plain-text errors, and no admin requirement
+  except the one-time removal of old Windows services.
 
 ## Curriculum Rules
 
@@ -193,7 +205,6 @@ If a test cannot be run, say exactly why and what risk remains.
 Security audit is required when work touches:
 
 - `backend/routes/execute.py`
-- `backend/routes/ai.py`
 - notebook import, storage, rendering, or deletion
 - markdown rendering and sanitization
 - environment variables, config, secrets, or CORS

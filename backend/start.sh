@@ -12,7 +12,6 @@ source venv/bin/activate
 pip install -r requirements.txt --quiet
 
 export BACKEND_PORT="${BACKEND_PORT:-8000}"
-export ORION_AI_ENABLED="${ORION_AI_ENABLED:-false}"
 
 echo "[2/2] Starting backend on port ${BACKEND_PORT}..."
 if [ -f ".env" ]; then

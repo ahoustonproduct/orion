@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from models import create_tables
 from init_sandbox import init_sandbox
@@ -11,7 +11,6 @@ from routes.mastery import router as mastery_router
 from routes.review import router as review_router
 from routes.notebooks import router as notebooks_router
 from routes.decision import router as decision_router
-from features import AI_ENABLED
 
 import logging
 from fastapi.responses import JSONResponse
@@ -60,26 +59,6 @@ app.include_router(review_router)
 app.include_router(notebooks_router)
 app.include_router(decision_router)
 
-ai_routes_loaded = False
-if AI_ENABLED:
-    try:
-        from routes.ai import router as ai_router
-
-        app.include_router(ai_router)
-        ai_routes_loaded = True
-    except Exception as exc:
-        logger.warning("AI routes were not loaded: %s", exc, exc_info=True)
-
-
-if not ai_routes_loaded:
-    @app.api_route("/orion", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-    @app.api_route("/orion/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-    def ai_disabled(path: str = ""):
-        raise HTTPException(
-            status_code=503,
-            detail="AI routes are disabled. Core Orion features do not require a local model.",
-        )
-
 
 @app.on_event("startup")
 def startup():
@@ -94,8 +73,4 @@ def root():
 
 @app.get("/health")
 def health():
-    return {
-        "status": "ok",
-        "ai_enabled": AI_ENABLED,
-        "ai_routes_loaded": ai_routes_loaded,
-    }
+    return {"status": "ok"}

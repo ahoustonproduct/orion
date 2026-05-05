@@ -82,7 +82,7 @@ export default function WeekReviewPage() {
           {weekDays.map(({ label, minutes, isToday }) => {
             const maxMin = 60;
             const heightPct = Math.min((minutes / maxMin) * 100, 100);
-            const goalMet = minutes >= 30;
+            const goalMet = minutes >= 60;
             return (
               <div key={label} className="flex-1 flex flex-col items-center gap-1">
                 <div className="w-full bg-black/20 rounded-t-md overflow-hidden" style={{ height: "64px" }}>
@@ -103,7 +103,7 @@ export default function WeekReviewPage() {
             );
           })}
         </div>
-        <p className="text-[10px] text-gray-500">Goal: 30 min/day. Colored bars show goal met.</p>
+        <p className="text-[10px] text-gray-500">Goal: 60 min/day. Colored bars show goal met.</p>
       </div>
 
       {weekData && weekData.lessons_completed.length > 0 && (
@@ -122,7 +122,7 @@ export default function WeekReviewPage() {
                     <p className="text-sm text-gray-300 truncate">{title}</p>
                   </div>
                   {stars > 0 && (
-                    <span className="text-yellow-400 text-xs shrink-0">{"★".repeat(stars)}</span>
+                    <span className="text-yellow-400 text-xs shrink-0">{stars}/3</span>
                   )}
                 </div>
               );

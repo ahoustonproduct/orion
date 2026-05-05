@@ -9,7 +9,6 @@ if os.path.exists(_test_db):
     os.remove(_test_db)
 
 os.environ["ORION_DB_PATH"] = _test_db
-os.environ["ORION_AI_ENABLED"] = "false"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -99,7 +98,7 @@ class BackendContractsTest(unittest.TestCase):
         self.assertIn("score", body)
         self.assertIn("user_outcome", body)
 
-    def test_quiz_generation_uses_built_in_questions_without_ai(self):
+    def test_quiz_generation_uses_built_in_questions(self):
         response = self.client.post(
             "/quiz/generate",
             json={"user_key": "contract_quiz_user", "lesson_ids": ["m1-l1"]},

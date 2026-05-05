@@ -7,7 +7,9 @@ import {
   type Module, type ProgressData, type ReviewQueue, type MasteryData, type NotebookSummary,
 } from "@/lib/api";
 import { getUserKey } from "@/lib/user";
-import { BookOpen, Star, Zap, ArrowRight, RefreshCw, AlertCircle, Box, Clock } from "lucide-react";
+import {
+  BookOpen, Star, Zap, ArrowRight, RefreshCw, AlertCircle, Box, Clock, CheckCircle,
+} from "lucide-react";
 
 interface DashboardClientProps {
   initialModules: Module[];
@@ -251,7 +253,7 @@ export default function DashboardClient({
                         : "bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/20"
                     }`}
                     >
-                      {isCompleted ? "✓" : module.order}
+                      {isCompleted ? <CheckCircle size={18} /> : module.order}
                     </div>
 
                     <div className="px-3 py-1 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs font-semibold text-[var(--color-text-secondary)] flex gap-1 items-center">
@@ -307,7 +309,7 @@ export default function DashboardClient({
                         : "bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/20"
                     }`}
                     >
-                      {isCompleted ? "✓" : "N"}
+                      {isCompleted ? <CheckCircle size={18} /> : "N"}
                     </div>
 
                     <div className="px-3 py-1 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs font-semibold text-[var(--color-text-secondary)] flex gap-1 items-center">

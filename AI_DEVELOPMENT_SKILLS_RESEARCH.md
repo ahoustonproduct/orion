@@ -243,7 +243,8 @@ security issues. Gitleaks detects committed secrets.
 Benefit for Orion:
 
 - catches risks before we accidentally normalize them
-- especially relevant because Orion has a Python execution route and AI routes
+- especially relevant because Orion has a Python execution route and saved curriculum
+  imports
 - protects local secrets, API keys, and future imported curriculum data
 
 How we would use it:
@@ -258,7 +259,6 @@ How we would use it:
   - CodeQL later if/when the repo is pushed to GitHub Actions
 - require extra review when touching:
   - `backend/routes/execute.py`
-  - `backend/routes/ai.py`
   - notebook import/storage code
   - env/config handling
   - markdown rendering and sanitization
@@ -476,8 +476,8 @@ Benefit:
 
 How we would use it:
 
-- run when backend routes, execution sandbox, AI calls, imports, storage, markdown
-  rendering, or env handling change
+- run when backend routes, execution sandbox, imports, storage, markdown rendering, or
+  env handling change
 - combine OWASP review with Bandit, Gitleaks, Semgrep, and eventually CodeQL
 
 Priority:
@@ -537,7 +537,7 @@ For curriculum/product work:
 5. Run focused backend tests and frontend lint.
 6. Use `orion-code-review` for diff review.
 7. Use `orion-frontend-ux-audit` if UI changed.
-8. Use `orion-security-audit` if backend, execution, AI, import, storage, or markdown
+8. Use `orion-security-audit` if backend, execution, import, storage, or markdown
    changed.
 9. Update docs with `orion-doc-release`.
 10. End reports with "Questions for Hack".

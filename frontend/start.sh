@@ -5,7 +5,6 @@ PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_DIR="$PROJECT_DIR/../backend"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 FRONTEND_PORT="${FRONTEND_PORT:-3000}"
-export ORION_AI_ENABLED="${ORION_AI_ENABLED:-false}"
 
 echo "=== Orion Code: WashU FinTech Edition ==="
 echo ""
@@ -43,7 +42,6 @@ FRONTEND_PID=$!
 echo "=== App running ==="
 echo "   Frontend: http://localhost:${FRONTEND_PORT}"
 echo "   Backend:  http://localhost:${BACKEND_PORT}"
-echo "   AI:       optional, ORION_AI_ENABLED=${ORION_AI_ENABLED}"
 echo ""
 echo "Press Ctrl+C to stop both servers."
 

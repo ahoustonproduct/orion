@@ -1,25 +1,30 @@
+param([switch]$NoPause)
+
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "Orion-Common.ps1")
 
-function Ensure-Admin {
-  $Identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-  $Principal = [Security.Principal.WindowsPrincipal]::new($Identity)
-  if (-not $Principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Start-Process powershell.exe -Verb RunAs -ArgumentList @(
-      "-NoProfile",
-      "-ExecutionPolicy",
-      "Bypass",
-      "-File",
-      $PSCommandPath
-    )
-    exit
-  }
+try {
+  Write-Host "Stopping Orion..."
+  Stop-OrionAllTrackedProcesses
+  Start-Sleep -Milliseconds 750
+
+  Write-Host ""
+  Write-Host "Tracked Orion processes stopped."
+  Show-OrionPortSummary
+  Show-OrionLegacyServiceHint
+
+  Wait-OrionClose -NoPause:$NoPause
+  exit 0
 }
+catch {
+  Write-Host ""
+  Write-Host "Orion could not stop cleanly."
+  Write-Host "Where: Stop-Orion.ps1"
+  Write-Host "Error:"
+  Write-Host $_.Exception.Message
+  Write-Host ""
+  Show-OrionPortSummary
 
-Ensure-Admin
-
-Write-Host "Stopping Orion services..."
-Stop-Service orion-frontend -ErrorAction SilentlyContinue
-Stop-Service orion-backend -ErrorAction SilentlyContinue
-Write-Host "Orion services stopped."
-
-Read-Host "Press Enter to close"
+  Wait-OrionClose -NoPause:$NoPause
+  exit 1
+}

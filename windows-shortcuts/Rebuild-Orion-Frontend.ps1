@@ -1,52 +1,39 @@
+param([switch]$NoPause)
+
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "Orion-Common.ps1")
 
-function Ensure-Admin {
-  $Identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-  $Principal = [Security.Principal.WindowsPrincipal]::new($Identity)
-  if (-not $Principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Start-Process powershell.exe -Verb RunAs -ArgumentList @(
-      "-NoProfile",
-      "-ExecutionPolicy",
-      "Bypass",
-      "-File",
-      $PSCommandPath
-    )
-    exit
+$Step = "frontend rebuild"
+
+try {
+  Write-Host "Rebuilding Orion frontend..."
+  $Step = "frontend dependencies"
+  Ensure-OrionFrontendDependencies
+
+  $Step = "frontend build"
+  Invoke-OrionFrontendBuild -Force
+
+  Write-Host ""
+  Write-Host "Frontend rebuild complete. Restarting Orion..."
+
+  $PowerShell = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
+  $RestartScript = Join-Path $PSScriptRoot "Restart-Orion.ps1"
+  $RestartArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $RestartScript)
+  if ($NoPause) {
+    $RestartArgs += "-NoPause"
   }
+
+  & $PowerShell @RestartArgs
+  exit $LASTEXITCODE
 }
+catch {
+  Write-Host ""
+  Write-Host "Frontend rebuild failed."
+  Write-Host ("Where: Rebuild-Orion-Frontend.ps1 - {0}" -f $Step)
+  Write-Host "Error:"
+  Write-Host $_.Exception.Message
+  Write-Host ("Logs: {0}" -f $Script:LogDir)
 
-function Wait-ForUrl([string]$Url, [int]$Seconds = 30) {
-  $Deadline = (Get-Date).AddSeconds($Seconds)
-  do {
-    try {
-      Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 3 | Out-Null
-      return $true
-    }
-    catch {
-      Start-Sleep -Seconds 1
-    }
-  } while ((Get-Date) -lt $Deadline)
-
-  return $false
+  Wait-OrionClose -NoPause:$NoPause
+  exit 1
 }
-
-Ensure-Admin
-
-$FrontendDir = "C:\Users\Hack\orion\frontend"
-Set-Location $FrontendDir
-
-Write-Host "Building Orion frontend..."
-npm run build
-
-Write-Host "Restarting Orion frontend service..."
-Restart-Service orion-frontend -Force
-
-if (Wait-ForUrl "http://localhost:3000/api/health" 30) {
-  Write-Host "Frontend rebuild complete."
-  Start-Process "http://localhost:3000/"
-}
-else {
-  Write-Host "Build completed, but the health check did not respond yet."
-}
-
-Read-Host "Press Enter to close"

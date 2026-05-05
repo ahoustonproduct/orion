@@ -16,15 +16,11 @@ backend/**/__pycache__/
 .codex-install-logs/
 .codex-run-logs/
 
-# Databases — never commit sqlite files anywhere in the tree
+# Databases - never commit sqlite files anywhere in the tree
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
-
-# Training artifacts
-tutor-training/orion-fused-safetensors/
-tutor-training/adapters/*.safetensors
 
 # General
 .DS_Store

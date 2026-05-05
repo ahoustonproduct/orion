@@ -1,3 +1,0 @@
-[submodule "tutor-training/llama.cpp"]
-	path = tutor-training/llama.cpp
-	url = https://github.com/ggerganov/llama.cpp.git

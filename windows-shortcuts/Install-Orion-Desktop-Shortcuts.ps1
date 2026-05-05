@@ -1,6 +1,8 @@
+param([switch]$NoPause)
+
 $ErrorActionPreference = "Stop"
 
-$OrionRoot = "C:\Users\Hack\orion"
+$OrionRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $ShortcutDir = Join-Path $OrionRoot "windows-shortcuts"
 $Desktop = [Environment]::GetFolderPath("Desktop")
 $PowerShell = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
@@ -41,10 +43,16 @@ function New-UrlShortcut {
 }
 
 New-UrlShortcut -Name "Open Orion" -Url "http://localhost:3000/"
-New-PowerShellShortcut -Name "Orion Start" -Script "Start-Orion.ps1" -Description "Start Orion backend and frontend services" -IconLocation "$env:SystemRoot\System32\shell32.dll,167"
-New-PowerShellShortcut -Name "Orion Restart" -Script "Restart-Orion.ps1" -Description "Restart Orion backend and frontend services" -IconLocation "$env:SystemRoot\System32\shell32.dll,238"
-New-PowerShellShortcut -Name "Orion Stop" -Script "Stop-Orion.ps1" -Description "Stop Orion backend and frontend services" -IconLocation "$env:SystemRoot\System32\shell32.dll,109"
-New-PowerShellShortcut -Name "Orion Rebuild Frontend" -Script "Rebuild-Orion-Frontend.ps1" -Description "Build frontend and restart Orion frontend service" -IconLocation "$env:SystemRoot\System32\shell32.dll,269"
-New-PowerShellShortcut -Name "Orion Status" -Script "Orion-Status.ps1" -Description "Show Orion service and health status" -IconLocation "$env:SystemRoot\System32\shell32.dll,23"
+New-PowerShellShortcut -Name "Orion" -Script "Start-Orion.ps1" -Description "Start Orion as a local desktop app" -IconLocation "$env:SystemRoot\System32\shell32.dll,167"
+New-PowerShellShortcut -Name "Orion Start" -Script "Start-Orion.ps1" -Description "Start Orion as a local desktop app" -IconLocation "$env:SystemRoot\System32\shell32.dll,167"
+New-PowerShellShortcut -Name "Orion Stop" -Script "Stop-Orion.ps1" -Description "Stop Orion frontend and backend processes" -IconLocation "$env:SystemRoot\System32\shell32.dll,109"
+New-PowerShellShortcut -Name "Orion Restart" -Script "Restart-Orion.ps1" -Description "Restart Orion frontend and backend processes" -IconLocation "$env:SystemRoot\System32\shell32.dll,238"
+New-PowerShellShortcut -Name "Orion Status" -Script "Orion-Status.ps1" -Description "Show Orion ports, health, and logs" -IconLocation "$env:SystemRoot\System32\shell32.dll,23"
+New-PowerShellShortcut -Name "Orion Rebuild Frontend" -Script "Rebuild-Orion-Frontend.ps1" -Description "Rebuild Orion frontend and restart the app" -IconLocation "$env:SystemRoot\System32\shell32.dll,269"
+New-PowerShellShortcut -Name "Orion Remove Old Services" -Script "Remove-Old-Orion-Services.ps1" -Description "Remove the old admin-owned Orion Windows services" -IconLocation "$env:SystemRoot\System32\shell32.dll,131"
 
-Write-Host "Created Orion desktop shortcuts in $Desktop"
+Write-Host ("Created Orion desktop shortcuts in {0}" -f $Desktop)
+Write-Host "Use 'Orion Remove Old Services' once if ports 3000 or 8000 are still owned by old services."
+if (-not $NoPause) {
+  Read-Host "Press Enter to close" | Out-Null
+}
