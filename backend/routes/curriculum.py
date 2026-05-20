@@ -160,6 +160,7 @@ def export_module_study_packet(module_id: str):
         from glossary_data import GLOSSARY
         # Map module ids to glossary module names
         module_glossary_map = {
+            "core-analytics-statistics": "Data Analytics",
             "module1": "Python",
             "module2": "Data Analytics",
             "module3": "SQL",

@@ -1,6 +1,9 @@
 import os
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.datastructures import MutableHeaders
 from models import create_tables
 from init_sandbox import init_sandbox
 from routes.curriculum import router as curriculum_router
@@ -12,9 +15,6 @@ from routes.review import router as review_router
 from routes.notebooks import router as notebooks_router
 from routes.decision import router as decision_router
 
-import logging
-from fastapi.responses import JSONResponse
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -22,6 +22,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Orion Code API", version="1.0.0")
+
+SECURITY_HEADERS = {
+    "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+}
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
@@ -49,6 +59,28 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
+
+
+class SecurityHeadersMiddleware:
+    def __init__(self, inner_app):
+        self.inner_app = inner_app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.inner_app(scope, receive, send)
+            return
+
+        async def send_with_security_headers(message):
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                for header, value in SECURITY_HEADERS.items():
+                    headers.setdefault(header, value)
+            await send(message)
+
+        await self.inner_app(scope, receive, send_with_security_headers)
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(curriculum_router)
 app.include_router(progress_router)

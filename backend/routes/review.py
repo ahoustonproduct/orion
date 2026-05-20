@@ -42,16 +42,31 @@ def get_review_queue(user_key: str, db: Session = Depends(get_db)):
                 continue
             for q in lesson["questions"]:
                 question_id_counter += 1
+                question_type = q.get("type", "multiple_choice")
+                answer = q.get("answer")
+                if question_type == "multiple_choice":
+                    correct_index = answer
+                elif question_type == "true_false":
+                    correct_index = 0 if answer is True else 1
+                else:
+                    correct_index = None
+
                 wrong_questions.append({
                     "id": question_id_counter,
                     "question_id": f"{p.lesson_id}_q_{q.get('question', '')[:20].replace(' ', '_')}",
                     "lesson_id": p.lesson_id,
                     "wrong_count": 1 if p.stars < 3 else 0,
                     "question": {
-                        "type": q.get("type", "multiple_choice"),
+                        "type": question_type,
                         "question": q.get("question", ""),
                         "options": q.get("options", []),
-                        "correct_index": q.get("answer") if q.get("type") == "multiple_choice" else None,
+                        "correct_index": correct_index,
+                        "answer": answer,
+                        "template": q.get("template"),
+                        "lines": q.get("lines", []),
+                        "broken_code": q.get("broken_code"),
+                        "accepted_answers": [str(answer)] if answer is not None else [],
+                        "sample_answer": str(answer) if answer is not None else "",
                         "explanation": q.get("explanation", ""),
                         "concept_tags": [lesson.get("title", "").lower().replace(" ", "_")],
                     },

@@ -1,6 +1,5 @@
-import { v4 as uuidv4 } from "uuid";
-
 const USER_KEY_STORAGE = "orion_user_key";
+const LOCAL_USER_KEY = "orion_local_user";
 
 /**
  * Read any ?key= param from the current URL and, if present, promote it
@@ -35,12 +34,8 @@ export function getUserKey(): string {
   const fromUrl = applyKeyFromUrl();
   if (fromUrl) return fromUrl;
 
-  let key = localStorage.getItem(USER_KEY_STORAGE);
-  if (!key) {
-    key = uuidv4();
-    localStorage.setItem(USER_KEY_STORAGE, key);
-  }
-  return key;
+  localStorage.setItem(USER_KEY_STORAGE, LOCAL_USER_KEY);
+  return LOCAL_USER_KEY;
 }
 
 export function setUserKey(key: string): void {

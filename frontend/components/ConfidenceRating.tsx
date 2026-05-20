@@ -8,11 +8,31 @@ interface ConfidenceRatingProps {
 }
 
 const LABELS: Record<number, { text: string; color: string; bg: string }> = {
-  1: { text: "Lost — I need to revisit this", color: "text-red-400", bg: "bg-red-500/20 border-red-500/50" },
-  2: { text: "Shaky — I sort of get it", color: "text-orange-400", bg: "bg-orange-500/20 border-orange-500/50" },
-  3: { text: "Okay — I get the basics", color: "text-yellow-400", bg: "bg-yellow-500/20 border-yellow-500/50" },
-  4: { text: "Good — mostly confident", color: "text-blue-400", bg: "bg-blue-500/20 border-blue-500/50" },
-  5: { text: "Solid — totally got it", color: "text-green-400", bg: "bg-green-500/20 border-green-500/50" },
+  1: {
+    text: "Lost - I need to revisit this",
+    color: "text-[var(--color-error)]",
+    bg: "bg-[var(--color-error)]/10 border-[var(--color-error)]/40",
+  },
+  2: {
+    text: "Shaky - I can follow parts of it",
+    color: "text-[var(--color-warning)]",
+    bg: "bg-[var(--color-warning)]/10 border-[var(--color-warning)]/40",
+  },
+  3: {
+    text: "Developing - I understand the main idea",
+    color: "text-[var(--color-star)]",
+    bg: "bg-[var(--color-star)]/10 border-[var(--color-star)]/40",
+  },
+  4: {
+    text: "Ready - I can apply it with notes",
+    color: "text-[var(--color-accent)]",
+    bg: "bg-[var(--color-accent)]/10 border-[var(--color-accent)]/40",
+  },
+  5: {
+    text: "Solid - I can explain and reuse it",
+    color: "text-[var(--color-success)]",
+    bg: "bg-[var(--color-success)]/10 border-[var(--color-success)]/40",
+  },
 };
 
 export default function ConfidenceRating({ lessonTitle, onRate }: ConfidenceRatingProps) {
@@ -27,40 +47,45 @@ export default function ConfidenceRating({ lessonTitle, onRate }: ConfidenceRati
   }
 
   return (
-    <div className="bg-[#1a1a2e] border border-[#2d2d4a] rounded-xl p-5 space-y-4">
-      <div>
-        <p className="text-sm font-semibold text-[#e2e8f0]">How confident do you feel about this?</p>
-        <p className="text-xs text-[#64748b] mt-0.5">{lessonTitle}</p>
-      </div>
+    <div className="bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl p-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+            Confidence check
+          </p>
+          <p className="text-xs text-[var(--color-text-secondary)] truncate">{lessonTitle}</p>
+        </div>
 
-      <div className="flex gap-2">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            onMouseEnter={() => setHovered(n)}
-            onMouseLeave={() => setHovered(null)}
-            onClick={() => handleSelect(n)}
-            className={`flex-1 py-3 rounded-lg border text-lg font-bold transition-all ${
-              selected === n
-                ? LABELS[n].bg + " " + LABELS[n].color
-                : active && active >= n
-                ? "bg-[#3b82f6]/15 border-[#3b82f6]/40 text-[#3b82f6]"
-                : "bg-[#0f0f1a] border-[#2d2d4a] text-[#475569] hover:border-[#3b82f6]/30"
-            }`}
-          >
-            {n}
-          </button>
-        ))}
+        <div className="flex gap-1.5 sm:min-w-64">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              onMouseEnter={() => setHovered(n)}
+              onMouseLeave={() => setHovered(null)}
+              onClick={() => handleSelect(n)}
+              aria-label={`Confidence ${n}`}
+              className={`h-8 flex-1 rounded-lg border text-sm font-semibold transition-all ${
+                selected === n
+                  ? `${LABELS[n].bg} ${LABELS[n].color}`
+                  : active && active >= n
+                    ? "bg-[var(--color-accent)]/10 border-[var(--color-accent)]/30 text-[var(--color-accent)]"
+                    : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/40"
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
       </div>
 
       {active && (
-        <p className={`text-sm font-medium ${LABELS[active].color} transition-all`}>
+        <p className={`mt-2 text-xs font-medium ${LABELS[active].color} transition-all`}>
           {LABELS[active].text}
         </p>
       )}
 
       {selected && (
-        <p className="text-xs text-[#475569]">
+        <p className="mt-1 text-xs text-[var(--color-text-muted)]">
           Orion will use this to adjust your study plan and focus areas.
         </p>
       )}

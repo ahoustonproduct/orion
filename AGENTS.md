@@ -17,6 +17,10 @@ natural.
 ## Current Product Decisions
 
 - Orion is for one local user.
+- Progress should follow Hack across this Windows device and the MacBook LAN URL. Use
+  the stable local user key `orion_local_user` by default so `localhost`, `127.0.0.1`,
+  and `http://<windows-lan-ip>:3000` do not split progress into separate browser
+  profiles.
 - Core Analytics comes first.
 - Python and SQL are beginner level.
 - Statistics is shaky and needs patient rebuilding.
@@ -139,6 +143,19 @@ Core Analytics work should map toward WashU common-core preparation:
 - DAT 5567 Prescriptive Analytics
 - MGT 5600 Professional Business Communication
 
+The live Core Analytics curriculum should be treated as a suite of full mini-courses:
+
+- Graduate Statistics for Financial Analysis: 30 lessons.
+- Python Foundations for Financial Analytics: 30 lessons.
+- Data Analytics with Python: 30 lessons.
+- Structured Data and SQL for Financial Analytics: 30 lessons.
+- Machine Learning for Financial Analytics: 30 lessons.
+- Build It Yourself - Analytics Systems and Tools: 30 lessons.
+
+Each live lesson should include a substantial Learn section, 20+ connected practice
+checks, and an executable challenge. A future quality pass should deepen lessons one
+by one without shrinking practice or disconnecting practice from the Learn section.
+
 Finance and fintech contexts to prefer:
 
 - cash flows
@@ -157,8 +174,15 @@ Finance and fintech contexts to prefer:
 - valuation
 - options, futures, and fixed income when ready
 
-The first full rebuild should begin with Statistics for Fintech Decisions, supported by
-small Python/pandas tasks.
+The first full rebuild should begin with Graduate Statistics for Financial Analysis as
+a 30-lesson mini-course, not a short survey. Each lesson should have a textbook-like
+Learn section, 15+ connected practice drills, and a coding challenge that directly
+applies the taught statistics through Python/math and financial analysis context.
+
+Module 1 should teach statistics from the viewpoint of financial analysis. Do not
+constrain it to portfolio risk, investment theory, risk modeling, or market mechanics.
+Curriculum should progress gradually: each topic must explicitly build on the object,
+calculation, notation, or model introduced immediately before it.
 
 ## Design Rules
 

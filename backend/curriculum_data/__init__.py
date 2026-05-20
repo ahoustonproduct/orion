@@ -1,7 +1,17 @@
-from .module1_python import MODULE_1
-from .module2_data_analytics import MODULE_2
-from .module3_sql import MODULE_3
-from .module4_ml import MODULE_4
-from .module5_build_it import MODULE_5
+from .core_analytics_statistics import MODULE_CORE_ANALYTICS_STATISTICS
+from .core_analytics_full_rebuild import (
+    MODULE_1_REBUILT as MODULE_1,
+    MODULE_2_REBUILT as MODULE_2,
+    MODULE_3_REBUILT as MODULE_3,
+    MODULE_4_REBUILT as MODULE_4,
+    MODULE_5_REBUILT as MODULE_5,
+)
 
-ALL_MODULES = [MODULE_1, MODULE_2, MODULE_3, MODULE_4, MODULE_5]
+ALL_MODULES = [
+    MODULE_CORE_ANALYTICS_STATISTICS,
+    MODULE_1,
+    MODULE_2,
+    MODULE_3,
+    MODULE_4,
+    MODULE_5,
+]

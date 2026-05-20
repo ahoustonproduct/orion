@@ -1,95 +1,129 @@
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
-import subprocess
-import sqlite3
-import time
+from urllib.parse import urlparse
+import ast
+import logging
 import os
 import re
+import shutil
+import sqlite3
+import subprocess
 import sys
-import logging
+import tempfile
+import time
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/execute", tags=["execute"])
 
-# Data science libraries that users may import in the sandbox.
-# These are PRE-INSTALLED via backend/requirements.txt. There is deliberately
-# no install-on-demand path — that would (a) add 10–30 s of per-request latency,
-# (b) create an attack surface through pip, and (c) silently drift the sandbox.
+# Pre-installed libraries that are acceptable for Orion's local learning sandbox.
+# Keep this list narrow: the executor is for lessons, not general scripting.
 ALLOWED_DATA_SCIENCE_IMPORTS = {
-    "pandas", "numpy", "scipy", "sklearn", "matplotlib", "seaborn",
-    "statistics", "math", "json", "random", "datetime", "re",
+    "datetime",
+    "json",
+    "math",
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "random",
+    "re",
+    "scipy",
+    "seaborn",
+    "sklearn",
+    "statistics",
 }
 
-# Security patterns that are never allowed
-BLOCKED_PATTERNS: list[str] = [
-    r"\bimport\s+os\b",
-    r"\bimport\s+sys\b",
-    r"\bimport\s+subprocess\b",
-    r"\bimport\s+socket\b",
-    r"\bimport\s+shutil\b",
-    r"\bimport\s+pathlib\b",
-    r"\bimport\s+importlib\b",
-    r"\bimport\s+ctypes\b",
-    r"\b__import__\s*\(",
-    r"\bopen\s*\(",
-    r"\bexec\s*\(",
-    r"\beval\s*\(",
-    r"\bcompile\s*\(",
-    r"\bgetattr\s*\(",
-    r"\bsetattr\s*\(",
-    r"\bdelattr\s*\(",
-    r"\bglobals\s*\(",
-    r"\blocals\s*\(",
-    r"\bvars\s*\(",
-    r"\b__builtins__\b",
-    r"\b__class__\b",
-    r"\b__subclasses__\b",
-]
+BLOCKED_IMPORT_ROOTS = {
+    "builtins",
+    "ctypes",
+    "http",
+    "importlib",
+    "io",
+    "marshal",
+    "os",
+    "pathlib",
+    "pickle",
+    "requests",
+    "shutil",
+    "socket",
+    "subprocess",
+    "sys",
+    "tempfile",
+    "urllib",
+}
 
-_COMPILED_PATTERNS = [re.compile(p) for p in BLOCKED_PATTERNS]
+BLOCKED_IMPORT_PARTS = BLOCKED_IMPORT_ROOTS | {"popen2"}
 
+BLOCKED_CALL_NAMES = {
+    "__import__",
+    "breakpoint",
+    "compile",
+    "delattr",
+    "dir",
+    "eval",
+    "exec",
+    "getattr",
+    "globals",
+    "help",
+    "input",
+    "locals",
+    "memoryview",
+    "open",
+    "setattr",
+    "vars",
+}
 
-def _remote_execution_allowed(request: Request) -> bool:
-    if os.getenv("ORION_ALLOW_REMOTE_EXECUTION") == "1":
-        return True
-    host = request.client.host if request.client else ""
-    return host in {"127.0.0.1", "::1", "localhost", "testclient"}
+BLOCKED_ATTRIBUTE_NAMES = {
+    "connect",
+    "exec",
+    "execfile",
+    "load",
+    "loadtxt",
+    "open",
+    "popen",
+    "read",
+    "read_clipboard",
+    "read_csv",
+    "read_excel",
+    "read_feather",
+    "read_fwf",
+    "read_html",
+    "read_json",
+    "read_orc",
+    "read_parquet",
+    "read_pickle",
+    "read_sas",
+    "read_spss",
+    "read_sql",
+    "read_stata",
+    "read_table",
+    "read_xml",
+    "recv",
+    "run",
+    "save",
+    "savefig",
+    "savetxt",
+    "savez",
+    "savez_compressed",
+    "send",
+    "spawn",
+    "system",
+    "to_clipboard",
+    "to_csv",
+    "to_excel",
+    "to_feather",
+    "to_json",
+    "to_orc",
+    "to_parquet",
+    "to_pickle",
+    "to_sql",
+    "to_stata",
+}
 
-
-def _remote_execution_error() -> dict:
-    return {
-        "output": "",
-        "error": (
-            "Code execution is limited to local requests. "
-            "Set ORION_ALLOW_REMOTE_EXECUTION=1 only on a trusted network."
-        ),
-        "duration_ms": 0,
-    }
-
-
-def _is_unsafe(code: str) -> tuple[bool, str]:
-    for pattern_re, pattern_src in zip(_COMPILED_PATTERNS, BLOCKED_PATTERNS):
-        if pattern_re.search(code):
-            return True, pattern_src
-    return False, ""
-
+LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost", "testclient"}
 
 # Only .py filenames with no path components are acceptable in /execute/multi.
 _SAFE_FILENAME_RE = re.compile(r"^[A-Za-z0-9_\-.]+\.(py|txt)$")
-
-
-def _safe_filename(name: str) -> str | None:
-    """Return a safe basename, or None if the name is unacceptable."""
-    if not name:
-        return None
-    base = os.path.basename(name)
-    if base != name:
-        # Caller supplied a path component — reject.
-        return None
-    if not _SAFE_FILENAME_RE.match(base):
-        return None
-    return base
 
 
 class ExecutePythonRequest(BaseModel):
@@ -104,27 +138,132 @@ class ExecuteSQLRequest(BaseModel):
     query: str
 
 
+def _normalize_host(raw: str) -> str:
+    value = raw.strip()
+    if not value:
+        return ""
+    if "://" in value:
+        value = urlparse(value).hostname or ""
+    elif value.startswith("[") and "]" in value:
+        value = value[1:value.index("]")]
+    elif ":" in value:
+        value = value.split(":", 1)[0]
+    return value.lower()
+
+
+def _is_loopback_host(raw: str) -> bool:
+    return _normalize_host(raw) in LOOPBACK_HOSTS
+
+
+def _remote_execution_allowed(request: Request) -> bool:
+    if os.getenv("ORION_ALLOW_REMOTE_EXECUTION") == "1":
+        return True
+
+    host_values = [request.client.host if request.client else ""]
+    forwarded_for = request.headers.get("x-forwarded-for", "")
+    if forwarded_for:
+        host_values.append(forwarded_for.split(",", 1)[0])
+    host_values.append(request.headers.get("x-real-ip", ""))
+
+    for value in host_values:
+        if value and not _is_loopback_host(value):
+            return False
+
+    for header in ("origin", "referer", "x-forwarded-host"):
+        value = request.headers.get(header, "")
+        if value and not _is_loopback_host(value):
+            return False
+
+    non_empty_hosts = [value for value in host_values if value]
+    return bool(non_empty_hosts) and all(_is_loopback_host(value) for value in non_empty_hosts)
+
+
+def _remote_execution_error() -> dict:
+    return {
+        "output": "",
+        "error": (
+            "Code execution is limited to local requests. "
+            "Set ORION_ALLOW_REMOTE_EXECUTION=1 only on a trusted network."
+        ),
+        "duration_ms": 0,
+    }
+
+
+def _safe_filename(name: str) -> str | None:
+    if not name:
+        return None
+    base = os.path.basename(name)
+    if base != name:
+        return None
+    if not _SAFE_FILENAME_RE.match(base):
+        return None
+    return base
+
+
+def _import_is_allowed(module_name: str) -> bool:
+    parts = [part for part in module_name.split(".") if part]
+    if not parts:
+        return False
+    return parts[0] in ALLOWED_DATA_SCIENCE_IMPORTS and not any(
+        part in BLOCKED_IMPORT_PARTS for part in parts
+    )
+
+
+def _blocked_identifier(name: str) -> bool:
+    return name in BLOCKED_CALL_NAMES or name.startswith("__") or name.endswith("__")
+
+
+def _validate_python_code(code: str) -> tuple[bool, str]:
+    try:
+        tree = ast.parse(code)
+    except SyntaxError as exc:
+        return False, f"Syntax error: {exc.msg}"
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if not _import_is_allowed(alias.name):
+                    return False, f"Import not allowed: {alias.name}"
+
+        elif isinstance(node, ast.ImportFrom):
+            module_name = "." * node.level + (node.module or "")
+            if node.level or not _import_is_allowed(node.module or ""):
+                return False, f"Import not allowed: {module_name}"
+
+        elif isinstance(node, ast.Name) and _blocked_identifier(node.id):
+            return False, f"Name not allowed: {node.id}"
+
+        elif isinstance(node, ast.Attribute):
+            attr = node.attr
+            if attr in BLOCKED_ATTRIBUTE_NAMES or attr.startswith("__") or attr.endswith("__"):
+                return False, f"Attribute not allowed: {attr}"
+
+        elif isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Name) and _blocked_identifier(func.id):
+                return False, f"Call not allowed: {func.id}"
+            if isinstance(func, ast.Attribute):
+                attr = func.attr
+                if attr in BLOCKED_ATTRIBUTE_NAMES or attr.startswith("__") or attr.endswith("__"):
+                    return False, f"Call not allowed: {attr}"
+
+    return True, ""
+
+
 @router.post("/python")
 def execute_python(req: ExecutePythonRequest, request: Request) -> dict:
     if not _remote_execution_allowed(request):
         return _remote_execution_error()
 
     code = req.code
-    unsafe, matched = _is_unsafe(code)
-    if unsafe:
-        return {
-            "output": "",
-            "error": f"Blocked: unsafe pattern detected — {matched}",
-            "duration_ms": 0,
-        }
+    is_valid, reason = _validate_python_code(code)
+    if not is_valid:
+        return {"output": "", "error": f"Blocked: {reason}", "duration_ms": 0}
 
-    # Run user code directly. Allowed libs are pre-installed via requirements.txt;
-    # if a user imports something not installed, they'll get a clean ImportError
-    # in stderr, which is the correct pedagogical signal.
     start = time.monotonic()
     try:
         result = subprocess.run(
-            [sys.executable, "-I", "-c", code],  # -I: isolate from user site-packages/env
+            [sys.executable, "-I", "-c", code],
             capture_output=True,
             text=True,
             timeout=15,
@@ -136,18 +275,10 @@ def execute_python(req: ExecutePythonRequest, request: Request) -> dict:
             "duration_ms": duration_ms,
         }
     except subprocess.TimeoutExpired:
-        return {
-            "output": "",
-            "error": "Execution timed out (15 s limit)",
-            "duration_ms": 15000,
-        }
+        return {"output": "", "error": "Execution timed out (15 s limit)", "duration_ms": 15000}
     except Exception as exc:
-        logger.error(f"Python execution error: {exc}", exc_info=True)
-        return {
-            "output": "",
-            "error": str(exc),
-            "duration_ms": 0,
-        }
+        logger.error("Python execution error: %s", exc, exc_info=True)
+        return {"output": "", "error": str(exc), "duration_ms": 0}
 
 
 @router.post("/sql")
@@ -176,9 +307,13 @@ def execute_sql(req: ExecuteSQLRequest, request: Request) -> dict:
             "rows": [],
             "row_count": 0,
             "duration_ms": 0,
-            "error": "Semicolons are not allowed — only single SELECT queries permitted",
+            "error": "Semicolons are not allowed - only single SELECT queries permitted",
         }
-    forbidden = re.search(r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|EXEC|PRAGMA|ATTACH|DETACH)\b", query, re.IGNORECASE)
+    forbidden = re.search(
+        r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|EXEC|PRAGMA|ATTACH|DETACH)\b",
+        query,
+        re.IGNORECASE,
+    )
     if forbidden:
         return {
             "columns": [],
@@ -187,6 +322,7 @@ def execute_sql(req: ExecuteSQLRequest, request: Request) -> dict:
             "duration_ms": 0,
             "error": f"Keyword '{forbidden.group(1)}' is not allowed",
         }
+
     start = time.monotonic()
     try:
         db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sandbox.db")
@@ -206,59 +342,36 @@ def execute_sql(req: ExecuteSQLRequest, request: Request) -> dict:
         }
     except sqlite3.Error as exc:
         logger.info("SQL query failed in sandbox: %s", exc)
-        return {
-            "columns": [],
-            "rows": [],
-            "row_count": 0,
-            "duration_ms": 0,
-            "error": str(exc),
-        }
+        return {"columns": [], "rows": [], "row_count": 0, "duration_ms": 0, "error": str(exc)}
     except Exception as exc:
-        logger.error(f"SQL execution error: {exc}", exc_info=True)
-        return {
-            "columns": [],
-            "rows": [],
-            "row_count": 0,
-            "duration_ms": 0,
-            "error": str(exc),
-        }
+        logger.error("SQL execution error: %s", exc, exc_info=True)
+        return {"columns": [], "rows": [], "row_count": 0, "duration_ms": 0, "error": str(exc)}
 
 
 @router.post("/multi")
 def execute_multi(req: ExecuteMultiFileRequest, request: Request) -> dict:
-    """Execute a multi-file Python program. Runs the first .py file found."""
     if not _remote_execution_allowed(request):
         return {"error": _remote_execution_error()["error"], "outputs": {}, "duration_ms": 0}
 
-    files = req.files
-    if not files:
+    if not req.files:
         return {"error": "No files provided", "outputs": {}}
 
-    import tempfile
-    import shutil
-
-    # Validate every filename BEFORE touching the filesystem. Reject path-traversal,
-    # absolute paths, and non-.py/.txt files.
     sanitized: list[tuple[str, str]] = []
-    for file in files:
+    for file in req.files:
         raw_name = file.get("name", "")
         safe = _safe_filename(raw_name)
         if safe is None:
             return {
                 "error": f"Invalid filename: {raw_name!r}. "
-                         "Names must be simple basenames ending in .py or .txt.",
+                "Names must be simple basenames ending in .py or .txt.",
                 "outputs": {},
             }
         sanitized.append((safe, file.get("content", "")))
 
-    # Scan every file for unsafe patterns BEFORE writing anything.
     for name, content in sanitized:
-        unsafe, matched = _is_unsafe(content)
-        if unsafe:
-            return {
-                "error": f"Unsafe pattern in {name}: {matched}",
-                "outputs": {},
-            }
+        is_valid, reason = _validate_python_code(content)
+        if not is_valid:
+            return {"error": f"Blocked in {name}: {reason}", "outputs": {}}
 
     temp_dir = tempfile.mkdtemp(prefix="orion_exec_")
     try:
@@ -268,8 +381,9 @@ def execute_multi(req: ExecuteMultiFileRequest, request: Request) -> dict:
 
         for name, content in sanitized:
             file_path = os.path.join(temp_dir, name)
-            # Belt-and-suspenders: make sure the resolved path is still inside temp_dir.
-            if os.path.commonpath([os.path.realpath(file_path), os.path.realpath(temp_dir)]) != os.path.realpath(temp_dir):
+            if os.path.commonpath(
+                [os.path.realpath(file_path), os.path.realpath(temp_dir)]
+            ) != os.path.realpath(temp_dir):
                 return {"error": f"Refusing to write outside sandbox: {name}", "outputs": {}}
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(content)
@@ -287,30 +401,19 @@ def execute_multi(req: ExecuteMultiFileRequest, request: Request) -> dict:
         )
         duration_ms = int((time.monotonic() - start) * 1000)
 
-        outputs = {
-            "main": result.stdout[:5000],
-            "all_files": [n for n, _ in sanitized],
-        }
-        errors = {"main": result.stderr[:2000]} if result.returncode != 0 else None
-
         return {
-            "outputs": outputs,
-            "errors": errors,
+            "outputs": {
+                "main": result.stdout[:5000],
+                "all_files": [n for n, _ in sanitized],
+            },
+            "errors": {"main": result.stderr[:2000]} if result.returncode != 0 else None,
             "duration_ms": duration_ms,
         }
 
     except subprocess.TimeoutExpired:
-        return {
-            "error": "Execution timed out (20 s limit)",
-            "outputs": {},
-            "duration_ms": 20000,
-        }
+        return {"error": "Execution timed out (20 s limit)", "outputs": {}, "duration_ms": 20000}
     except Exception as exc:
-        logger.error(f"Multi-file execution error: {exc}", exc_info=True)
-        return {
-            "error": str(exc),
-            "outputs": {},
-            "duration_ms": 0,
-        }
+        logger.error("Multi-file execution error: %s", exc, exc_info=True)
+        return {"error": str(exc), "outputs": {}, "duration_ms": 0}
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)

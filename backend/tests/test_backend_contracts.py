@@ -70,17 +70,53 @@ class BackendContractsTest(unittest.TestCase):
         self.assertEqual(blocked.status_code, 200)
         self.assertIn("no such table", blocked.json()["error"])
 
+    def test_python_executor_blocks_unapproved_imports_and_remote_origins(self):
+        ok = self.client.post("/execute/python", json={"code": "import math\nprint(math.sqrt(16))"})
+        self.assertEqual(ok.status_code, 200)
+        self.assertIsNone(ok.json()["error"])
+        self.assertIn("4.0", ok.json()["output"])
+
+        blocked_import = self.client.post(
+            "/execute/python",
+            json={"code": "from os import getcwd\nprint(getcwd())"},
+        )
+        self.assertEqual(blocked_import.status_code, 200)
+        self.assertIn("Import not allowed", blocked_import.json()["error"])
+
+        blocked_network = self.client.post(
+            "/execute/python",
+            json={"code": "import urllib.request\nprint('network')"},
+        )
+        self.assertEqual(blocked_network.status_code, 200)
+        self.assertIn("Import not allowed", blocked_network.json()["error"])
+
+        remote_origin = self.client.post(
+            "/execute/python",
+            headers={"origin": "http://192.0.2.10:3000"},
+            json={"code": "print('remote')"},
+        )
+        self.assertEqual(remote_origin.status_code, 200)
+        self.assertIn("local requests", remote_origin.json()["error"])
+
+    def test_api_security_headers_are_present(self):
+        response = self.client.get("/health")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["x-content-type-options"], "nosniff")
+        self.assertEqual(response.headers["x-frame-options"], "DENY")
+        self.assertIn("frame-ancestors 'none'", response.headers["content-security-policy"])
+
     def test_curriculum_normalizes_mixed_lesson_shapes(self):
         module = self.client.get("/curriculum/modules/module3")
         self.assertEqual(module.status_code, 200)
+        self.assertEqual(len(module.json()["lessons"]), 30)
         self.assertEqual(module.json()["lessons"][8]["order"], 9)
-        self.assertEqual(module.json()["lessons"][8]["duration_min"], 20)
+        self.assertGreaterEqual(module.json()["lessons"][8]["duration_min"], 60)
 
         lesson = self.client.get("/curriculum/lessons/m3-l9")
         self.assertEqual(lesson.status_code, 200)
         body = lesson.json()
         self.assertIsInstance(body["concept"], str)
-        self.assertGreater(len(body["questions"]), 0)
+        self.assertGreaterEqual(len(body["questions"]), 20)
         self.assertIn("key_syntax", body["reference"])
 
     def test_decision_evaluate_contract(self):

@@ -1,4 +1,5 @@
 const API_BASE = "/api";
+const EXECUTION_API_BASE = process.env.NEXT_PUBLIC_EXECUTION_API_BASE || "http://127.0.0.1:8000";
 
 export async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`);
@@ -8,6 +9,16 @@ export async function get<T>(path: string): Promise<T> {
 
 export async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
+  return res.json();
+}
+
+export async function postExecution<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${EXECUTION_API_BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -234,10 +245,21 @@ export interface GuidedAnalysisBlock {
   type: "guided_analysis_block";
   dataset_table: string;
   intro: string;
-  steps: { step: number; instruction: string; code: string; output: string; business_implication: string }[];
+  steps: {
+    step: number;
+    instruction: string;
+    code: string;
+    output: string;
+    business_implication: string;
+  }[];
 }
 
-export type DecisionType = "numeric_threshold" | "policy_choice" | "budget_allocation" | "approval_matrix" | "written_justification";
+export type DecisionType =
+  | "numeric_threshold"
+  | "policy_choice"
+  | "budget_allocation"
+  | "approval_matrix"
+  | "written_justification";
 
 export interface DecisionBlock {
   type: "decision_block";
@@ -251,24 +273,48 @@ export interface DecisionBlock {
   categories?: { id: string; label: string; description: string }[];
   optimal_allocation?: Record<string, number>;
   segments?: { id: string; label: string; fraud_rate?: string; avg_amount?: number }[];
-  options_per_segment?: string[]; optimal_matrix?: Record<string, string>;
-  key_concepts_required?: string[]; sample_answer?: string;
+  options_per_segment?: string[];
+  optimal_matrix?: Record<string, string>;
+  key_concepts_required?: string[];
+  sample_answer?: string;
 }
 
 export interface TechnicalExerciseBlock {
   type: "technical_exercise_block";
   language: "python" | "sql";
-  standard: { instructions: string; starter_code: string; solution: string; hint: string; expected_output?: string };
-  challenge: { instructions: string; starter_code: string; solution: string; hint: string };
+  standard: {
+    instructions: string;
+    starter_code: string;
+    solution: string;
+    hint: string;
+    expected_output?: string;
+  };
+  challenge: {
+    instructions: string;
+    starter_code: string;
+    solution: string;
+    hint: string;
+  };
 }
 
 export interface QuizQuestion2 {
   id: string;
   concept_tags: string[];
-  type: "multiple_choice" | "short_answer" | "what_would_you_do" | "true_false";
+  type:
+    | "multiple_choice"
+    | "short_answer"
+    | "what_would_you_do"
+    | "true_false"
+    | "fill_blank"
+    | "code_ordering"
+    | "debug";
   question: string;
   options?: string[];
   correct_index?: number;
+  answer?: boolean | number | number[] | string;
+  template?: string;
+  lines?: string[];
+  broken_code?: string;
   explanation: string;
   accepted_answers?: string[];
   sample_answer?: string;
@@ -284,7 +330,13 @@ export interface SolutionDebriefBlock {
   type: "solution_debrief_block";
   optimal_decision: string;
   decision_rationale: string;
-  pl_comparison: { label: string; approval_rate?: string; default_rate?: string; monthly_profit?: string; verdict: string }[];
+  pl_comparison: {
+    label: string;
+    approval_rate?: string;
+    default_rate?: string;
+    monthly_profit?: string;
+    verdict: string;
+  }[];
   stakeholder_communication: string;
   key_takeaway: string;
   next_lessons?: string[];
@@ -297,8 +349,12 @@ export interface StubNoticeBlock {
 }
 
 export interface DecisionEvaluateResponse {
-  user_outcome: number; optimal_outcome: number; worst_outcome: number;
-  score: number; pl_delta: number; explanation: string;
+  user_outcome: number;
+  optimal_outcome: number;
+  worst_outcome: number;
+  score: number;
+  pl_delta: number;
+  explanation: string;
 }
 
 export interface MasteryData {
@@ -313,26 +369,48 @@ export interface ReviewQueue {
 }
 
 export interface ReviewQuestion {
-  id: number; question_id: string; lesson_id: string;
-  wrong_count: number; question: QuizQuestion2;
+  id: number;
+  question_id: string;
+  lesson_id: string;
+  wrong_count: number;
+  question: QuizQuestion2;
 }
 
 export interface ExecuteResult {
-  output: string; error: string | null; duration_ms: number;
+  output: string;
+  error: string | null;
+  duration_ms: number;
 }
 
 export interface SQLResult {
-  columns: string[]; rows: unknown[][]; row_count: number; duration_ms: number; error: string | null;
+  columns: string[];
+  rows: unknown[][];
+  row_count: number;
+  duration_ms: number;
+  error: string | null;
 }
 
-// ── New API Functions ─────────────────────────────────────────────────────────
+// API functions
 
-export const fetchFinTechLesson = (id: string) => get<FinTechLesson>(`/curriculum/lessons/${id}`);
-export const executePython = (code: string) => post<ExecuteResult>("/execute/python", { code });
-export const executeSQL = (query: string) => post<SQLResult>("/execute/sql", { query });
+export const fetchFinTechLesson = (id: string) =>
+  get<FinTechLesson>(`/curriculum/lessons/${id}`);
+export const executePython = (code: string) =>
+  postExecution<ExecuteResult>("/execute/python", { code });
+export const executeSQL = (query: string) =>
+  postExecution<SQLResult>("/execute/sql", { query });
 
-export const evaluateDecision = (lessonId: string, blockId: string, decisionType: string, userValue: unknown) =>
-  post<DecisionEvaluateResponse>("/decision/evaluate", { lesson_id: lessonId, block_id: blockId, decision_type: decisionType, user_value: userValue });
+export const evaluateDecision = (
+  lessonId: string,
+  blockId: string,
+  decisionType: string,
+  userValue: unknown,
+) =>
+  post<DecisionEvaluateResponse>("/decision/evaluate", {
+    lesson_id: lessonId,
+    block_id: blockId,
+    decision_type: decisionType,
+    user_value: userValue,
+  });
 
 export const fetchMastery = (userKey: string) => get<MasteryData>(`/mastery/${userKey}`);
 export const recordMastery = (userKey: string, conceptTag: string, correct: boolean) =>
@@ -342,8 +420,17 @@ export const fetchReviewQueue = (userKey: string) => get<ReviewQueue>(`/review/$
 export const recordReview = (userKey: string, questionId: string, correct: boolean) =>
   post<{ ok: boolean }>(`/review/${userKey}/record`, { question_id: questionId, correct });
 
-export const addToReviewQueue = (userKey: string, questionId: string, lessonId: string, questionJson: string) =>
-  post<{ ok: boolean }>(`/review/${userKey}/add`, { question_id: questionId, lesson_id: lessonId, question_json: questionJson });
+export const addToReviewQueue = (
+  userKey: string,
+  questionId: string,
+  lessonId: string,
+  questionJson: string,
+) =>
+  post<{ ok: boolean }>(`/review/${userKey}/add`, {
+    question_id: questionId,
+    lesson_id: lessonId,
+    question_json: questionJson,
+  });
 
 // Notebooks (saved study modules imported outside the app)
 

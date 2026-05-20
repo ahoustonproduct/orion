@@ -20,6 +20,62 @@ The app should help Hack earn high grades by building dependable skill in statis
 - Study target: 60 minutes per day
 - Main anxiety areas: finance math and programming
 - Gamification constraint: no streak mechanics
+- Device access: Hack should be able to use Orion from this Windows device and the
+  MacBook LAN URL without splitting progress across browser origins.
+
+## Current Rebuild Decisions
+
+- Local progress identity: use stable key `orion_local_user` by default for
+  `localhost`, `127.0.0.1`, and `http://<windows-lan-ip>:3000`.
+- First rebuild module: Graduate Statistics for Financial Analysis.
+- Core Analytics modules should be full mini-courses, not short surveys. The first
+  statistics rebuild is a 30-lesson sequence with textbook-like Learn sections, 15+
+  connected practice drills per lesson, and coding challenges that directly apply the
+  lesson material.
+- Module 1 should teach statistics from the viewpoint of financial analysis. It should
+  not be constrained to portfolio risk, investment theory, risk modeling, or financial
+  markets.
+- The first statistics module should be Python/math only. Excel and SQL can support
+  later Core Analytics modules, but Hack already knows enough Excel for this phase.
+- Finance formulas and statistics should be introduced as Python functions or NumPy
+  operations first, with formal notation explained beside the code.
+- The first datasets should be small built-in generic financial-analysis datasets so
+  lessons stay deterministic, local, beginner-readable, and testable.
+- First polished deliverable format: mixed analyst memo plus notebook.
+- Every lesson should progress gradually: each topic should explicitly build on the
+  object, calculation, notation, or model introduced immediately before it.
+
+## Near-Term Core Analytics Path
+
+1. Rebuild `Graduate Statistics for Financial Analysis` as a 30-lesson mini-course:
+   statistical tables, vectors, means, variance, standardization, covariance,
+   probability, distributions, simulation, estimation, MLE, confidence intervals,
+   hypothesis testing, regression, diagnostics, GLMs, mixed effects, PCA, factor
+   analysis, clustering, MANOVA, SEM foundations, bootstrap, Bayesian inference,
+   MCMC foundations, time series, ethics, and a mixed memo plus notebook.
+2. Rebuild review and drill coverage only from material actually taught in the new
+   lessons: Python syntax, formula implementation, notation-to-code translation,
+   calculation checks, debugging, and interpretation.
+3. Rebuild the next Core Analytics modules around Python/pandas, SQL, visualization,
+   A/B testing, finance math, and communication after the statistics spine is stable.
+4. Keep finance and fintech examples natural, but do not let a narrow business context
+   replace the statistical concept being taught.
+
+## Live Module Rebuild Scope
+
+The live Core Analytics curriculum is a 180-lesson suite:
+
+- Graduate Statistics for Financial Analysis: 30 lessons.
+- Python Foundations for Financial Analytics: 30 lessons.
+- Data Analytics with Python: 30 lessons.
+- Structured Data and SQL for Financial Analytics: 30 lessons.
+- Machine Learning for Financial Analytics: 30 lessons.
+- Build It Yourself - Analytics Systems and Tools: 30 lessons.
+
+Every rebuilt lesson should have a substantial Learn section, 20+ connected practice
+checks, and an executable coding challenge. The current implementation is a full
+structural pass across all modules. Future passes should deepen individual lessons to
+the same textbook depth as the first graduate statistics lesson.
 
 ## Curriculum Source
 
@@ -125,7 +181,6 @@ Advisor planning, enrolled-course tracking, and assignment calendar support are 
 
 ## Questions For Hack
 
-- Which Core Analytics course becomes the first full rebuild once the current product shell is stable?
-- Should formulas be introduced as named finance formulas first, or as Python functions first?
-- Which fintech domains feel most motivating for practice datasets: lending, markets, banking, payments, crypto, wealth management, or risk?
-- For polished deliverables, should the default format be memo, notebook, dashboard, or slide outline?
+Grade `CORE_ANALYTICS_GRADUATE_STATS_REBUILD_PLAN.md` before the lesson content is
+rewritten in the app. The next implementation choice is whether to rebuild Lessons 1
+to 5 in full depth first, or create all 30 lesson shells and then deepen them in order.

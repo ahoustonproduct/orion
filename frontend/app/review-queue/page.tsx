@@ -5,6 +5,32 @@ import { fetchReviewQueue, recordReview, type ReviewQueue, type ReviewQuestion }
 import { getUserKey } from "@/lib/user";
 import { RefreshCw, CheckCircle, XCircle, ChevronRight } from "lucide-react";
 
+type ReviewAnswer = string | number | boolean;
+
+function normalizeAnswer(value: unknown) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function isCorrectAnswer(q: ReviewQuestion["question"], userAns: ReviewAnswer | undefined) {
+  if (userAns === undefined) return false;
+
+  if (q.type === "multiple_choice") {
+    return userAns === q.correct_index || userAns === q.answer;
+  }
+
+  if (q.type === "true_false") {
+    return userAns === q.answer || userAns === (q.correct_index === 0);
+  }
+
+  if (q.type === "fill_blank") {
+    const normalized = normalizeAnswer(userAns);
+    const accepted = q.accepted_answers?.length ? q.accepted_answers : [q.answer];
+    return accepted.some((answer) => normalizeAnswer(answer) === normalized);
+  }
+
+  return normalizeAnswer(userAns).length > 0;
+}
+
 export default function ReviewQueuePage() {
   const userKey = getUserKey();
   const [queue, setQueue] = useState<ReviewQueue | null>(null);
@@ -67,7 +93,7 @@ export default function ReviewQueuePage() {
 
   const handleReveal = async () => {
     const userAns = answers[currentIdx];
-    const isCorrect = q.type === "multiple_choice" ? userAns === q.correct_index : !!userAns;
+    const isCorrect = isCorrectAnswer(q, userAns);
     setRevealed((prev) => ({ ...prev, [currentIdx]: true }));
     try {
       await recordReview(userKey, item.question_id, isCorrect);
@@ -159,7 +185,7 @@ export default function ReviewQueuePage() {
       {q.type === "true_false" && (
         <div className="flex gap-3">
           {[true, false].map((val) => {
-            const isCorrect = val === (q.correct_index === 0);
+            const isCorrect = isCorrectAnswer(q, val);
             const isSelected = answers[currentIdx] === val;
             return (
               <button
@@ -180,8 +206,45 @@ export default function ReviewQueuePage() {
         </div>
       )}
 
+      {/* Fill in the blank */}
+      {q.type === "fill_blank" && (
+        <div className="space-y-3">
+          {q.template && (
+            <code className="block bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm font-mono text-[var(--color-text-primary)]">
+              {q.template}
+            </code>
+          )}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              type="text"
+              value={(answers[currentIdx] as string) ?? ""}
+              onChange={(e) => !isRevealed && setAnswers((prev) => ({ ...prev, [currentIdx]: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && answers[currentIdx] !== undefined && !isRevealed) {
+                  void handleReveal();
+                }
+              }}
+              disabled={!!isRevealed}
+              placeholder="Type the missing code..."
+              className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] outline-none transition-all focus:border-[var(--color-accent)] disabled:opacity-70"
+            />
+            {isRevealed && (
+              <div
+                className={`rounded-xl border px-4 py-3 text-sm font-medium ${
+                  isCorrectAnswer(q, answers[currentIdx])
+                    ? "border-[var(--color-success)] bg-[var(--color-success)]/10 text-[var(--color-success)]"
+                    : "border-[var(--color-error)] bg-[var(--color-error)]/10 text-[var(--color-error)]"
+                }`}
+              >
+                {isCorrectAnswer(q, answers[currentIdx]) ? "Correct" : "Review"}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Short answer / WWYD */}
-      {(q.type === "short_answer" || q.type === "what_would_you_do") && (
+      {(q.type === "short_answer" || q.type === "what_would_you_do" || q.type === "debug" || q.type === "code_ordering") && (
         <textarea
           value={(answers[currentIdx] as string) ?? ""}
           onChange={(e) => !isRevealed && setAnswers((prev) => ({ ...prev, [currentIdx]: e.target.value }))}
