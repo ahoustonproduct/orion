@@ -21,6 +21,9 @@ try {
 
   $env:BACKEND_URL = $Script:BackendUrl
   $env:ALLOWED_ORIGINS = ($Origins -join ",")
+  # The backend stays bound to 127.0.0.1; this lets the Next proxy accept
+  # code-runner requests from Hack's trusted LAN browser sessions.
+  $env:ORION_ALLOW_REMOTE_EXECUTION = "1"
   if ($LanIp) {
     $env:LAN_HOST = $LanIp
   }

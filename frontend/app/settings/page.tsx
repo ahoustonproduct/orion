@@ -10,13 +10,24 @@ export default function SettingsPage() {
     typeof window === "undefined" ? "" : getUserKey()
   );
   const [customKey, setCustomKey] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"key" | "link" | null>(null);
   const [showQR, setShowQR] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(userKey);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const syncUrl = typeof window !== "undefined" && userKey
+    ? `${window.location.origin}?key=${encodeURIComponent(userKey)}`
+    : "";
+
+  const copyText = async (value: string, kind: "key" | "link") => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(kind);
+      setStatusMessage(kind === "key" ? "Sync key copied." : "Sync link copied.");
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      setStatusMessage("Copy failed. Select the text and copy it manually.");
+    }
   };
 
   const handleApplyKey = () => {
@@ -25,12 +36,8 @@ export default function SettingsPage() {
     setUserKey(trimmed);
     setUserKeyState(trimmed);
     setCustomKey("");
-    alert("Sync key applied! Your progress will now sync to this key. Refresh to load progress from the server.");
+    setStatusMessage("Sync key applied. New progress will save to this key.");
   };
-
-  const syncUrl = typeof window !== "undefined"
-    ? `${window.location.origin}?key=${userKey}`
-    : "";
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
@@ -56,12 +63,21 @@ export default function SettingsPage() {
             {userKey}
           </code>
           <button
-            onClick={handleCopy}
+            onClick={() => copyText(userKey, "key")}
+            aria-label="Copy sync key"
             className="shrink-0 p-2 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all"
           >
-            {copied ? <Check size={14} className="text-[var(--color-success)]" /> : <Copy size={14} />}
+            {copied === "key" ? <Check size={14} className="text-[var(--color-success)]" /> : <Copy size={14} />}
           </button>
         </div>
+        <button
+          onClick={() => copyText(syncUrl, "link")}
+          disabled={!syncUrl}
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] transition-all hover:text-[var(--color-text-primary)] disabled:opacity-50"
+        >
+          {copied === "link" ? <Check size={13} className="text-[var(--color-success)]" /> : <Copy size={13} />}
+          Copy sync link
+        </button>
 
         {/* QR Code toggle */}
         <div>
@@ -74,7 +90,7 @@ export default function SettingsPage() {
           </button>
           {showQR && syncUrl && (
             <div className="mt-3 flex flex-col items-center gap-2 p-4 bg-white rounded-xl">
-              <QRCodeSVG value={syncUrl} size={180} />
+              <QRCodeSVG value={syncUrl} size={180} role="img" aria-label="QR code for this sync link" />
               <p className="text-xs text-black/60 text-center">
                 Scan with your iPhone camera to open Orion Code with your progress
               </p>
@@ -94,10 +110,12 @@ export default function SettingsPage() {
         </div>
         <div className="flex gap-2">
           <input
+            aria-label="Sync key"
             type="text"
             value={customKey}
             onChange={(e) => setCustomKey(e.target.value)}
             placeholder="Paste your sync key or pick a stable phrase..."
+            autoComplete="off"
             className="flex-1 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-xs text-[var(--color-text-primary)] font-mono placeholder-[var(--color-text-muted)] outline-none focus:border-[var(--color-accent)] transition-all"
           />
           <button
@@ -108,6 +126,11 @@ export default function SettingsPage() {
             Apply
           </button>
         </div>
+        {statusMessage && (
+          <p role="status" aria-live="polite" className="text-xs text-[var(--color-success)]">
+            {statusMessage}
+          </p>
+        )}
       </div>
 
       {/* App info */}

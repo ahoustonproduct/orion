@@ -39,6 +39,17 @@ The goal is better teaching.
 - The lesson avoids app self-reference.
 - The final bridge names what the next lesson will reuse.
 
+## Representative Practice Template
+
+Each lesson should include a small batch of connected practice checks that rehearse
+the same analytical move from several angles:
+
+- identify the prior object the calculation depends on
+- complete the exact code token or formula from Learn
+- inspect the intermediate object that could silently break the result
+- interpret the labeled output with a limitation
+- name the object that carries into the next lesson
+
 ## Current Quality Pass
 
 The first quality pass deepens Graduate Statistics lessons 2-5:

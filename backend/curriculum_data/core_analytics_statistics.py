@@ -1,8 +1,9 @@
 """Core Analytics: Statistics for Fintech Decisions.
 
 This module is intentionally built as a full mini-course rather than a short survey.
-It uses one cumulative portfolio-risk thread so beginner Python, pandas, statistics,
-and finance interpretation reinforce each other across twenty 60-minute lessons.
+It exports a 30-lesson Python/math-first statistics sequence for financial analysis,
+with finance context used as realistic data rather than a narrow portfolio-risk
+story.
 """
 
 
@@ -2020,7 +2021,7 @@ This dataset has no missing numeric values. The point is to build the habit:
 inspect missingness before trusting summary statistics
 ```
 
-## 15. Complete Lesson 1 Code
+## 15. Assemble The Full Code Path
 
 Here is the full flow in one place:
 
@@ -2791,7 +2792,7 @@ def _graduate_questions(spec):
         {
             "type": "multiple_choice",
             "question": f"What does this lesson add?",
-            "options": [spec["adds"], "A shortcut without a manual calculation", "A market forecast guarantee", "A new app feature"],
+            "options": [spec["adds"], "A shortcut without a manual calculation", "A market forecast guarantee", "A disconnected feature"],
             "answer": 0,
             "explanation": "The lesson adds one explicit statistical layer.",
         },
@@ -2823,7 +2824,7 @@ def _graduate_questions(spec):
         {
             "type": "multiple_choice",
             "question": f"What is the main object in this lesson?",
-            "options": [spec["object_name"], "A company name label only", "A streak counter", "A screenshot"],
+            "options": [spec["object_name"], "A company name label only", "A badge counter with no statistical meaning", "A screenshot"],
             "answer": 0,
             "explanation": f"The main object is {spec['object_name']}.",
         },
@@ -2921,10 +2922,16 @@ def _graduate_questions(spec):
             "explanation": "Model answers should show code and interpretation.",
         },
         {
-            "type": "true_false",
-            "question": "Self-referential questions about the app are less useful than questions about the statistic.",
-            "answer": True,
-            "explanation": "The curriculum should ask about statistics, Python, and math.",
+            "type": "multiple_choice",
+            "question": "Which mini-drill best belongs before the challenge?",
+            "options": [
+                f"Rebuild {spec['object_name']} and connect it to {spec['produces']}",
+                "Memorize the page order without writing code",
+                "Replace the calculation with a market opinion",
+                "Skip the labeled output and keep only a definition",
+            ],
+            "answer": 0,
+            "explanation": "The best drill rehearses the same object, output, and interpretation used in the challenge.",
         },
         {
             "type": "multiple_choice",
@@ -4398,7 +4405,7 @@ def _deep_stats_questions(spec):
                 spec["new_operation"],
                 "A disconnected market forecast",
                 "A written-only reflection",
-                "A streak counter",
+                "A badge counter with no statistical meaning",
             ],
             "answer": 0,
             "explanation": f"The new operation is {spec['new_operation']}.",
@@ -4417,7 +4424,7 @@ def _deep_stats_questions(spec):
                 spec["formula"],
                 "p-value = model accuracy / row count",
                 "X = a written opinion with no data",
-                "beta = the name of the app",
+                "beta = a product label with no connection to the model",
             ],
             "answer": 0,
             "explanation": "The correct formula is the one tied to the Python object built in the lesson.",
@@ -4427,7 +4434,7 @@ def _deep_stats_questions(spec):
             "question": "Which Python object should you inspect before trusting the final result?",
             "options": [
                 spec["inspection_object"],
-                "The browser URL",
+                "An unrelated page label",
                 "Only the lesson title",
                 "Only the final rounded number",
             ],
@@ -4544,7 +4551,7 @@ def _deep_stats_questions(spec):
             "options": [
                 spec["challenge_goal"],
                 "Only reading the Learn section",
-                "Only clicking Complete Lesson",
+                "Only marking the task done",
                 "Only defining vocabulary terms",
             ],
             "answer": 0,
@@ -4571,16 +4578,16 @@ def _deep_stats_questions(spec):
         {
             "type": "fill_blank",
             "question": "Complete the object name.",
-            "template": "This lesson produces: ___",
+            "template": "The calculation produces: ___",
             "answer": spec["produced_object"],
-            "explanation": f"The lesson produces {spec['produced_object']}.",
+            "explanation": f"The calculation produces {spec['produced_object']}.",
         },
         {
             "type": "multiple_choice",
             "question": "What should you check when a vector or statistic looks surprising?",
             "options": [
                 spec["debug_check"],
-                "Whether the app navigation changed",
+                "Whether an unrelated page label changed",
                 "Whether the lesson is long enough",
                 "Whether the output has enough decimal places only",
             ],
@@ -4588,10 +4595,16 @@ def _deep_stats_questions(spec):
             "explanation": "The best debug check returns to the data object and calculation chain.",
         },
         {
-            "type": "true_false",
-            "question": "The lesson should avoid self-referential questions about Orion and focus on statistics.",
-            "answer": True,
-            "explanation": "Questions should test the concept, code, and interpretation.",
+            "type": "multiple_choice",
+            "question": "Which repeatable practice pattern best fits this calculation?",
+            "options": [
+                f"Inspect {spec['inspection_object']}, print `{spec['first_label']}`, and interpret {spec['produced_object']}",
+                "Read the title and skip the code",
+                "Use the final label without checking the object",
+                "Answer from finance intuition without the statistic",
+            ],
+            "answer": 0,
+            "explanation": "The practice batch should connect inspection, labeled output, and interpretation.",
         },
         {
             "type": "multiple_choice",
@@ -4614,15 +4627,15 @@ def _deep_stats_questions(spec):
         },
         {
             "type": "multiple_choice",
-            "question": "What score would this lesson lose points for under the rubric?",
+            "question": "Which practice task best prepares the challenge?",
             "options": [
-                "If practice or challenge tasks ask for skills not taught in Learn",
-                "If it has multiple worked examples",
-                "If it explains notation beside code",
-                "If it states limitations",
+                spec["challenge_goal"],
+                "Memorize the lesson title without writing code",
+                "Skip the intermediate object and guess the label",
+                "Replace the calculation with a finance opinion",
             ],
             "answer": 0,
-            "explanation": "Alignment is part of the quality rubric.",
+            "explanation": "The strongest practice item rehearses the same code path required by the challenge.",
         },
     ]
 

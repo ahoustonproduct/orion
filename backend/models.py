@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, Column, String, Integer, Boolean, DateTime, JSON
+from sqlalchemy import create_engine, Column, String, Integer, Boolean, DateTime, JSON, UniqueConstraint
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from datetime import datetime, timezone
 
@@ -17,6 +17,9 @@ class Base(DeclarativeBase):
 
 class UserProgress(Base):
     __tablename__ = "user_progress"
+    __table_args__ = (
+        UniqueConstraint("user_key", "lesson_id", name="uq_user_progress_user_lesson"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_key = Column(String, index=True)
@@ -55,6 +58,9 @@ class Note(Base):
 
 class BookmarkedPosition(Base):
     __tablename__ = "bookmarked_positions"
+    __table_args__ = (
+        UniqueConstraint("user_key", "lesson_id", name="uq_bookmarked_positions_user_lesson"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_key = Column(String, index=True)
@@ -67,6 +73,9 @@ class BookmarkedPosition(Base):
 
 class ConfidenceRating(Base):
     __tablename__ = "confidence_ratings"
+    __table_args__ = (
+        UniqueConstraint("user_key", "lesson_id", name="uq_confidence_ratings_user_lesson"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_key = Column(String, index=True)
@@ -94,6 +103,42 @@ class Notebook(Base):
     module_data = Column(JSON, default=dict)            # module dict with nested lessons
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ReviewItem(Base):
+    __tablename__ = "review_items"
+    __table_args__ = (
+        UniqueConstraint("user_key", "question_id", name="uq_review_items_user_question"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_key = Column(String, index=True)
+    question_id = Column(String, index=True)
+    lesson_id = Column(String, index=True)
+    question_json = Column(JSON, default=dict)
+    wrong_count = Column(Integer, default=0)
+    correct_count = Column(Integer, default=0)
+    last_missed_at = Column(DateTime)
+    last_reviewed_at = Column(DateTime)
+    next_due_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    resolved = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ConceptMastery(Base):
+    __tablename__ = "concept_mastery"
+    __table_args__ = (
+        UniqueConstraint("user_key", "concept_tag", name="uq_concept_mastery_user_tag"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_key = Column(String, index=True)
+    concept_tag = Column(String, index=True)
+    score = Column(Integer, default=50)
+    attempts = Column(Integer, default=0)
+    correct_count = Column(Integer, default=0)
+    last_attempted_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 def get_db():

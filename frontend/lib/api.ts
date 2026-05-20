@@ -1,5 +1,5 @@
 const API_BASE = "/api";
-const EXECUTION_API_BASE = process.env.NEXT_PUBLIC_EXECUTION_API_BASE || "http://127.0.0.1:8000";
+const EXECUTION_API_BASE = process.env.NEXT_PUBLIC_EXECUTION_API_BASE || API_BASE;
 
 export async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`);

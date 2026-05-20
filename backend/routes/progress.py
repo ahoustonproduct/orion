@@ -61,16 +61,17 @@ def get_or_create_profile(user_key: str, db: Session, *, commit: bool = True) ->
 @router.get("/{user_key}")
 def get_progress(user_key: str, db: Session = Depends(get_db)):
     """Get all progress and profile for a user."""
-    progress = db.query(UserProgress).filter(UserProgress.user_key == user_key).all()
+    progress_rows = db.query(UserProgress).filter(UserProgress.user_key == user_key).all()
+    progress = _coalesce_progress_rows(progress_rows)
     profile = get_or_create_profile(user_key, db)
 
-    completed_lessons = {p.lesson_id for p in progress if p.completed}
+    completed_lessons = {p["lesson_id"] for p in progress if p["completed"]}
     module_status = {}
     for i, module in enumerate(ALL_MODULES):
         lesson_ids = {l["id"] for l in module["lessons"]}
         completed_in_module = lesson_ids & completed_lessons
         # Mastery: % with 3 stars
-        starred = sum(1 for p in progress if p.lesson_id in lesson_ids and p.stars == 3)
+        starred = sum(1 for p in progress if p["lesson_id"] in lesson_ids and p["stars"] == 3)
         module_status[module["id"]] = {
             "completed_count": len(completed_in_module),
             "total": len(lesson_ids),
@@ -82,7 +83,7 @@ def get_progress(user_key: str, db: Session = Depends(get_db)):
         lessons = (notebook.module_data or {}).get("lessons") or []
         lesson_ids = {l.get("id") for l in lessons if l.get("id")}
         completed_in_module = lesson_ids & completed_lessons
-        starred = sum(1 for p in progress if p.lesson_id in lesson_ids and p.stars == 3)
+        starred = sum(1 for p in progress if p["lesson_id"] in lesson_ids and p["stars"] == 3)
         module_status[notebook.id] = {
             "completed_count": len(completed_in_module),
             "total": len(lesson_ids),
@@ -93,18 +94,20 @@ def get_progress(user_key: str, db: Session = Depends(get_db)):
     # Confidence ratings
     confidence = db.query(ConfidenceRating).filter(
         ConfidenceRating.user_key == user_key
-    ).all()
-    confidence_map = {c.lesson_id: c.rating for c in confidence}
+    ).order_by(ConfidenceRating.rated_at.desc(), ConfidenceRating.id.desc()).all()
+    confidence_map = {}
+    for c in confidence:
+        confidence_map.setdefault(c.lesson_id, c.rating)
 
     return {
         "lessons": [
             {
-                "lesson_id": p.lesson_id,
-                "stars": p.stars,
-                "attempts": p.attempts,
-                "completed": p.completed,
-                "flagged": p.flagged,
-                "last_accessed": p.last_accessed.isoformat() if p.last_accessed else None,
+                "lesson_id": p["lesson_id"],
+                "stars": p["stars"],
+                "attempts": p["attempts"],
+                "completed": p["completed"],
+                "flagged": p["flagged"],
+                "last_accessed": _isoformat(p["last_accessed"]),
             }
             for p in progress
         ],
@@ -130,10 +133,10 @@ def update_lesson_progress(user_key: str, update: ProgressUpdate, db: Session = 
         ).first()
 
         if existing:
-            existing.stars = max(existing.stars, update.stars)
-            existing.attempts = update.attempts
-            existing.hints_used = update.hints_used
-            existing.completed = update.completed
+            existing.stars = max(existing.stars or 0, update.stars)
+            existing.attempts = max(existing.attempts or 0, update.attempts)
+            existing.hints_used = max(existing.hints_used or 0, update.hints_used)
+            existing.completed = bool(existing.completed or update.completed)
             existing.last_accessed = datetime.now(timezone.utc)
         else:
             existing = UserProgress(
@@ -148,8 +151,8 @@ def update_lesson_progress(user_key: str, update: ProgressUpdate, db: Session = 
 
         profile = get_or_create_profile(user_key, db, commit=False)
         _update_study_log(profile, update.time_spent_minutes or 0)
-        _update_weak_topics(profile, update.lesson_id, update.stars)
-        _update_mastered(profile, update.lesson_id, update.stars)
+        _update_weak_topics(profile, update.lesson_id, existing.stars or 0)
+        _update_mastered(profile, update.lesson_id, existing.stars or 0)
 
         db.commit()
         db.refresh(existing)
@@ -200,35 +203,34 @@ def save_note(user_key: str, update: NoteUpdate, db: Session = Depends(get_db)):
 @router.post("/{user_key}/bookmark")
 def save_bookmark(user_key: str, update: BookmarkUpdate, db: Session = Depends(get_db)):
     """Save the user's position within a lesson so they can resume."""
-    existing = db.query(BookmarkedPosition).filter(
-        BookmarkedPosition.user_key == user_key,
-        BookmarkedPosition.lesson_id == update.lesson_id
-    ).first()
+    try:
+        existing = _get_bookmark_row(db, user_key, update.lesson_id)
 
-    if existing:
-        existing.step_index = update.step_index
-        existing.sub_step = update.sub_step
-        existing.saved_code = update.saved_code
-        existing.updated_at = datetime.now(timezone.utc)
-    else:
-        db.add(BookmarkedPosition(
-            user_key=user_key,
-            lesson_id=update.lesson_id,
-            step_index=update.step_index,
-            sub_step=update.sub_step,
-            saved_code=update.saved_code,
-        ))
-    db.commit()
+        if existing:
+            existing.step_index = update.step_index
+            existing.sub_step = update.sub_step
+            if _field_was_provided(update, "saved_code"):
+                existing.saved_code = update.saved_code
+            existing.updated_at = datetime.now(timezone.utc)
+        else:
+            db.add(BookmarkedPosition(
+                user_key=user_key,
+                lesson_id=update.lesson_id,
+                step_index=update.step_index,
+                sub_step=update.sub_step,
+                saved_code=update.saved_code,
+            ))
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     return {"success": True}
 
 
 @router.get("/{user_key}/bookmark/{lesson_id}")
 def get_bookmark(user_key: str, lesson_id: str, db: Session = Depends(get_db)):
     """Get the saved position for a lesson."""
-    bookmark = db.query(BookmarkedPosition).filter(
-        BookmarkedPosition.user_key == user_key,
-        BookmarkedPosition.lesson_id == lesson_id
-    ).first()
+    bookmark = _get_bookmark_row(db, user_key, lesson_id)
 
     if not bookmark:
         return {"found": False, "step_index": 0, "sub_step": 0, "saved_code": ""}
@@ -248,7 +250,7 @@ def save_confidence(user_key: str, update: ConfidenceUpdate, db: Session = Depen
         existing = db.query(ConfidenceRating).filter(
             ConfidenceRating.user_key == user_key,
             ConfidenceRating.lesson_id == update.lesson_id
-        ).first()
+        ).order_by(ConfidenceRating.rated_at.desc(), ConfidenceRating.id.desc()).first()
 
         if existing:
             existing.rating = update.rating
@@ -298,16 +300,17 @@ def get_week_data(user_key: str, db: Session = Depends(get_db)):
     }
 
     # Lessons completed this week
-    week_progress = db.query(UserProgress).filter(
+    week_progress_rows = db.query(UserProgress).filter(
         UserProgress.user_key == user_key,
         UserProgress.completed == True,
         UserProgress.last_accessed >= datetime.combine(
             week_start, datetime.min.time()
         ).replace(tzinfo=timezone.utc)
     ).all()
+    week_progress = _coalesce_progress_rows(week_progress_rows)
 
     # Stars earned this week per lesson
-    stars_this_week = {p.lesson_id: p.stars for p in week_progress}
+    stars_this_week = {p["lesson_id"]: p["stars"] for p in week_progress}
 
     # Resolve lesson titles
     lesson_map = {}
@@ -315,7 +318,7 @@ def get_week_data(user_key: str, db: Session = Depends(get_db)):
         for lesson in module["lessons"]:
             lesson_map[lesson["id"]] = lesson["title"]
 
-    completed_titles = [lesson_map.get(p.lesson_id, p.lesson_id) for p in week_progress]
+    completed_titles = [lesson_map.get(p["lesson_id"], p["lesson_id"]) for p in week_progress]
 
     return {
         "study_log": week_log,
@@ -334,6 +337,70 @@ def _update_study_log(profile: LearningProfile, minutes: int) -> None:
 
     study_log[today_str] = study_log.get(today_str, 0) + minutes
     profile.study_log = study_log
+
+
+def _coalesce_progress_rows(rows: list[UserProgress]) -> list[dict]:
+    by_lesson: dict[str, dict] = {}
+    for row in rows:
+        current = by_lesson.get(row.lesson_id)
+        if current is None:
+            by_lesson[row.lesson_id] = {
+                "lesson_id": row.lesson_id,
+                "stars": row.stars or 0,
+                "attempts": row.attempts or 0,
+                "hints_used": row.hints_used or 0,
+                "completed": bool(row.completed),
+                "flagged": bool(row.flagged),
+                "last_accessed": row.last_accessed,
+            }
+            continue
+
+        current["stars"] = max(current["stars"], row.stars or 0)
+        current["attempts"] = max(current["attempts"], row.attempts or 0)
+        current["hints_used"] = max(current["hints_used"], row.hints_used or 0)
+        current["completed"] = bool(current["completed"] or row.completed)
+        current["flagged"] = bool(current["flagged"] or row.flagged)
+        if _later(row.last_accessed, current["last_accessed"]) is row.last_accessed:
+            current["last_accessed"] = row.last_accessed
+
+    return sorted(
+        by_lesson.values(),
+        key=lambda item: _datetime_sort_value(item["last_accessed"]),
+    )
+
+
+def _later(left: datetime | None, right: datetime | None) -> datetime | None:
+    if left is None:
+        return right
+    if right is None:
+        return left
+    return left if _datetime_sort_value(left) >= _datetime_sort_value(right) else right
+
+
+def _datetime_sort_value(value: datetime | None) -> float:
+    if value is None:
+        return 0.0
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.timestamp()
+
+
+def _isoformat(value: datetime | None) -> str | None:
+    return value.isoformat() if value else None
+
+
+def _field_was_provided(update: BaseModel, field_name: str) -> bool:
+    fields_set = getattr(update, "model_fields_set", None)
+    if fields_set is None:
+        fields_set = getattr(update, "__fields_set__", set())
+    return field_name in fields_set
+
+
+def _get_bookmark_row(db: Session, user_key: str, lesson_id: str) -> BookmarkedPosition | None:
+    return db.query(BookmarkedPosition).filter(
+        BookmarkedPosition.user_key == user_key,
+        BookmarkedPosition.lesson_id == lesson_id
+    ).order_by(BookmarkedPosition.updated_at.desc(), BookmarkedPosition.id.desc()).first()
 
 def _update_weak_topics(profile: LearningProfile, lesson_id: str, stars: int) -> None:
     """Mutate weak_topics on the profile in-place. Does NOT commit."""

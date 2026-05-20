@@ -13,7 +13,9 @@ def iter_builtin_lessons() -> Iterator[tuple[dict, dict, int]]:
 
 
 def notebook_id_from_lesson_id(lesson_id: str) -> str:
-    return lesson_id.split("-", 1)[0]
+    if "-l" in lesson_id:
+        return lesson_id.rsplit("-l", 1)[0]
+    return lesson_id
 
 
 def get_ready_notebooks(db: Session, user_key: str) -> list[Notebook]:
@@ -58,13 +60,15 @@ def resolve_lesson(
         if lesson["id"] == lesson_id:
             return module, lesson, index
 
-    if db is None or not lesson_id.startswith("notebook_"):
+    if db is None or not lesson_id.startswith("notebook_") or not user_key:
         return None
 
     notebook_id = notebook_id_from_lesson_id(lesson_id)
-    query = db.query(Notebook).filter(Notebook.id == notebook_id)
-    if user_key:
-        query = query.filter(Notebook.user_key == user_key)
+    query = db.query(Notebook).filter(
+        Notebook.id == notebook_id,
+        Notebook.user_key == user_key,
+        Notebook.status == "ready",
+    )
     notebook = query.first()
     if not notebook or not notebook.module_data:
         return None

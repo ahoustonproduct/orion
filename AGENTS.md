@@ -74,6 +74,8 @@ Known local URLs:
 - Backend health: `http://127.0.0.1:8000/health`
 - MacBook access: use the Windows PC LAN URL printed by `Orion Start`, usually
   `http://<windows-lan-ip>:3000`.
+- The Windows launcher enables trusted-LAN code execution through the Next proxy
+  while keeping the backend bound to `127.0.0.1`.
 
 Useful commands:
 

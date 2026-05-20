@@ -27,11 +27,13 @@ The app should help Hack earn high grades by building dependable skill in statis
 
 - Local progress identity: use stable key `orion_local_user` by default for
   `localhost`, `127.0.0.1`, and `http://<windows-lan-ip>:3000`.
+- The Windows launcher should allow trusted-LAN code execution through the Next
+  proxy so the MacBook can run Python challenges against the Windows backend.
 - First rebuild module: Graduate Statistics for Financial Analysis.
 - Core Analytics modules should be full mini-courses, not short surveys. The first
-  statistics rebuild is a 30-lesson sequence with textbook-like Learn sections, 15+
-  connected practice drills per lesson, and coding challenges that directly apply the
-  lesson material.
+  statistics rebuild is a 30-lesson sequence with textbook-like Learn sections, 20+
+  connected practice checks per lesson, and coding challenges that directly apply
+  the lesson material.
 - Module 1 should teach statistics from the viewpoint of financial analysis. It should
   not be constrained to portfolio risk, investment theory, risk modeling, or financial
   markets.
@@ -110,6 +112,10 @@ The Financial Technology Analytics destination should keep future examples point
 - blockchain and cryptocurrencies
 - financial markets
 - forecasting and risk analysis
+
+The current WashU alignment map lives in
+`CORE_ANALYTICS_WASHU_COVERAGE_MATRIX.md`. It should be updated whenever the live
+WashU curriculum page or the Core Analytics module set changes.
 
 ## Learning Experience Contract
 

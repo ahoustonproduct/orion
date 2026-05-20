@@ -67,7 +67,7 @@ The Learn section should be the longest section. It should include:
 - common mistakes and why they matter
 - a short model-answer interpretation
 
-Practice should include 15 to 25 connected drills:
+Practice should include 20 to 25 connected drills:
 
 - syntax drills
 - calculation drills
@@ -312,13 +312,13 @@ mean. Each step earns the next one.
 For every lesson, the in-app content should be built as:
 
 1. Learn: textbook-style chapter with code examples.
-2. Practice: 15 to 25 linked drills.
+2. Practice: 20 to 25 linked drills.
 3. Challenge: one multi-part coding homework problem.
 4. Review: generated only from concepts and code that were actually taught.
 5. Model answer: always available after the learner attempts the problem.
 
-The app should remove self-referential language such as "Why does Orion keep the
-Python function first?" Questions should ask about the concept, not the app. Better:
+The app should remove platform-referential lesson prompts. Questions should ask
+about the concept, not the app. Better:
 
 ```text
 Why write the calculation as a Python function before using a library shortcut?

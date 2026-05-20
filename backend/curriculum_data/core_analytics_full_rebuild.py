@@ -1,10 +1,11 @@
 """Rebuilt Core Analytics modules.
 
-These modules replace the older short-survey curriculum with full mini-courses. The
-goal is not to make every lesson perfect in one pass; it is to make every live module
-follow the same serious structure Hack asked for: gradual sequencing, financial
-analysis context, code-first work, math or tool reasoning beside the code, connected
-practice, and executable challenges.
+This file contains the five non-statistics companion modules. Together with
+`core_analytics_statistics.py`, Core Analytics exports six 30-lesson mini-courses.
+The goal is not to make every lesson perfect in one pass; it is to make every live
+module follow the same serious structure Hack asked for: gradual sequencing,
+financial analysis context, code-first work, math or tool reasoning beside the code,
+connected practice, and executable challenges.
 """
 
 
@@ -116,7 +117,7 @@ def _questions(spec):
         {
             "type": "multiple_choice",
             "question": "What is the new capability in this lesson?",
-            "options": [spec["adds"], "Skipping the calculation", "A portfolio-risk opinion", "A streak mechanic"],
+            "options": [spec["adds"], "Skipping the calculation", "A portfolio-risk opinion", "A superficial badge"],
             "answer": 0,
             "explanation": "The lesson adds one concrete capability.",
         },
@@ -209,12 +210,12 @@ def _questions(spec):
         },
         {
             "type": "multiple_choice",
-            "question": "What should practice questions be connected to?",
+            "question": "Which practice item best rehearses this skill?",
             "options": [
-                "The learn section and challenge task",
+                f"Rebuilding {spec['produces']} from {spec['prior']} with `{spec['token']}`",
                 "Random trivia",
-                "Only app navigation",
-                "Only confidence ratings",
+                "Only unrelated navigation details",
+                "Only a self-rating",
             ],
             "answer": 0,
             "explanation": "Practice should rehearse exactly what the lesson taught.",
@@ -249,12 +250,12 @@ def _questions(spec):
             "question": "Which artifact should the lesson help build toward?",
             "options": [
                 "A reproducible notebook, script, query, model, or tool",
-                "A streak badge",
+                "A superficial badge",
                 "A shallow definition list",
                 "A disconnected quiz",
             ],
             "answer": 0,
-            "explanation": "The app should build usable analytics artifacts.",
+            "explanation": "The course should build usable analytics artifacts.",
         },
         {
             "type": "fill_blank",

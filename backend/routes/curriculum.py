@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 from curriculum_data import ALL_MODULES
@@ -99,6 +99,10 @@ def get_modules():
             "order": m["order"],
             "locked": m["locked"],
             "lesson_count": len(m["lessons"]),
+            "lessons": [
+                lesson_summary(m, lesson, index)
+                for index, lesson in enumerate(m["lessons"], 1)
+            ],
         }
         for m in ALL_MODULES
     ]
@@ -109,7 +113,7 @@ def get_module(module_id: str):
     """Return a module with all lesson summaries (no full content)."""
     module = next((m for m in ALL_MODULES if m["id"] == module_id), None)
     if not module:
-        return {"error": "Module not found"}
+        raise HTTPException(status_code=404, detail="Module not found")
     return {
         **module,
         "lessons": [
@@ -135,7 +139,7 @@ def get_lesson(
         module, lesson, index = resolved
         return normalize_lesson(module, lesson, index)
 
-    return {"error": "Lesson not found"}
+    raise HTTPException(status_code=404, detail="Lesson not found")
 
 
 @router.get("/glossary")
